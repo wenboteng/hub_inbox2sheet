@@ -1,4 +1,4 @@
-import { startCrawl, initializeSearchIndex } from "@/lib/crawler";
+import { startCrawl, initializeSearchIndex } from "../lib/crawler";
 
 async function main() {
   try {
