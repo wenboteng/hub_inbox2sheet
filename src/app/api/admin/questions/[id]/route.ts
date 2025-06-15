@@ -8,24 +8,10 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
-    const { status, manualAnswer, isPublic } = body;
-
-    // Validate status if provided
-    if (status && !["pending", "answered", "rejected"].includes(status)) {
-      return NextResponse.json(
-        { error: "Invalid status" },
-        { status: 400 }
-      );
-    }
-
+    const { status } = await request.json();
     const question = await prisma.submittedQuestion.update({
       where: { id: params.id },
-      data: {
-        ...(status && { status }),
-        ...(manualAnswer !== undefined && { manualAnswer }),
-        ...(isPublic !== undefined && { isPublic }),
-      },
+      data: { status },
     });
 
     return NextResponse.json(question);
@@ -47,7 +33,7 @@ export async function DELETE(
       where: { id: params.id },
     });
 
-    return new NextResponse(null, { status: 204 });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting question:", error);
     return NextResponse.json(

@@ -22,6 +22,9 @@ export async function POST(request: Request) {
         platform,
         email: email || null,
         status: "pending",
+        tags: [],
+        isPublic: false,
+        aiGenerated: false,
       },
     });
 
