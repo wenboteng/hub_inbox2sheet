@@ -9,9 +9,13 @@ services:
       npm run build
     startCommand: npm start
     envVars:
+      - key: NODE_VERSION
+        value: 18.19.1
       - key: DATABASE_URL
         sync: false
-      - key: NEXT_PUBLIC_BASE_URL
+      - key: MEILISEARCH_URL
+        sync: false
+      - key: MEILISEARCH_KEY
         sync: false
     healthCheckPath: /
     autoDeploy: true 
