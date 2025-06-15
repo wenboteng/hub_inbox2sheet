@@ -8,6 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 model Answer {
@@ -20,6 +21,7 @@ model Answer {
   platform              String
   category              String
   tags                  String[]
+  embedding             Unsupported("vector(1536)") // OpenAI embedding dimension
   dateCollected         DateTime @default(now())
   lastCrawled           DateTime @default(now())
   crawlFrequency        String   @default("daily") // "daily" | "weekly" | "manual"
@@ -45,17 +47,20 @@ model CrawlJob {
 }
 
 model SubmittedQuestion {
-  id        String   @id @default(cuid())
-  question  String
-  platform  String
-  email     String?  // Optional email field
-  status    String   @default("pending")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  manualAnswer String? @db.Text
-  isPublic    Boolean @default(false)
-  sourceUrl   String?
-  tags        String[]
+  id            String   @id @default(cuid())
+  question      String
+  platform      String
+  email         String?  // Optional email field
+  status        String   @default("pending")
+  embedding     Unsupported("vector(1536)") // OpenAI embedding dimension
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  manualAnswer  String?  @db.Text
+  isPublic      Boolean  @default(false)
+  sourceUrl     String?
+  tags          String[]
+  aiGenerated   Boolean  @default(false)
+  tone          String?  // "professional", "friendly", "empathetic", etc.
 
   @@index([platform])
   @@index([status])
