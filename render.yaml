@@ -16,3 +16,16 @@ services:
         sync: false
     healthCheckPath: /
     autoDeploy: true 
+
+# Scheduled job to run the crawler daily at 2am UTC
+jobs:
+  - name: ota-crawler
+    type: cron
+    env: node
+    schedule: "0 2 * * *" # every day at 2am UTC
+    command: npx ts-node src/scripts/crawl.ts
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false 
