@@ -4,9 +4,7 @@ services:
     env: node
     buildCommand: |
       git pull origin main
-      npm install --legacy-peer-deps
-      npm install -D tailwindcss@latest postcss@latest autoprefixer@latest
-      npx prisma generate
+      npm install
       npm run build
     startCommand: npm start
     envVars:
