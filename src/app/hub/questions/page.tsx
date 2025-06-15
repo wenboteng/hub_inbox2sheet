@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Metadata } from "next";
 
 interface Question {
   id: string;
@@ -15,11 +14,6 @@ interface Question {
   sourceUrl?: string | null;
   tags: string[];
 }
-
-export const metadata: Metadata = {
-  title: "OTA Answer Hub - Knowledge Base",
-  description: "Find answers to common questions about Airbnb, Viator, GetYourGuide, and other OTA platforms.",
-};
 
 export default function QuestionsPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
