@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ota-answer-hub
+    env: node
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_BASE_URL
+        sync: false
+    healthCheckPath: /
+    autoDeploy: true 

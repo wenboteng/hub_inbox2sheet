@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Answer {
+  id            String   @id @default(cuid())
+  question      String
+  answer        String   @db.Text
+  sourceUrl     String
+  platform      String
+  category      String
+  tags          String[]
+  dateCollected DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([platform])
+  @@index([category])
+  @@index([tags])
+}
+
+model CrawlJob {
+  id        String   @id @default(cuid())
+  source    String
+  status    String   // "pending" | "running" | "completed" | "failed"
+  startedAt DateTime?
+  endedAt   DateTime?
+  error     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SubmittedQuestion {
+  id        String   @id @default(cuid())
+  question  String
+  platform  String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  manualAnswer String? @db.Text
+  isPublic    Boolean @default(false)
+  sourceUrl   String?
+  tags        String[]
+
+  @@index([platform])
+  @@index([status])
+} 

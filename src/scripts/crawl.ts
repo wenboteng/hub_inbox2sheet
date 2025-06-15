@@ -1,0 +1,19 @@
+import { startCrawl, initializeSearchIndex } from "@/lib/crawler";
+
+async function main() {
+  try {
+    console.log("Initializing search index...");
+    await initializeSearchIndex();
+
+    console.log("Starting crawl...");
+    await startCrawl();
+
+    console.log("Crawl completed successfully!");
+    process.exit(0);
+  } catch (error) {
+    console.error("Crawl failed:", error);
+    process.exit(1);
+  }
+}
+
+main(); 
