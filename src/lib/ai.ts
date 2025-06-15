@@ -82,8 +82,8 @@ export async function processSubmittedQuestion(questionId: string) {
   const similarQuestions = await findSimilarQuestions(question.question);
   
   // Generate answer using the context from similar questions
-  const context = similarQuestions
-    .map((q: any) => `${q.question}\n${q.answer}`)
+  const context = (similarQuestions as Array<{ question: string; answer: string }> )
+    .map((q) => `${q.question}\n${q.answer}`)
     .join('\n\n');
 
   const answer = await generateAnswer(question.question, context);
