@@ -2,7 +2,11 @@ services:
   - type: web
     name: ota-answer-hub
     env: node
-    buildCommand: npm install && npx prisma generate && npm run build
+    buildCommand: |
+      git pull origin main
+      npm install
+      npx prisma generate
+      npm run build
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
