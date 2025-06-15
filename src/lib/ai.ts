@@ -48,15 +48,17 @@ export async function generateAnswer(
     Generate a clear and accurate answer based on the provided context.
     Adjust your tone to be ${tone}.
     If the context doesn't contain enough information, acknowledge the limitations.
-    Format the response in a clear, structured way.`;
+    Format the response in a clear, structured way.
+    Keep responses concise and to the point.`;
 
   const response = await openai.chat.completions.create({
-    model: "gpt-4-turbo-preview",
+    model: "gpt-4-0125-preview",
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: `Question: ${question}\n\nContext: ${context}` }
     ],
     temperature: 0.7,
+    max_tokens: 500,
   });
 
   return response.choices[0].message.content || '';

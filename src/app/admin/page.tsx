@@ -2,7 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { SubmittedQuestion } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+
+type SubmittedQuestion = {
+  id: string;
+  question: string;
+  platform: string;
+  email: string | null;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  manualAnswer: string | null;
+  isPublic: boolean;
+  sourceUrl: string | null;
+  tags: string[];
+  aiGenerated: boolean;
+  tone: string | null;
+};
 
 export default function AdminPage() {
   const [questions, setQuestions] = useState<SubmittedQuestion[]>([]);
