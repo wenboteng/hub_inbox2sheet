@@ -48,6 +48,7 @@ model SubmittedQuestion {
   id        String   @id @default(cuid())
   question  String
   platform  String
+  email     String?  // Optional email field
   status    String   @default("pending")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
