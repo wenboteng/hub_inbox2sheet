@@ -1,6 +1,7 @@
 import { chromium } from "playwright";
 import { PrismaClient } from "@prisma/client";
 import { MeiliSearch } from "meilisearch";
+import { parse } from "url";
 
 const prisma = new PrismaClient();
 const meiliSearch = new MeiliSearch({
@@ -8,274 +9,255 @@ const meiliSearch = new MeiliSearch({
   apiKey: process.env.MEILISEARCH_API_KEY,
 });
 
-interface CrawlSource {
-  name: string;
-  url: string;
-  type: "help_center" | "reddit" | "forum";
-  selectors: {
-    question: string;
-    answer: string;
-    category?: string;
-    tags?: string;
-  };
-  delay?: number;
-  extractTags?: (page: any, element: any) => Promise<string[]>;
+interface CrawlConfig {
+  baseUrl: string;
+  questionSelector: string;
+  answerSelector: string;
+  categorySelector?: string;
+  tagSelector?: string;
+  platform: string;
+  category: string;
 }
 
-const sources: CrawlSource[] = [
+const CRAWL_CONFIGS: CrawlConfig[] = [
   {
-    name: "Viator Partner Help",
-    url: "https://www.viator.com/partner/help",
-    type: "help_center",
-    selectors: {
-      question: "h1.article-title",
-      answer: ".article-content p:first-of-type",
-      category: ".breadcrumb-item:last-child",
-      tags: ".article-tags .tag",
-    },
-    delay: 2000,
-    extractTags: async (page, element) => {
-      const tags = await element.$$eval(".article-tags .tag", (tags: any[]) =>
-        tags.map((tag) => tag.textContent.trim())
-      );
-      return tags;
-    },
+    baseUrl: "https://www.viator.com/help/",
+    questionSelector: "h1",
+    answerSelector: "article p",
+    categorySelector: ".breadcrumb li:last-child",
+    platform: "Viator",
+    category: "Help Center",
   },
   {
-    name: "Airbnb Host Help",
-    url: "https://www.airbnb.com/help/hosting",
-    type: "help_center",
-    selectors: {
-      question: "h1.article-title",
-      answer: ".article-content .article-body p:first-of-type",
-      category: ".breadcrumb-item:last-child",
-      tags: ".article-tags .tag",
-    },
-    delay: 2000,
-    extractTags: async (page, element) => {
-      const tags = await element.$$eval(".article-tags .tag", (tags: any[]) =>
-        tags.map((tag) => tag.textContent.trim())
-      );
-      return tags;
-    },
+    baseUrl: "https://www.airbnb.com/help/",
+    questionSelector: "h1",
+    answerSelector: "article p",
+    categorySelector: ".breadcrumb li:last-child",
+    platform: "Airbnb",
+    category: "Help Center",
   },
   {
-    name: "Booking.com Partner Help",
-    url: "https://partner.booking.com/en-us/help",
-    type: "help_center",
-    selectors: {
-      question: "h1.article-title",
-      answer: ".article-content .article-body p:first-of-type",
-      category: ".breadcrumb-item:last-child",
-      tags: ".article-tags .tag",
-    },
-    delay: 2000,
-    extractTags: async (page, element) => {
-      const tags = await element.$$eval(".article-tags .tag", (tags: any[]) =>
-        tags.map((tag) => tag.textContent.trim())
-      );
-      return tags;
-    },
+    baseUrl: "https://partner.booking.com/en-us/help/",
+    questionSelector: "h1",
+    answerSelector: "article p",
+    categorySelector: ".breadcrumb li:last-child",
+    platform: "Booking.com",
+    category: "Partner Hub",
   },
   {
-    name: "GetYourGuide Supplier Support",
-    url: "https://supplier.getyourguide.com/help/",
-    type: "help_center",
-    selectors: {
-      question: "h1.article-title",
-      answer: ".article-content .article-body p:first-of-type",
-      category: ".breadcrumb-item:last-child",
-      tags: ".article-tags .tag",
-    },
-    delay: 2000,
-    extractTags: async (page, element) => {
-      const tags = await element.$$eval(".article-tags .tag", (tags: any[]) =>
-        tags.map((tag) => tag.textContent.trim())
-      );
-      return tags;
-    },
+    baseUrl: "https://supplier.getyourguide.com/help/",
+    questionSelector: "h1",
+    answerSelector: "article p",
+    categorySelector: ".breadcrumb li:last-child",
+    platform: "GetYourGuide",
+    category: "Supplier Support",
   },
   {
-    name: "Expedia Partner Central",
-    url: "https://apps.expediapartnercentral.com/help/",
-    type: "help_center",
-    selectors: {
-      question: "h1",
-      answer: ".article-content",
-      category: ".breadcrumb-item:last-child",
-    },
-    delay: 2000,
+    baseUrl: "https://apps.expediapartnercentral.com/help/",
+    questionSelector: "h1",
+    answerSelector: "article p",
+    categorySelector: ".breadcrumb li:last-child",
+    platform: "Expedia",
+    category: "Partner Central",
   },
   {
-    name: "TripAdvisor Experiences",
-    url: "https://www.tripadvisor.com/help/experiences",
-    type: "help_center",
-    selectors: {
-      question: "h1",
-      answer: ".article-content",
-      category: ".breadcrumb-item:last-child",
-    },
-    delay: 2000,
+    baseUrl: "https://www.tripadvisor.com/help/experiences",
+    questionSelector: "h1",
+    answerSelector: "article p",
+    categorySelector: ".breadcrumb li:last-child",
+    platform: "TripAdvisor",
+    category: "Experiences",
   },
 ];
 
-// Helper function to delay execution
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-export async function startCrawl() {
-  const browser = await chromium.launch();
-  const context = await browser.newContext();
-
-  for (const source of sources) {
-    let crawlJob;
-    try {
-      // Create crawl job record
-      crawlJob = await prisma.crawlJob.create({
-        data: {
-          source: source.name,
-          status: "running",
-          startedAt: new Date(),
-        },
-      });
-
-      const page = await context.newPage();
-      
-      // Check robots.txt before crawling
-      try {
-        const robotsResponse = await fetch(`${new URL(source.url).origin}/robots.txt`);
-        if (robotsResponse.ok) {
-          const robotsText = await robotsResponse.text();
-          if (robotsText.includes("Disallow: /help")) {
-            console.log(`Skipping ${source.name} due to robots.txt restrictions`);
-            continue;
-          }
-        }
-      } catch (error) {
-        console.warn(`Could not fetch robots.txt for ${source.name}:`, error);
-      }
-
-      await page.goto(source.url);
-
-      // Extract questions and answers based on source type
-      const answers = await extractAnswers(page, source);
-
-      // Save to database
-      for (const answer of answers) {
-        await prisma.answer.create({
-          data: {
-            question: answer.question,
-            answer: answer.answer,
-            sourceUrl: answer.sourceUrl,
-            platform: source.name,
-            category: answer.category || "General",
-            tags: answer.tags || [],
-          },
-        });
-
-        // Add delay between requests if specified
-        if (source.delay) {
-          await delay(source.delay);
-        }
-      }
-
-      // Update crawl job status
-      await prisma.crawlJob.update({
-        where: { id: crawlJob.id },
-        data: {
-          status: "completed",
-          endedAt: new Date(),
-        },
-      });
-
-      // Index in MeiliSearch
-      await meiliSearch.index("answers").addDocuments(answers);
-    } catch (error: any) {
-      console.error(`Error crawling ${source.name}:`, error);
-      
-      // Update crawl job with error
-      if (crawlJob) {
-        await prisma.crawlJob.update({
-          where: { id: crawlJob.id },
-          data: {
-            status: "failed",
-            endedAt: new Date(),
-            error: error.message,
-          },
-        });
-      }
-    }
-  }
-
-  await browser.close();
+async function extractFirstParagraph(text: string): Promise<string> {
+  const paragraphs = text.split("\n").filter((p) => p.trim().length > 0);
+  return paragraphs[0] || text;
 }
 
-async function extractAnswers(page: any, source: CrawlSource) {
-  const answers = [];
+// Add delay between requests to be respectful to servers
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  switch (source.type) {
-    case "help_center":
-      // Extract from help center pages
-      const articles = await page.$$("article");
-      for (const article of articles) {
-        try {
-          const question = await article.$eval(
-            source.selectors.question,
-            (el: any) => el.textContent.trim()
-          );
-          const answer = await article.$eval(
-            source.selectors.answer,
-            (el: any) => {
-              // Get first paragraph or first 200 characters
-              const text = el.textContent.trim();
-              const firstParagraph = text.split('\n')[0];
-              return firstParagraph.length > 200 
-                ? firstParagraph.substring(0, 200) + '...'
-                : firstParagraph;
-            }
-          );
-          const category = source.selectors.category
-            ? await article.$eval(
-                source.selectors.category,
-                (el: any) => el.textContent.trim()
-              )
-            : "General";
+async function crawlPage(url: string, config: CrawlConfig) {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    
+    // Set a reasonable timeout
+    page.setDefaultTimeout(30000);
+    
+    // Add user agent to be more respectful
+    await page.setExtraHTTPHeaders({
+      'User-Agent': 'Mozilla/5.0 (compatible; OTAAnswerHub/1.0; +https://otaanswerhub.com)'
+    });
 
-          const sourceUrl = await article.$eval("a", (el: any) => el.href);
+    await page.goto(url, { waitUntil: "networkidle" });
 
-          // Extract tags if available
-          let tags: string[] = [];
-          if (source.extractTags) {
-            try {
-              tags = await source.extractTags(page, article);
-            } catch (error) {
-              console.warn("Error extracting tags:", error);
-            }
-          }
+    // Extract question
+    const question = await page.textContent(config.questionSelector);
+    if (!question) return;
 
-          answers.push({
-            question,
-            answer,
-            category,
-            sourceUrl,
-            tags,
-          });
-        } catch (error) {
-          console.warn("Error extracting article:", error);
-          continue;
-        }
+    // Extract full answer
+    const answerElements = await page.$$(config.answerSelector);
+    const answerText = await Promise.all(
+      answerElements.map((el) => el.textContent())
+    );
+    const fullAnswer = answerText.join("\n\n");
+
+    // Extract first paragraph
+    const firstParagraph = await extractFirstParagraph(fullAnswer);
+
+    // Extract category if available
+    let category = config.category;
+    if (config.categorySelector) {
+      const categoryText = await page.textContent(config.categorySelector);
+      if (categoryText) {
+        category = categoryText.trim();
       }
-      break;
+    }
 
-    case "reddit":
-      // Add Reddit-specific extraction logic
-      break;
+    // Extract tags if available
+    let tags: string[] = [];
+    if (config.tagSelector) {
+      const tagElements = await page.$$(config.tagSelector);
+      const tagTexts = await Promise.all(
+        tagElements.map((el) => el.textContent())
+      );
+      tags = tagTexts.filter((text): text is string => text !== null);
+    }
 
-    case "forum":
-      // Add forum-specific extraction logic
-      break;
+    // Check for existing answer
+    const existingAnswer = await prisma.answer.findFirst({
+      where: {
+        question: question,
+        platform: config.platform,
+      },
+    });
+
+    if (existingAnswer) {
+      // Update existing answer
+      await prisma.answer.update({
+        where: { id: existingAnswer.id },
+        data: {
+          answer: fullAnswer,
+          firstAnswerParagraph: firstParagraph,
+          category,
+          tags,
+          lastCrawled: new Date(),
+        },
+      });
+    } else {
+      // Create new answer
+      await prisma.answer.create({
+        data: {
+          question,
+          answer: fullAnswer,
+          firstAnswerParagraph: firstParagraph,
+          sourceUrl: url,
+          platform: config.platform,
+          category,
+          tags,
+        },
+      });
+    }
+
+    // Add delay between requests
+    await delay(2000);
+  } catch (error) {
+    console.error(`Error crawling ${url}:`, error);
+  } finally {
+    await browser.close();
   }
+}
 
-  return answers;
+async function crawlPlatform(config: CrawlConfig) {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    
+    // Set a reasonable timeout
+    page.setDefaultTimeout(30000);
+    
+    // Add user agent to be more respectful
+    await page.setExtraHTTPHeaders({
+      'User-Agent': 'Mozilla/5.0 (compatible; OTAAnswerHub/1.0; +https://otaanswerhub.com)'
+    });
+
+    await page.goto(config.baseUrl, { waitUntil: "networkidle" });
+
+    // Find all article links
+    const links = await page.$$("a[href*='/help/']");
+    const urls = await Promise.all(
+      links.map((link) => link.getAttribute("href"))
+    );
+
+    // Filter and normalize URLs
+    const validUrls = urls
+      .filter((url): url is string => !!url)
+      .map((url) => {
+        if (url.startsWith("/")) {
+          return new URL(url, config.baseUrl).toString();
+        }
+        return url;
+      });
+
+    // Crawl each article
+    for (const url of validUrls) {
+      await crawlPage(url, config);
+      // Add delay between pages
+      await delay(2000);
+    }
+  } catch (error) {
+    console.error(`Error crawling platform ${config.platform}:`, error);
+  } finally {
+    await browser.close();
+  }
+}
+
+export async function startCrawl() {
+  console.log("Starting crawl...");
+  
+  // Create crawl job
+  const job = await prisma.crawlJob.create({
+    data: {
+      source: "all",
+      status: "running",
+      startedAt: new Date(),
+    },
+  });
+
+  try {
+    // Crawl each platform
+    for (const config of CRAWL_CONFIGS) {
+      console.log(`Crawling ${config.platform}...`);
+      await crawlPlatform(config);
+      // Add delay between platforms
+      await delay(5000);
+    }
+
+    // Update job status
+    await prisma.crawlJob.update({
+      where: { id: job.id },
+      data: {
+        status: "completed",
+        endedAt: new Date(),
+      },
+    });
+
+    console.log("Crawl completed successfully");
+  } catch (error) {
+    console.error("Crawl failed:", error);
+    
+    // Update job status
+    await prisma.crawlJob.update({
+      where: { id: job.id },
+      data: {
+        status: "failed",
+        endedAt: new Date(),
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
+  }
 }
 
 // Initialize MeiliSearch index
