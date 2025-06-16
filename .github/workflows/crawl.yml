@@ -38,9 +38,11 @@ jobs:
           echo "NEXT_PUBLIC_BASE_URL=${{ secrets.NEXT_PUBLIC_BASE_URL }}" >> .env
 
       - name: Show .env file
+        if: always()
         run: cat .env
 
       - name: Print env
+        if: always()
         run: printenv
 
       - name: Run migrations (migrate deploy)
