@@ -37,8 +37,18 @@ jobs:
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
           echo "NEXT_PUBLIC_BASE_URL=${{ secrets.NEXT_PUBLIC_BASE_URL }}" >> .env
 
-      - name: Run migrations
+      - name: Show .env file
+        run: cat .env
+
+      - name: Run migrations (migrate deploy)
         run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Run migrations (db push)
+        run: npx prisma db push
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Run crawler
         run: npx ts-node src/scripts/crawl.ts 
