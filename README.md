@@ -65,36 +65,28 @@ npm run dev
 
 4. Deploy!
 
+### Scheduled Crawler (Cron Job) on Render
+
+To run the crawler on a schedule (e.g., daily), create a new Cron Job service in Render with the following settings:
+
+- **Build Command:**
+  ```bash
+  npm install && npx playwright install && npx prisma generate && npm run build
+  ```
+- **Command:**
+  ```bash
+  npx ts-node scripts/crawl.ts
+  ```
+  > **Note:** Do **not** use `src/scripts/crawl.ts` as the path. The correct path is `scripts/crawl.ts` from the repo root.
+- **Environment Variables:**
+  - `DATABASE_URL`: Your PostgreSQL database URL
+  - `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answer-hub.onrender.com)
+  - `OPENAI_API_KEY`: Your OpenAI API key (if using AI features)
+- **Schedule:**
+  - Use a cron expression like `0 2 * * *` to run daily at 2am UTC
+
 ## Environment Variables
 
 Required environment variables:
 
-- `DATABASE_URL`: PostgreSQL connection string
-- `NEXT_PUBLIC_BASE_URL`: Your application's public URL
-
-## Database Schema
-
-The application uses Prisma with PostgreSQL. Key models:
-
-- `SubmittedQuestion`: Stores user-submitted questions and answers
-- `Answer`: Stores crawled answers from OTA help centers
-- `CrawlJob`: Tracks crawling jobs and their status
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## License
-
-MIT
-
-## Acknowledgments
-
-- [Next.js](https://nextjs.org/)
-- [Prisma](https://www.prisma.io/)
-- [MeiliSearch](https://www.meilisearch.com/)
-- [Playwright](https://playwright.dev/)
+- `
