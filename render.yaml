@@ -24,7 +24,7 @@ jobs:
     type: cron
     env: node
     schedule: "0 2 * * *" # every day at 2am UTC
-    command: cd /opt/render/project && npx ts-node src/scripts/crawl.ts
+    command: npx ts-node src/scripts/crawl.ts
     envVars:
       - key: DATABASE_URL
         sync: false
