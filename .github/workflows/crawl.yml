@@ -1,0 +1,37 @@
+name: Scheduled Crawler
+
+on:
+  schedule:
+    # Runs every day at 2am UTC; for testing, use '*/20 * * * *' for every 20 minutes
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run migrations
+        run: npx prisma migrate deploy
+
+      - name: Run crawler
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Add any other env vars your crawler needs
+        run: npx ts-node src/scripts/crawl.ts 
