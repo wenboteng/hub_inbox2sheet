@@ -1,10 +1,7 @@
-import { startCrawl, initializeSearchIndex } from "../lib/crawler";
+import { startCrawl } from "../lib/crawler";
 
 async function main() {
   try {
-    console.log("Initializing search index...");
-    await initializeSearchIndex();
-
     console.log("Starting crawl...");
     await startCrawl();
 

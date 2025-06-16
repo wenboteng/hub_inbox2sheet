@@ -1,13 +1,8 @@
 import { chromium } from "playwright";
 import { PrismaClient } from "@prisma/client";
-import { MeiliSearch } from "meilisearch";
 import { parse } from "url";
 
 const prisma = new PrismaClient();
-const meiliSearch = new MeiliSearch({
-  host: process.env.MEILISEARCH_HOST || "http://localhost:7700",
-  apiKey: process.env.MEILISEARCH_API_KEY,
-});
 
 interface CrawlConfig {
   baseUrl: string;
@@ -257,18 +252,5 @@ export async function startCrawl() {
         error: error instanceof Error ? error.message : "Unknown error",
       },
     });
-  }
-}
-
-// Initialize MeiliSearch index
-export async function initializeSearchIndex() {
-  try {
-    await meiliSearch.index("answers").updateSettings({
-      searchableAttributes: ["question", "answer", "category", "tags"],
-      filterableAttributes: ["platform", "category", "tags"],
-      sortableAttributes: ["dateCollected"],
-    });
-  } catch (error) {
-    console.error("Error initializing search index:", error);
   }
 } 

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { startCrawl, initializeSearchIndex } from '@/lib/crawler';
+import { startCrawl } from '@/lib/crawler';
 
 export async function POST(req: NextRequest) {
   try {
-    await initializeSearchIndex();
     await startCrawl();
     return NextResponse.json({ message: 'Crawl completed successfully!' });
   } catch (error: any) {
