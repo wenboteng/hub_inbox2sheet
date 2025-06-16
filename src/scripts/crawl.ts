@@ -1,5 +1,7 @@
 import { startCrawl } from "../lib/crawler";
 
+console.log("[DEBUG] Current working directory:", process.cwd());
+
 async function main() {
   try {
     console.log("Starting crawl...");
