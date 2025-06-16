@@ -40,6 +40,9 @@ jobs:
       - name: Show .env file
         run: cat .env
 
+      - name: Print env
+        run: printenv
+
       - name: Run migrations (migrate deploy)
         run: npx prisma migrate deploy
         env:
