@@ -74,6 +74,7 @@ async function extractFirstParagraph(text: string): Promise<string> {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function crawlPage(url: string, config: CrawlConfig) {
+  console.log(`[CRAWLER] Crawling URL: ${url} for platform: ${config.platform}`);
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage();
@@ -90,14 +91,22 @@ async function crawlPage(url: string, config: CrawlConfig) {
 
     // Extract question
     const question = await page.textContent(config.questionSelector);
-    if (!question) return;
+    if (!question) {
+      console.log(`[CRAWLER][WARN] No question found at ${url}`);
+      return;
+    }
+    console.log(`[CRAWLER] Extracted question: ${question}`);
 
     // Extract full answer
     const answerElements = await page.$$(config.answerSelector);
+    if (!answerElements.length) {
+      console.log(`[CRAWLER][WARN] No answer elements found at ${url}`);
+    }
     const answerText = await Promise.all(
       answerElements.map((el) => el.textContent())
     );
     const fullAnswer = answerText.join("\n\n");
+    console.log(`[CRAWLER] Extracted answer length: ${fullAnswer.length}`);
 
     // Extract first paragraph
     const firstParagraph = await extractFirstParagraph(fullAnswer);
@@ -130,7 +139,7 @@ async function crawlPage(url: string, config: CrawlConfig) {
     });
 
     if (existingAnswer) {
-      // Update existing answer
+      console.log(`[CRAWLER] Updating existing answer for question: ${question}`);
       await prisma.answer.update({
         where: { id: existingAnswer.id },
         data: {
@@ -142,7 +151,7 @@ async function crawlPage(url: string, config: CrawlConfig) {
         },
       });
     } else {
-      // Create new answer
+      console.log(`[CRAWLER] Creating new answer for question: ${question}`);
       await prisma.answer.create({
         data: {
           question,
@@ -166,6 +175,7 @@ async function crawlPage(url: string, config: CrawlConfig) {
 }
 
 async function crawlPlatform(config: CrawlConfig) {
+  console.log(`[CRAWLER] Starting crawl for platform: ${config.platform}`);
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage();
@@ -195,6 +205,8 @@ async function crawlPlatform(config: CrawlConfig) {
         }
         return url;
       });
+
+    console.log(`[CRAWLER] Found ${validUrls.length} article URLs for platform: ${config.platform}`);
 
     // Crawl each article
     for (const url of validUrls) {
