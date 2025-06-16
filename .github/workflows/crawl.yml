@@ -32,6 +32,8 @@ jobs:
         run: npx prisma generate
 
       - name: Run migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npx prisma migrate deploy
 
       - name: Run crawler
