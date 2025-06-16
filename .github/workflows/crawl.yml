@@ -38,22 +38,22 @@ jobs:
           echo "NEXT_PUBLIC_BASE_URL=${{ secrets.NEXT_PUBLIC_BASE_URL }}" >> .env
 
       - name: Show .env file
-        if: always()
         run: cat .env
 
       - name: Print env
-        if: always()
         run: printenv
 
       - name: Run migrations (migrate deploy)
         run: npx prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        continue-on-error: true
 
       - name: Run migrations (db push)
         run: npx prisma db push
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        continue-on-error: true
 
       - name: Run crawler
         run: npx ts-node src/scripts/crawl.ts 
