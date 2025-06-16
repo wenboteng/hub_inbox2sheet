@@ -28,6 +28,8 @@ export default function AdminPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [editingAnswer, setEditingAnswer] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState("");
+  const [crawlLoading, setCrawlLoading] = useState(false);
+  const [crawlMessage, setCrawlMessage] = useState<string | null>(null);
 
   const platforms = ["All", "Airbnb", "Viator", "Booking.com", "GetYourGuide", "Expedia", "TripAdvisor"];
   const statuses = ["All", "pending", "answered", "rejected"];
@@ -135,6 +137,24 @@ export default function AdminPage() {
     }
   };
 
+  const triggerCrawl = async () => {
+    setCrawlLoading(true);
+    setCrawlMessage(null);
+    try {
+      const response = await fetch("/api/crawl", { method: "POST" });
+      const data = await response.json();
+      if (response.ok) {
+        setCrawlMessage(data.message || "Crawl completed successfully!");
+      } else {
+        setCrawlMessage(data.error || "Crawl failed");
+      }
+    } catch (error) {
+      setCrawlMessage("Crawl failed: " + (error as Error).message);
+    } finally {
+      setCrawlLoading(false);
+    }
+  };
+
   const filteredQuestions = questions.filter((q) => {
     const matchesSearch = q.question
       .toLowerCase()
@@ -148,8 +168,18 @@ export default function AdminPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
-
-      <div className="mb-6 flex flex-wrap gap-4">
+      <div className="mb-6 flex flex-wrap gap-4 items-center">
+        {/* Crawl Trigger Button */}
+        <button
+          className={`px-4 py-2 rounded text-white ${crawlLoading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+          onClick={triggerCrawl}
+          disabled={crawlLoading}
+        >
+          {crawlLoading ? 'Crawling...' : 'Trigger Manual Crawl'}
+        </button>
+        {crawlMessage && (
+          <span className="ml-4 text-sm font-medium text-green-600">{crawlMessage}</span>
+        )}
         <input
           type="text"
           placeholder="Search questions..."

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "crawl": "ts-node src/scripts/crawl.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.0.0",
@@ -33,7 +34,8 @@
   "devDependencies": {
     "eslint": "^8.57.0",
     "eslint-config-next": "14.1.0",
-    "prisma": "^5.10.2"
+    "prisma": "^5.10.2",
+    "ts-node": "^10.9.2"
   },
   "engines": {
     "node": ">=18.0.0"
