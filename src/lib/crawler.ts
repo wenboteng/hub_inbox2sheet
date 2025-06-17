@@ -76,12 +76,22 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function crawlPage(url: string, config: CrawlConfig) {
   console.log(`[CRAWLER] Crawling URL: ${url} for platform: ${config.platform}`);
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-gpu'
+    ]
+  });
   try {
     const page = await browser.newPage();
     
-    // Set a shorter timeout and more options
-    page.setDefaultTimeout(15000);
+    // Set a longer timeout
+    page.setDefaultTimeout(30000);
     
     // Add user agent and other headers
     await page.setExtraHTTPHeaders({
@@ -90,15 +100,39 @@ async function crawlPage(url: string, config: CrawlConfig) {
       'Accept-Language': 'en-US,en;q=0.5',
     });
 
-    // Wait for either DOMContentLoaded or load event
-    await page.goto(url, { 
-      waitUntil: "domcontentloaded",
-      timeout: 15000 
-    });
+    // Wait for either DOMContentLoaded or load event with retry
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        await page.goto(url, { 
+          waitUntil: "domcontentloaded",
+          timeout: 30000 
+        });
+        break;
+      } catch (error) {
+        retries--;
+        if (retries === 0) throw error;
+        console.log(`[CRAWLER] Retrying page load for ${url}, ${retries} attempts remaining`);
+        await delay(5000); // Wait 5 seconds before retry
+      }
+    }
 
-    // Wait for content to be visible
-    await page.waitForSelector(config.questionSelector, { timeout: 10000 })
-      .catch(() => console.log(`[CRAWLER][WARN] Question selector timeout: ${config.questionSelector}`));
+    // Wait for content to be visible with retry
+    let contentVisible = false;
+    for (const selector of config.questionSelector.split(', ')) {
+      try {
+        await page.waitForSelector(selector, { timeout: 20000 });
+        contentVisible = true;
+        break;
+      } catch (error) {
+        console.log(`[CRAWLER][WARN] Selector timeout: ${selector}`);
+      }
+    }
+
+    if (!contentVisible) {
+      console.log(`[CRAWLER][WARN] No content visible at ${url}`);
+      return;
+    }
 
     // Extract question with retry
     let question = null;
@@ -140,7 +174,7 @@ async function crawlPage(url: string, config: CrawlConfig) {
     // Extract category if available
     let category = config.category;
     if (config.categorySelector) {
-      const categoryText = await page.textContent(config.categorySelector);
+      const categoryText = await page.textContent(config.categorySelector).catch(() => null);
       if (categoryText) {
         category = categoryText.trim();
       }
@@ -149,9 +183,9 @@ async function crawlPage(url: string, config: CrawlConfig) {
     // Extract tags if available
     let tags: string[] = [];
     if (config.tagSelector) {
-      const tagElements = await page.$$(config.tagSelector);
+      const tagElements = await page.$$(config.tagSelector).catch(() => []);
       const tagTexts = await Promise.all(
-        tagElements.map((el) => el.textContent())
+        tagElements.map((el) => el.textContent().catch(() => null))
       );
       tags = tagTexts.filter((text): text is string => text !== null);
     }

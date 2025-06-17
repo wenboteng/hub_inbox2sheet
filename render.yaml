@@ -25,17 +25,6 @@ jobs:
     env: node
     schedule: "0 2 * * *" # every day at 2am UTC
     buildCommand: |
-      npm install
-      npx playwright install
-      npx prisma generate
-    # IMPORTANT: Install Playwright browsers every run to avoid missing executable errors
-    command: npx playwright install && npx ts-node src/scripts/crawl.ts
-    envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-    dockerCommand: |
       apt-get update && \
       apt-get install -y \
         libgtk-4-0 \
@@ -46,4 +35,12 @@ jobs:
         libsecret-1-0 \
         libmanette-0.2-0 \
         libgles2 && \
-      rm -rf /var/lib/apt/lists/* 
+      npm install && \
+      npx playwright install && \
+      npx prisma generate
+    command: npx ts-node src/scripts/crawl.ts
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false 
