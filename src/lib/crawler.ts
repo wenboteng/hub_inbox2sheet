@@ -1,13 +1,9 @@
-import { chromium } from "playwright-extra";
-import stealth from "playwright-extra-plugin-stealth";
+import { chromium } from "playwright";
 import { PrismaClient } from "@prisma/client";
 import { parse } from "url";
 import { Page, ElementHandle } from "playwright";
 import * as fs from 'fs';
 import * as path from 'path';
-
-// Apply stealth plugin
-chromium.use(stealth());
 
 const prisma = new PrismaClient();
 
@@ -123,6 +119,25 @@ async function crawlPage(url: string, config: CrawlConfig) {
       }
     });
 
+    // Add stealth measures
+    await context.addInitScript(() => {
+      // Override navigator properties
+      Object.defineProperty(navigator, 'webdriver', { get: () => false });
+      Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+      
+      // Add random mouse movements
+      const originalMouseMove = window.MouseEvent;
+      window.MouseEvent = class extends originalMouseMove {
+        constructor(type: string, init?: MouseEventInit) {
+          super(type, init);
+          // Use Object.defineProperty to set read-only properties
+          Object.defineProperty(this, 'movementX', { value: Math.floor(Math.random() * 10) - 5 });
+          Object.defineProperty(this, 'movementY', { value: Math.floor(Math.random() * 10) - 5 });
+        }
+      };
+    });
+
     const page = await context.newPage();
     
     // Set a longer timeout
@@ -130,6 +145,9 @@ async function crawlPage(url: string, config: CrawlConfig) {
     
     // Enable request interception to block unnecessary resources
     await page.route('**/*.{png,jpg,jpeg,gif,svg,css,font,woff,woff2,eot,ttf,otf}', route => route.abort());
+    
+    // Add random delays between actions
+    const randomDelay = () => new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
     
     // Wait for either DOMContentLoaded or load event with retry
     let retries = 3;
@@ -143,6 +161,23 @@ async function crawlPage(url: string, config: CrawlConfig) {
 
         // Give time for JS to load
         await page.waitForTimeout(5000);
+
+        // Simulate human-like scrolling
+        await page.evaluate(async () => {
+          await new Promise((resolve) => {
+            let totalHeight = 0;
+            const distance = 100;
+            const timer = setInterval(() => {
+              const scrollHeight = document.body.scrollHeight;
+              window.scrollBy(0, distance);
+              totalHeight += distance;
+              if (totalHeight >= scrollHeight) {
+                clearInterval(timer);
+                resolve(true);
+              }
+            }, 100);
+          });
+        });
 
         // Wait for any potential redirects to complete
         await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
