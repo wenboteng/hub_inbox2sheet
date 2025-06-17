@@ -1,9 +1,21 @@
-import { chromium } from "playwright";
+import { chromium } from "playwright-extra";
+import stealth from "playwright-extra-plugin-stealth";
 import { PrismaClient } from "@prisma/client";
 import { parse } from "url";
 import { Page, ElementHandle } from "playwright";
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Apply stealth plugin
+chromium.use(stealth());
 
 const prisma = new PrismaClient();
+
+// Create debug screenshots directory if it doesn't exist
+const debugDir = path.join(process.cwd(), 'debug-screens');
+if (!fs.existsSync(debugDir)) {
+  fs.mkdirSync(debugDir, { recursive: true });
+}
 
 interface CrawlConfig {
   baseUrl: string;
@@ -123,11 +135,14 @@ async function crawlPage(url: string, config: CrawlConfig) {
     let retries = 3;
     while (retries > 0) {
       try {
-        // First try to load the page
+        // First try to load the page with domcontentloaded
         await page.goto(url, { 
-          waitUntil: "networkidle",
+          waitUntil: "domcontentloaded",
           timeout: 45000 
         });
+
+        // Give time for JS to load
+        await page.waitForTimeout(5000);
 
         // Wait for any potential redirects to complete
         await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
@@ -148,31 +163,38 @@ async function crawlPage(url: string, config: CrawlConfig) {
       }
     }
 
-    // Wait for content to be visible with retry
-    let contentVisible = false;
-    for (const selector of config.questionSelector.split(', ')) {
-      try {
-        await page.waitForSelector(selector, { timeout: 20000, state: 'visible' });
-        contentVisible = true;
-        break;
-      } catch (error) {
-        console.log(`[CRAWLER][WARN] Selector timeout: ${selector}`);
-      }
-    }
+    // Take a screenshot for debugging
+    const screenshotPath = path.join(debugDir, `${Date.now()}-${config.platform}.png`);
+    await page.screenshot({ path: screenshotPath, fullPage: true }).catch(() => {
+      console.log(`[CRAWLER][WARN] Failed to take screenshot for ${url}`);
+    });
 
-    if (!contentVisible) {
-      console.log(`[CRAWLER][WARN] No content visible at ${url}`);
+    // Check if page content looks valid
+    const html = await page.content();
+    if (!html.includes('article') && !html.includes('content')) {
+      console.log(`[CRAWLER][WARN] Page content looks empty or blocked: ${url}`);
       return;
     }
 
-    // Take a screenshot for debugging
-    await page.screenshot({ path: `/tmp/crawler-${Date.now()}.png` }).catch(() => {});
-
-    // Extract question with retry
+    // Extract question with more resilient selectors
     let question = null;
-    for (const selector of config.questionSelector.split(', ')) {
-      question = await page.textContent(selector).catch(() => null);
-      if (question) break;
+    const questionSelectors = [
+      'h1', // Generic h1
+      '[role="heading"]', // ARIA role
+      'article h1', // Article heading
+      config.questionSelector // Original selectors
+    ];
+
+    for (const selector of questionSelectors) {
+      try {
+        const element = await page.locator(selector).first();
+        if (await element.isVisible()) {
+          question = await element.textContent();
+          if (question) break;
+        }
+      } catch (error) {
+        console.log(`[CRAWLER][WARN] Failed to extract question with selector: ${selector}`);
+      }
     }
 
     if (!question) {
@@ -181,19 +203,30 @@ async function crawlPage(url: string, config: CrawlConfig) {
     }
     console.log(`[CRAWLER] Extracted question: ${question}`);
 
-    // Extract answer with retry
-    const answerSelectors = config.answerSelector.split(', ');
+    // Extract answer with more resilient selectors
+    const answerSelectors = [
+      'article p', // Generic article paragraphs
+      '[role="article"] p', // ARIA role
+      '.content p', // Common content class
+      config.answerSelector // Original selectors
+    ];
+
     let answerElements: ElementHandle[] = [];
     for (const selector of answerSelectors) {
-      const elements = await page.$$(selector).catch(() => [] as ElementHandle[]);
-      if (elements.length > 0) {
-        answerElements = elements;
-        break;
+      try {
+        const elements = await page.$$(selector);
+        if (elements.length > 0) {
+          answerElements = elements;
+          break;
+        }
+      } catch (error) {
+        console.log(`[CRAWLER][WARN] Failed to extract answer with selector: ${selector}`);
       }
     }
 
     if (!answerElements.length) {
       console.log(`[CRAWLER][WARN] No answer elements found at ${url}`);
+      return;
     }
 
     const answerText = await Promise.all(

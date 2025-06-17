@@ -3,15 +3,15 @@ services:
     name: ota-answer-hub
     env: node
     buildCommand: |
-      git pull origin main
       npm install
-      npx playwright install
       npx prisma generate
-      npx prisma migrate deploy
+      npx playwright install --with-deps
       npm run build
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_BASE_URL
         sync: false
       - key: OPENAI_API_KEY
         sync: false
@@ -20,27 +20,20 @@ services:
 
 # Scheduled job to run the crawler daily at 2am UTC
 jobs:
-  - name: ota-crawler
-    type: cron
+  - type: cron
+    name: ota-answer-hub-crawler
     env: node
-    schedule: "0 2 * * *" # every day at 2am UTC
+    schedule: "0 2 * * *"  # Run daily at 2am UTC
     buildCommand: |
-      apt-get update && \
-      apt-get install -y \
-        libgtk-4-0 \
-        libgraphene-1.0-0 \
-        libgstgl-1.0-0 \
-        libgstcodecparsers-1.0-0 \
-        libenchant-2-2 \
-        libsecret-1-0 \
-        libmanette-0.2-0 \
-        libgles2 && \
-      npm install && \
-      npx playwright install && \
+      npm install
       npx prisma generate
+      npx playwright install --with-deps
+      npm run build
     command: npx ts-node src/scripts/crawl.ts
     envVars:
       - key: DATABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_BASE_URL
         sync: false
       - key: OPENAI_API_KEY
         sync: false 
