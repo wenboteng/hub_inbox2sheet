@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "crawl": "ts-node src/scripts/crawl.ts"
+    "crawl": "ts-node src/scripts/crawl.ts",
+    "scrape": "ts-node src/scripts/scrape.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.0.0",
