@@ -33,7 +33,7 @@ model Answer {
   answer                String   @db.Text
   firstAnswerParagraph  String?  @db.Text
   summary               String?  @db.Text
-  sourceUrl             String
+  sourceUrl             String   @unique
   platform              String
   category              String
   tags                  String[]
