@@ -66,9 +66,9 @@ npm run dev
 
 4. Deploy!
 
-### Scheduled Crawler (Cron Job) on Render
+### Scheduled Scraper (Cron Job) on Render
 
-To run the crawler on a schedule (e.g., daily), create a new Cron Job service in Render with the following settings:
+To run the scraper on a schedule (e.g., daily), create a new Cron Job service in Render with the following settings:
 
 - **Build Command:**
   ```bash
@@ -76,19 +76,23 @@ To run the crawler on a schedule (e.g., daily), create a new Cron Job service in
   ```
 - **Command:**
   ```bash
-  npx ts-node src/scripts/crawl.ts
+  npm run scrape
   ```
 - **Environment Variables:**
   - `DATABASE_URL`: Your PostgreSQL database URL
   - `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answer-hub.onrender.com)
-  - `OPENAI_API_KEY`: Your OpenAI API key (if using AI features)
 - **Schedule:**
   - Use a cron expression like `0 2 * * *` to run daily at 2am UTC
+
+The scraper will:
+1. Fetch help center pages using Axios
+2. Extract content using Cheerio
+3. Store the data in your PostgreSQL database
+4. Log all activities for monitoring
 
 ## Environment Variables
 
 Required environment variables:
 
 - `DATABASE_URL`: Your PostgreSQL database URL
-- `NEXT_PUBLIC_BASE_URL`: Your Render service URL
-- `OPENAI_API_KEY`: Your OpenAI API key (if using AI features)
+- `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answer-hub.onrender.com)
