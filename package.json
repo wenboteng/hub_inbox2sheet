@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate && npx playwright install",
+    "postinstall": "prisma generate",
     "crawl": "ts-node src/scripts/crawl.ts"
   },
   "dependencies": {
@@ -19,13 +19,12 @@
     "@types/react": "^18.2.61",
     "@types/react-dom": "^18.2.19",
     "autoprefixer": "^10.4.21",
+    "axios": "^1.6.7",
+    "cheerio": "^1.0.0-rc.12",
     "date-fns": "^3.3.1",
     "next": "14.1.0",
     "openai": "^4.28.0",
     "pgvector": "^0.1.7",
-    "playwright": "^1.42.1",
-    "playwright-extra": "^4.3.6",
-    "playwright-extra-plugin-stealth": "^0.0.1",
     "postcss": "^8.5.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -33,6 +32,8 @@
     "typescript": "^5.3.3"
   },
   "devDependencies": {
+    "@types/axios": "^0.14.4",
+    "@types/cheerio": "^1.0.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.1.0",
     "prisma": "^5.10.2",

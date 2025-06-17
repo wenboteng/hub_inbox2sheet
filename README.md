@@ -7,7 +7,7 @@ A knowledge base for tour vendors to find answers about OTA platforms like Airbn
 - Admin interface for managing questions and answers
 - Public knowledge base with search and filtering
 - SEO optimized for search engines
-- Automatic crawling of OTA help centers
+- Automatic crawling of OTA help centers using Axios + Cheerio
 
 ## Tech Stack
 
@@ -15,6 +15,7 @@ A knowledge base for tour vendors to find answers about OTA platforms like Airbn
 - Prisma (PostgreSQL)
 - Tailwind CSS
 - TypeScript
+- Axios + Cheerio for web crawling
 
 ## Development
 
@@ -75,9 +76,8 @@ To run the crawler on a schedule (e.g., daily), create a new Cron Job service in
   ```
 - **Command:**
   ```bash
-  npx playwright install && npx ts-node src/scripts/crawl.ts
+  npx ts-node src/scripts/crawl.ts
   ```
-  > **Note:** This ensures Playwright browsers are installed every time before crawling. Do **not** use `src/scripts/crawl.ts` as the path. The correct path is `scripts/crawl.ts` from the repo root.
 - **Environment Variables:**
   - `DATABASE_URL`: Your PostgreSQL database URL
   - `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answer-hub.onrender.com)
@@ -89,4 +89,6 @@ To run the crawler on a schedule (e.g., daily), create a new Cron Job service in
 
 Required environment variables:
 
-- `
+- `DATABASE_URL`: Your PostgreSQL database URL
+- `NEXT_PUBLIC_BASE_URL`: Your Render service URL
+- `OPENAI_API_KEY`: Your OpenAI API key (if using AI features)

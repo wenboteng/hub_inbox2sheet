@@ -2,11 +2,7 @@ services:
   - type: web
     name: ota-answer-hub
     env: node
-    buildCommand: |
-      npm install
-      npx prisma generate
-      npx playwright install --with-deps
-      npm run build
+    buildCommand: npm install && npx prisma generate && npm run build
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
@@ -24,12 +20,8 @@ jobs:
     name: ota-answer-hub-crawler
     env: node
     schedule: "0 2 * * *"  # Run daily at 2am UTC
-    buildCommand: |
-      npm install
-      npx prisma generate
-      npx playwright install --with-deps
-      npm run build
-    command: npx ts-node src/scripts/crawl.ts
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npx ts-node src/scripts/crawl.ts
     envVars:
       - key: DATABASE_URL
         sync: false
