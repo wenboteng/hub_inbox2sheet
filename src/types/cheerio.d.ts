@@ -29,6 +29,14 @@ declare module 'cheerio' {
     end(): Cheerio;
     add(selector: string | any, context?: any): Cheerio;
     addBack(selector?: string): Cheerio;
+    find(selector: string): Cheerio;
+    children(selector?: string): Cheerio;
+    parent(selector?: string): Cheerio;
+    parents(selector?: string): Cheerio;
+    closest(selector: string): Cheerio;
+    next(selector?: string): Cheerio;
+    prev(selector?: string): Cheerio;
+    siblings(selector?: string): Cheerio;
   }
 
   export interface CheerioAPI {
