@@ -338,6 +338,7 @@ async function crawlPage(url: string, config: CrawlConfig) {
 
 async function crawlPlatform(config: CrawlConfig) {
   console.log(`[CRAWLER] Starting crawl for platform: ${config.platform}`);
+  // Use a lightweight browser just for link extraction
   const browser = await chromium.launch({
     chromiumSandbox: false,
     args: [
@@ -350,29 +351,21 @@ async function crawlPlatform(config: CrawlConfig) {
       '--disable-gpu'
     ]
   });
-  
+  let validUrls: string[] = [];
   try {
     const context = await browser.newContext({
       userAgent: 'Mozilla/5.0 (compatible; OTAAnswerHub/1.0; +https://otaanswerhub.com)',
       viewport: { width: 1280, height: 720 },
       ignoreHTTPSErrors: true
     });
-    
     const page = await context.newPage();
-    
-    // Set a reasonable timeout
     page.setDefaultTimeout(30000);
-
     await page.goto(config.baseUrl, { waitUntil: "networkidle" });
-
-    // Find all article links
     const links = await page.$$("a[href*='/help/']");
     const urls = await Promise.all(
       links.map((link) => link.getAttribute("href"))
     );
-
-    // Filter and normalize URLs
-    const validUrls = urls
+    validUrls = urls
       .filter((url): url is string => !!url)
       .map((url) => {
         if (url.startsWith("/")) {
@@ -380,19 +373,23 @@ async function crawlPlatform(config: CrawlConfig) {
         }
         return url;
       });
-
-    console.log(`[CRAWLER] Found ${validUrls.length} article URLs for platform: ${config.platform}`);
-
-    // Crawl each article
-    for (const url of validUrls) {
-      await crawlPage(url, config);
-      // Add delay between pages
-      await delay(2000);
-    }
+    await page.close();
+    await context.close();
   } catch (error) {
-    console.error(`Error crawling platform ${config.platform}:`, error);
+    console.error(`Error extracting links for platform ${config.platform}:`, error);
   } finally {
     await browser.close();
+  }
+
+  // Limit to 3 articles per platform for now
+  validUrls = validUrls.slice(0, 3);
+  console.log(`[CRAWLER] Found ${validUrls.length} article URLs for platform: ${config.platform}`);
+
+  // Crawl each article (browser per page)
+  for (const url of validUrls) {
+    await crawlPage(url, config);
+    // Add delay between pages
+    await delay(2000);
   }
 }
 
