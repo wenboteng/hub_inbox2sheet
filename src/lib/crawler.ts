@@ -99,7 +99,8 @@ async function extractUrlsFromSitemap(sitemapUrl: string): Promise<string[]> {
     const $ = cheerio.load(response.data);
     const urls: string[] = [];
     
-    $('loc').each((_: number, element: any) => {
+    const locElements = $('loc');
+    locElements.each((_: number, element: any) => {
       const url = $(element).text();
       if (url) {
         urls.push(url);

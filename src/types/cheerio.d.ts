@@ -1,5 +1,6 @@
 declare module 'cheerio' {
   export interface CheerioAPI {
+    (selector: string): Cheerio;
     load(html: string | Buffer, options?: any): CheerioAPI;
     html(options?: any): string;
     text(): string;
@@ -43,6 +44,31 @@ declare module 'cheerio' {
     [index: number]: any;
     selector: string;
     prevObject: Cheerio;
+    text(): string;
+    html(): string;
+    attr(name: string, value?: any): any;
+    prop(name: string, value?: any): any;
+    data(name: string, value?: any): any;
+    val(value?: any): any;
+    removeAttr(name: string): Cheerio;
+    hasClass(className: string): boolean;
+    addClass(className: string): Cheerio;
+    removeClass(className?: string): Cheerio;
+    toggleClass(className: string, toggle?: boolean): Cheerio;
+    is(selector: string | any): boolean;
+    each(fn: (index: number, element: any) => void): Cheerio;
+    map(fn: (index: number, element: any) => any): Cheerio;
+    filter(selector: string | ((index: number, element: any) => boolean)): Cheerio;
+    not(selector: string | ((index: number, element: any) => boolean)): Cheerio;
+    has(selector: string | any): Cheerio;
+    first(): Cheerio;
+    last(): Cheerio;
+    eq(index: number): Cheerio;
+    get(index?: number): any;
+    index(selector?: string | any): number;
+    end(): Cheerio;
+    add(selector: string | any, context?: any): Cheerio;
+    addBack(selector?: string): Cheerio;
   }
 
   export function load(html: string | Buffer, options?: any): CheerioAPI;
