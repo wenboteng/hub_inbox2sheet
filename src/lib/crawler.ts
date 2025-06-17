@@ -1,6 +1,7 @@
 import { chromium } from "playwright";
 import { PrismaClient } from "@prisma/client";
 import { parse } from "url";
+import { Page, ElementHandle } from "playwright";
 
 const prisma = new PrismaClient();
 
@@ -17,17 +18,17 @@ interface CrawlConfig {
 const CRAWL_CONFIGS: CrawlConfig[] = [
   {
     baseUrl: "https://www.viator.com/help/",
-    questionSelector: "h1",
-    answerSelector: "article p",
-    categorySelector: ".breadcrumb li:last-child",
+    questionSelector: ".article-title, .help-article-title, h1",
+    answerSelector: ".article-content p, .help-article-content p, article p",
+    categorySelector: ".breadcrumb li:last-child, .article-category",
     platform: "Viator",
     category: "Help Center",
   },
   {
     baseUrl: "https://www.airbnb.com/help/",
-    questionSelector: "h1",
-    answerSelector: "article p",
-    categorySelector: ".breadcrumb li:last-child",
+    questionSelector: ".help-article-title, ._14i3z6h, h1",
+    answerSelector: ".help-content p, ._5y5o50, article p",
+    categorySelector: ".breadcrumb li:last-child, ._1p0spma2",
     platform: "Airbnb",
     category: "Help Center",
   },
@@ -79,33 +80,58 @@ async function crawlPage(url: string, config: CrawlConfig) {
   try {
     const page = await browser.newPage();
     
-    // Set a reasonable timeout
-    page.setDefaultTimeout(30000);
+    // Set a shorter timeout and more options
+    page.setDefaultTimeout(15000);
     
-    // Add user agent to be more respectful
+    // Add user agent and other headers
     await page.setExtraHTTPHeaders({
-      'User-Agent': 'Mozilla/5.0 (compatible; OTAAnswerHub/1.0; +https://otaanswerhub.com)'
+      'User-Agent': 'Mozilla/5.0 (compatible; OTAAnswerHub/1.0; +https://otaanswerhub.com)',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.5',
     });
 
-    await page.goto(url, { waitUntil: "networkidle" });
+    // Wait for either DOMContentLoaded or load event
+    await page.goto(url, { 
+      waitUntil: "domcontentloaded",
+      timeout: 15000 
+    });
 
-    // Extract question
-    const question = await page.textContent(config.questionSelector);
+    // Wait for content to be visible
+    await page.waitForSelector(config.questionSelector, { timeout: 10000 })
+      .catch(() => console.log(`[CRAWLER][WARN] Question selector timeout: ${config.questionSelector}`));
+
+    // Extract question with retry
+    let question = null;
+    for (const selector of config.questionSelector.split(', ')) {
+      question = await page.textContent(selector).catch(() => null);
+      if (question) break;
+    }
+
     if (!question) {
       console.log(`[CRAWLER][WARN] No question found at ${url}`);
       return;
     }
     console.log(`[CRAWLER] Extracted question: ${question}`);
 
-    // Extract full answer
-    const answerElements = await page.$$(config.answerSelector);
+    // Extract answer with retry
+    const answerSelectors = config.answerSelector.split(', ');
+    let answerElements: ElementHandle[] = [];
+    for (const selector of answerSelectors) {
+      const elements = await page.$$(selector).catch(() => [] as ElementHandle[]);
+      if (elements.length > 0) {
+        answerElements = elements;
+        break;
+      }
+    }
+
     if (!answerElements.length) {
       console.log(`[CRAWLER][WARN] No answer elements found at ${url}`);
     }
+
     const answerText = await Promise.all(
-      answerElements.map((el) => el.textContent())
+      answerElements.map((el) => el.textContent().catch(() => ''))
     );
-    const fullAnswer = answerText.join("\n\n");
+    const fullAnswer = answerText.filter(text => text).join("\n\n");
     console.log(`[CRAWLER] Extracted answer length: ${fullAnswer.length}`);
 
     // Extract first paragraph
@@ -176,17 +202,30 @@ async function crawlPage(url: string, config: CrawlConfig) {
 
 async function crawlPlatform(config: CrawlConfig) {
   console.log(`[CRAWLER] Starting crawl for platform: ${config.platform}`);
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({
+    chromiumSandbox: false,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-gpu'
+    ]
+  });
+  
   try {
-    const page = await browser.newPage();
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (compatible; OTAAnswerHub/1.0; +https://otaanswerhub.com)',
+      viewport: { width: 1280, height: 720 },
+      ignoreHTTPSErrors: true
+    });
+    
+    const page = await context.newPage();
     
     // Set a reasonable timeout
     page.setDefaultTimeout(30000);
-    
-    // Add user agent to be more respectful
-    await page.setExtraHTTPHeaders({
-      'User-Agent': 'Mozilla/5.0 (compatible; OTAAnswerHub/1.0; +https://otaanswerhub.com)'
-    });
 
     await page.goto(config.baseUrl, { waitUntil: "networkidle" });
 
