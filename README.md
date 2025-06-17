@@ -71,13 +71,13 @@ To run the crawler on a schedule (e.g., daily), create a new Cron Job service in
 
 - **Build Command:**
   ```bash
-  npm install && npx playwright install && npx prisma generate && npm run build
+  npm install && npx prisma generate && npm run build
   ```
 - **Command:**
   ```bash
-  npx ts-node scripts/crawl.ts
+  npx playwright install && npx ts-node src/scripts/crawl.ts
   ```
-  > **Note:** Do **not** use `src/scripts/crawl.ts` as the path. The correct path is `scripts/crawl.ts` from the repo root.
+  > **Note:** This ensures Playwright browsers are installed every time before crawling. Do **not** use `src/scripts/crawl.ts` as the path. The correct path is `scripts/crawl.ts` from the repo root.
 - **Environment Variables:**
   - `DATABASE_URL`: Your PostgreSQL database URL
   - `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answer-hub.onrender.com)

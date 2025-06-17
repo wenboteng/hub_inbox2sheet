@@ -28,7 +28,8 @@ jobs:
       npm install
       npx playwright install
       npx prisma generate
-    command: npx ts-node src/scripts/crawl.ts
+    # IMPORTANT: Install Playwright browsers every run to avoid missing executable errors
+    command: npx playwright install && npx ts-node src/scripts/crawl.ts
     envVars:
       - key: DATABASE_URL
         sync: false
