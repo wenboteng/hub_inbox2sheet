@@ -123,7 +123,8 @@ async function scrapePage(url: string, config: ScraperConfig): Promise<void> {
         firstAnswerParagraph: firstParagraph,
         sourceUrl: url,
         platform: config.name,
-        relatedUrls: [],
+        category: 'help-center',
+        tags: [],
       },
       update: {
         question: title,
