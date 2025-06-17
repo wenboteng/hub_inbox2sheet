@@ -85,8 +85,29 @@ const CRAWL_CONFIGS: CrawlConfig[] = [
   },
 ];
 
-// Add delay between requests to be respectful to servers
+// Common browser headers to mimic real browser
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept-Encoding': 'gzip, deflate, br',
+  'Connection': 'keep-alive',
+  'Upgrade-Insecure-Requests': '1',
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'none',
+  'Sec-Fetch-User': '?1',
+  'Cache-Control': 'max-age=0',
+  'sec-ch-ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+  'sec-ch-ua-mobile': '?0',
+  'sec-ch-ua-platform': '"Windows"'
+};
+
+// Helper function to add random delay between requests
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to get random delay between 2-5 seconds
+const getRandomDelay = () => Math.floor(Math.random() * 3000) + 2000;
 
 async function extractFirstParagraph(text: string): Promise<string> {
   const paragraphs = text.split("\n").filter((p) => p.trim().length > 0);
@@ -95,7 +116,18 @@ async function extractFirstParagraph(text: string): Promise<string> {
 
 async function extractUrlsFromSitemap(sitemapUrl: string): Promise<string[]> {
   try {
-    const response: AxiosResponse = await axios.get(sitemapUrl);
+    console.log(`[CRAWLER] Fetching sitemap: ${sitemapUrl}`);
+    const response: AxiosResponse = await axios.get(sitemapUrl, {
+      headers: BROWSER_HEADERS,
+      timeout: 10000,
+      validateStatus: (status) => status < 500 // Accept any status less than 500
+    });
+
+    if (response.status === 403) {
+      console.error(`[CRAWLER] Access forbidden for sitemap: ${sitemapUrl}`);
+      return [];
+    }
+
     const $ = cheerio.load(response.data);
     const urls: string[] = [];
     
@@ -107,9 +139,10 @@ async function extractUrlsFromSitemap(sitemapUrl: string): Promise<string[]> {
       }
     });
 
+    console.log(`[CRAWLER] Found ${urls.length} URLs in sitemap`);
     return urls;
   } catch (error) {
-    console.error(`Error extracting URLs from sitemap ${sitemapUrl}:`, error);
+    console.error(`[CRAWLER] Error extracting URLs from sitemap ${sitemapUrl}:`, error);
     return [];
   }
 }
@@ -118,16 +151,19 @@ async function crawlPage(url: string, config: CrawlConfig) {
   console.log(`[CRAWLER] Crawling URL: ${url} for platform: ${config.platform}`);
   
   try {
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Cache-Control': 'max-age=0'
-      }
+    // Add random delay between requests
+    await delay(getRandomDelay());
+
+    const response: AxiosResponse = await axios.get(url, {
+      headers: BROWSER_HEADERS,
+      timeout: 10000,
+      validateStatus: (status) => status < 500
     });
+
+    if (response.status === 403) {
+      console.error(`[CRAWLER] Access forbidden for page: ${url}`);
+      return;
+    }
 
     const $ = cheerio.load(response.data);
     
@@ -190,9 +226,6 @@ async function crawlPage(url: string, config: CrawlConfig) {
     });
 
     console.log(`[CRAWLER] Successfully processed: ${url}`);
-    
-    // Add a random delay between requests (1-3 seconds)
-    await delay(Math.random() * 2000 + 1000);
     
   } catch (error) {
     console.error(`[CRAWLER] Error processing ${url}:`, error);
