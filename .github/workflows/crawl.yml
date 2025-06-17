@@ -1,4 +1,4 @@
-name: Scheduled Crawler
+name: Crawl OTA Help Centers
 
 on:
   schedule:
@@ -21,12 +21,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
-
-      - name: Install Playwright browsers
-        run: npx playwright install
+        run: npm ci
 
       - name: Generate Prisma client
         run: npx prisma generate
@@ -56,4 +54,7 @@ jobs:
         continue-on-error: true
 
       - name: Run crawler
-        run: npx ts-node src/scripts/crawl.ts 
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+        run: npm run scrape 
