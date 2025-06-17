@@ -45,6 +45,6 @@ declare module 'cheerio' {
     prevObject: Cheerio;
   }
 
-  const cheerio: CheerioAPI;
-  export default cheerio;
+  export function load(html: string | Buffer, options?: any): CheerioAPI;
+  export default load;
 } 

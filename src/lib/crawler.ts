@@ -93,7 +93,7 @@ async function extractFirstParagraph(text: string): Promise<string> {
   return paragraphs[0] || text;
 }
 
-async function fetchSitemapUrls(sitemapUrl: string): Promise<string[]> {
+async function extractUrlsFromSitemap(sitemapUrl: string): Promise<string[]> {
   try {
     const response: AxiosResponse = await axios.get(sitemapUrl);
     const $ = cheerio.load(response.data);
@@ -101,14 +101,14 @@ async function fetchSitemapUrls(sitemapUrl: string): Promise<string[]> {
     
     $('loc').each((_: number, element: any) => {
       const url = $(element).text();
-      if (url.includes('/help/') || url.includes('/support/')) {
+      if (url) {
         urls.push(url);
       }
     });
-    
+
     return urls;
   } catch (error) {
-    console.error(`[CRAWLER] Error fetching sitemap: ${sitemapUrl}`, error);
+    console.error(`Error extracting URLs from sitemap ${sitemapUrl}:`, error);
     return [];
   }
 }
@@ -205,7 +205,7 @@ async function crawlPlatform(config: CrawlConfig) {
   
   // Try to get URLs from sitemap first
   if (config.sitemapUrl) {
-    urls = await fetchSitemapUrls(config.sitemapUrl);
+    urls = await extractUrlsFromSitemap(config.sitemapUrl);
   }
   
   // If no URLs found from sitemap, use the base URL
