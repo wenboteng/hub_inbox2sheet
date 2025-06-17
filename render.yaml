@@ -2,7 +2,10 @@ services:
   - type: web
     name: ota-answer-hub
     env: node
-    buildCommand: npm install && npx prisma generate && npm run build
+    buildCommand: |
+      npm install
+      npx prisma generate
+      npm run build
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
@@ -11,14 +14,14 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      - key: NODE_VERSION
+        value: 18.20.2
     buildFilter:
       paths:
         - package.json
         - src/**
         - prisma/**
-    envVars:
-      - key: NODE_VERSION
-        value: 18.20.2
+        - next.config.js
     healthCheckPath: /
     autoDeploy: true 
 
@@ -28,7 +31,10 @@ jobs:
     name: ota-answer-hub-crawler
     env: node
     schedule: "0 2 * * *"  # Run daily at 2am UTC
-    buildCommand: npm install && npx prisma generate && npm run build
+    buildCommand: |
+      npm install
+      npx prisma generate
+      npm run build
     startCommand: npx ts-node src/scripts/crawl.ts
     envVars:
       - key: DATABASE_URL
