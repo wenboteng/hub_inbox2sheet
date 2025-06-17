@@ -26,9 +26,9 @@ const CRAWL_CONFIGS: CrawlConfig[] = [
   },
   {
     baseUrl: "https://www.airbnb.com/help/",
-    questionSelector: ".help-article-title, ._14i3z6h, h1",
-    answerSelector: ".help-content p, ._5y5o50, article p",
-    categorySelector: ".breadcrumb li:last-child, ._1p0spma2",
+    questionSelector: "h1[data-testid='article-title'], ._1p0spma2, ._14i3z6h",
+    answerSelector: "._5y5o50 p, ._1p0spma2 p, article p",
+    categorySelector: "._1p0spma2, .breadcrumb li:last-child",
     platform: "Airbnb",
     category: "Help Center",
   },
@@ -88,26 +88,57 @@ async function crawlPage(url: string, config: CrawlConfig) {
     ]
   });
   try {
-    const page = await browser.newPage();
-    
-    // Set a longer timeout
-    page.setDefaultTimeout(30000);
-    
-    // Add user agent and other headers
-    await page.setExtraHTTPHeaders({
-      'User-Agent': 'Mozilla/5.0 (compatible; OTAAnswerHub/1.0; +https://otaanswerhub.com)',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.5',
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      viewport: { width: 1280, height: 800 },
+      deviceScaleFactor: 1,
+      isMobile: false,
+      hasTouch: false,
+      locale: 'en-US',
+      timezoneId: 'America/New_York',
+      permissions: ['geolocation'],
+      extraHTTPHeaders: {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'max-age=0'
+      }
     });
 
+    const page = await context.newPage();
+    
+    // Set a longer timeout
+    page.setDefaultTimeout(45000);
+    
+    // Enable request interception to block unnecessary resources
+    await page.route('**/*.{png,jpg,jpeg,gif,svg,css,font,woff,woff2,eot,ttf,otf}', route => route.abort());
+    
     // Wait for either DOMContentLoaded or load event with retry
     let retries = 3;
     while (retries > 0) {
       try {
+        // First try to load the page
         await page.goto(url, { 
-          waitUntil: "domcontentloaded",
-          timeout: 30000 
+          waitUntil: "networkidle",
+          timeout: 45000 
         });
+
+        // Wait for any potential redirects to complete
+        await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+        
+        // Check if we're on the correct page
+        const currentUrl = page.url();
+        if (currentUrl !== url && !currentUrl.includes('login')) {
+          console.log(`[CRAWLER] Page redirected to: ${currentUrl}`);
+          url = currentUrl;
+        }
+
         break;
       } catch (error) {
         retries--;
@@ -121,7 +152,7 @@ async function crawlPage(url: string, config: CrawlConfig) {
     let contentVisible = false;
     for (const selector of config.questionSelector.split(', ')) {
       try {
-        await page.waitForSelector(selector, { timeout: 20000 });
+        await page.waitForSelector(selector, { timeout: 20000, state: 'visible' });
         contentVisible = true;
         break;
       } catch (error) {
@@ -133,6 +164,9 @@ async function crawlPage(url: string, config: CrawlConfig) {
       console.log(`[CRAWLER][WARN] No content visible at ${url}`);
       return;
     }
+
+    // Take a screenshot for debugging
+    await page.screenshot({ path: `/tmp/crawler-${Date.now()}.png` }).catch(() => {});
 
     // Extract question with retry
     let question = null;
