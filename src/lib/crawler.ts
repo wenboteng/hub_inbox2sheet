@@ -161,25 +161,30 @@ async function crawlPage(url: string, config: CrawlConfig) {
       }
     }
 
+    // Extract first paragraph for summary
+    const firstParagraph = await extractFirstParagraph(answer);
+
     // Store in database
-    await prisma.article.upsert({
+    await prisma.answer.upsert({
       where: {
-        url: url
+        sourceUrl: url
       },
       update: {
         question,
         answer,
+        firstAnswerParagraph: firstParagraph,
         category,
         platform: config.platform,
-        lastUpdated: new Date()
+        lastCrawled: new Date()
       },
       create: {
-        url,
         question,
         answer,
+        firstAnswerParagraph: firstParagraph,
+        sourceUrl: url,
         category,
         platform: config.platform,
-        lastUpdated: new Date()
+        lastCrawled: new Date()
       }
     });
 

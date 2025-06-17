@@ -11,6 +11,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Article {
+  id          String   @id @default(cuid())
+  url         String   @unique
+  question    String
+  answer      String   @db.Text
+  category    String
+  platform    String
+  lastUpdated DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([platform])
+  @@index([category])
+  @@index([lastUpdated])
+}
+
 model Answer {
   id                    String   @id @default(cuid())
   question              String
