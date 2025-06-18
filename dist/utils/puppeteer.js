@@ -147,8 +147,8 @@ async function createBrowser() {
             '--memory-pressure-off',
             '--max_old_space_size=4096'
         ],
-        // Force Puppeteer to use its bundled Chrome
-        executablePath: undefined,
+        // Use the exact path that Puppeteer expects
+        executablePath: '/opt/render/.cache/puppeteer/chrome/linux-137.0.7151.119/chrome-linux64/chrome',
         // Set a reasonable timeout
         timeout: 30000,
     };

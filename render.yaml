@@ -47,9 +47,18 @@ jobs:
       # Install Node.js dependencies
       npm install
       
-      # Install Puppeteer Chrome browser explicitly
+      # Install Puppeteer Chrome browser explicitly with verification
       echo "Installing Puppeteer Chrome browser..."
       npx puppeteer browsers install chrome
+      
+      # Verify Chrome installation
+      echo "Verifying Chrome installation..."
+      ls -la /opt/render/.cache/puppeteer/
+      ls -la /opt/render/.cache/puppeteer/chrome/
+      
+      # Test Chrome executable
+      echo "Testing Chrome executable..."
+      /opt/render/.cache/puppeteer/chrome/linux-137.0.7151.119/chrome-linux64/chrome --version
       
       # Generate Prisma client and build
       npx prisma generate
