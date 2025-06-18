@@ -1,10 +1,11 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-// Public GetYourGuide support center articles
-const PUBLIC_URLS = [
-  'https://support.getyourguide.com/s/article/Cancel-a-booking?language=en_US',
-  'https://support.getyourguide.com/s/article/Change-travelers-or-date?language=en_US'
+// Verified GetYourGuide supplier help center articles
+const VERIFIED_URLS = [
+  'https://supply.getyourguide.support/hc/en-us/articles/360016791880-How-do-I-cancel-a-booking-',
+  'https://supply.getyourguide.support/hc/en-us/articles/360016792120-How-do-I-modify-a-booking-',
+  'https://supply.getyourguide.support/hc/en-us/articles/360016792140-How-do-I-issue-a-refund-'
 ];
 
 export interface GetYourGuideArticle {
@@ -40,8 +41,8 @@ function isSoft404(title: string, content: string): boolean {
 }
 
 export async function crawlGetYourGuideArticle(url: string): Promise<GetYourGuideArticle | null> {
-  if (!url.startsWith('https://support.getyourguide.com/')) {
-    console.error(`[GETYOURGUIDE][ERROR] Invalid domain. Only support.getyourguide.com is allowed: ${url}`);
+  if (!url.startsWith('https://supply.getyourguide.support/')) {
+    console.error(`[GETYOURGUIDE][ERROR] Invalid domain. Only supply.getyourguide.support is allowed: ${url}`);
     return null;
   }
 
@@ -60,9 +61,9 @@ export async function crawlGetYourGuideArticle(url: string): Promise<GetYourGuid
 
     const $ = cheerio.load(response.data);
     
-    // Extract title and content using correct selectors for support.getyourguide.com
-    const title = $('h1').first().text().trim();
-    const content = $('div[class*="slds-rich-text-editor__output"]').first().text().trim();
+    // Extract title and content using correct selectors
+    const title = $('h1.article-title').first().text().trim();
+    const content = $('div.article-body').first().text().trim();
     
     // Basic validation
     if (!title || !content || content.length < 50) {
@@ -88,8 +89,8 @@ export async function crawlGetYourGuideArticle(url: string): Promise<GetYourGuid
   }
 }
 
-export async function crawlGetYourGuideArticles(urls: string[] = PUBLIC_URLS): Promise<GetYourGuideArticle[]> {
-  console.log('[GETYOURGUIDE] Starting crawl of public support center articles');
+export async function crawlGetYourGuideArticles(urls: string[] = VERIFIED_URLS): Promise<GetYourGuideArticle[]> {
+  console.log('[GETYOURGUIDE] Starting crawl of supplier help center articles');
   
   const results: GetYourGuideArticle[] = [];
   

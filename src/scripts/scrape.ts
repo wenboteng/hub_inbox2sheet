@@ -2,17 +2,15 @@ import { scrapeUrls } from '../lib/crawler';
 
 // List of URLs to scrape
 const URLs = [
-  // GetYourGuide (public support center)
-  'https://support.getyourguide.com/s/article/Cancel-a-booking?language=en_US',
-  'https://support.getyourguide.com/s/article/Change-travelers-or-date?language=en_US',
-  
-  // TODO: Add more verified URLs from support.getyourguide.com/s/
-  // For now, we're testing with just these two verified URLs
+  // GetYourGuide supplier help center articles
+  'https://supply.getyourguide.support/hc/en-us/articles/360016791880-How-do-I-cancel-a-booking-',
+  'https://supply.getyourguide.support/hc/en-us/articles/360016792120-How-do-I-modify-a-booking-',
+  'https://supply.getyourguide.support/hc/en-us/articles/360016792140-How-do-I-issue-a-refund-'
 ];
 
 async function main() {
   console.log('[SCRAPER] Starting scraper script');
-  console.log('[SCRAPER] Testing with verified public support center URLs');
+  console.log('[SCRAPER] Testing with verified supplier help center URLs');
   
   try {
     await scrapeUrls(URLs);

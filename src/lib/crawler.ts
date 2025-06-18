@@ -66,10 +66,10 @@ const SCRAPER_CONFIGS: Record<string, ScraperConfig> = {
   },
   getyourguide: {
     name: 'GetYourGuide',
-    baseUrl: 'https://support.getyourguide.com/s/',
+    baseUrl: 'https://supply.getyourguide.support/hc/en-us/articles/',
     selectors: {
-      title: 'h1',
-      content: 'div[class*="slds-rich-text-editor__output"]',
+      title: 'h1.article-title',
+      content: 'div.article-body',
     },
     cleanContent: (content: string) => content.replace(/\s+/g, ' ').trim(),
   },
@@ -198,9 +198,3 @@ export async function scrapeUrls(urls: string[]): Promise<void> {
   
   console.log('[SCRAPER] Scrape process completed');
 }
-
-// Example usage:
-// await scrapeUrls([
-//   'https://www.airbnb.com/help/article/123',
-//   'https://partner.booking.com/en-us/help/article/456',
-// ]); 

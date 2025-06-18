@@ -96,3 +96,19 @@ Required environment variables:
 
 - `DATABASE_URL`: Your PostgreSQL database URL
 - `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answer-hub.onrender.com)
+
+Optional environment variables for OTA platform access:
+
+Expedia Partner Central:
+- `EXPEDIA_USERNAME`: Your Expedia Partner Central username
+- `EXPEDIA_PASSWORD`: Your Expedia Partner Central password
+- `EXPEDIA_SESSION_COOKIE`: Your Expedia Partner Central session cookie (if using session-based auth)
+
+Booking.com Partner Portal:
+- `BOOKING_API_TOKEN`: Your Booking.com Partner API token
+- `BOOKING_SESSION_COOKIE`: Your Booking.com Partner session cookie
+- `BOOKING_XSRF_TOKEN`: Your Booking.com Partner XSRF token
+
+GetYourGuide Supplier Portal:
+- `GETYOURGUIDE_EMAIL`: Your GetYourGuide supplier account email
+- `GETYOURGUIDE_PASSWORD`: Your GetYourGuide supplier account password
