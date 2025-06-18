@@ -52,23 +52,16 @@ export async function GET(request: NextRequest) {
     const queryEmbedding = await getEmbedding(query);
 
     // Build base query
-    const baseQuery: Prisma.ArticleFindManyArgs = {
+    const baseQuery = {
       where: {
-        AND: [
-          {
-            OR: [
-              { question: { contains: query, mode: "insensitive" } },
-              { answer: { contains: query, mode: "insensitive" } },
-            ],
-          },
-          platform && platform !== "all" ? { platform } : {},
-          category && category !== "all" ? { category } : {},
-        ],
+        ...(platform ? { platform } : {}),
       },
-      orderBy: {
-        lastUpdated: "desc",
-      },
-      include: {
+      select: {
+        id: true,
+        url: true,
+        question: true,
+        platform: true,
+        category: true,
         paragraphs: true,
       },
       take: 3,

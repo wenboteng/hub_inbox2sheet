@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "tsc && next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
     "crawl": "ts-node src/crawl.ts",
-    "scrape": "ts-node src/scripts/scrape.ts",
+    "scrape": "node dist/scripts/scrape.js",
     "test:getyourguide": "ts-node src/scripts/test-getyourguide.ts",
     "test:airbnb": "ts-node src/scripts/test-airbnb.ts",
     "view:articles": "ts-node src/scripts/view-articles.ts"

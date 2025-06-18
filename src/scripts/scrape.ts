@@ -31,8 +31,8 @@ async function main() {
       // Generate embeddings for paragraphs
       const paragraphsWithEmbeddings = await getContentEmbeddings(article.answer);
 
-      // Upsert article with paragraphs
-      await prisma.article.upsert({
+      // Upsert article (without paragraphs)
+      const upserted = await prisma.article.upsert({
         where: { url: article.url },
         update: {
           question: article.question,
@@ -40,13 +40,6 @@ async function main() {
           category: article.category,
           platform: article.platform,
           lastUpdated: new Date(),
-          paragraphs: {
-            deleteMany: {},
-            create: paragraphsWithEmbeddings.map(p => ({
-              text: p.text,
-              embedding: p.embedding,
-            })),
-          },
         },
         create: {
           url: article.url,
@@ -54,14 +47,22 @@ async function main() {
           answer: article.answer,
           category: article.category,
           platform: article.platform,
-          paragraphs: {
-            create: paragraphsWithEmbeddings.map(p => ({
-              text: p.text,
-              embedding: p.embedding,
-            })),
-          },
         },
       });
+
+      // Delete old paragraphs
+      await prisma.articleParagraph.deleteMany({ where: { articleId: upserted.id } });
+
+      // Create new paragraphs
+      if (paragraphsWithEmbeddings.length > 0) {
+        await prisma.articleParagraph.createMany({
+          data: paragraphsWithEmbeddings.map(p => ({
+            articleId: upserted.id,
+            text: p.text,
+            embedding: p.embedding,
+          })),
+        });
+      }
     }
 
     console.log('Scrape completed successfully');
