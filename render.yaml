@@ -46,6 +46,12 @@ jobs:
     buildCommand: |
       # Install Node.js dependencies
       npm install
+      
+      # Install Puppeteer Chrome browser explicitly
+      echo "Installing Puppeteer Chrome browser..."
+      npx puppeteer browsers install chrome
+      
+      # Generate Prisma client and build
       npx prisma generate
       npm run build
     startCommand: npm run scrape
