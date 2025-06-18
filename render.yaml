@@ -46,11 +46,14 @@ jobs:
     buildCommand: |
       npm install
       npx prisma generate
-    startCommand: npx ts-node src/crawl.ts
+      npm run build
+    startCommand: npm run scrape
     envVars:
       - key: DATABASE_URL
         sync: false
       - key: NEXT_PUBLIC_BASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
         sync: false
       - key: NODE_VERSION
         value: 18.20.2 

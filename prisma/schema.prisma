@@ -1,14 +1,11 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
   extensions = [vector]
 }
 
@@ -16,7 +13,7 @@ model Article {
   id          String   @id @default(cuid())
   url         String   @unique
   question    String
-  answer      String   @db.Text
+  answer      String
   category    String
   platform    String
   lastUpdated DateTime @default(now())
@@ -29,6 +26,60 @@ model Article {
   @@index([lastUpdated])
 }
 
+model Answer {
+  id                   String   @id @default(cuid())
+  question             String
+  answer               String
+  firstAnswerParagraph String?
+  summary              String?
+  sourceUrl            String   @unique
+  platform             String
+  category             String
+  tags                 String[]
+  dateCollected        DateTime @default(now())
+  lastCrawled          DateTime @default(now())
+  crawlFrequency       String   @default("daily")
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([platform])
+  @@index([category])
+  @@index([tags])
+  @@index([lastCrawled])
+}
+
+model CrawlJob {
+  id        String    @id @default(cuid())
+  source    String
+  status    String
+  startedAt DateTime?
+  endedAt   DateTime?
+  error     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model SubmittedQuestion {
+  id           String   @id @default(cuid())
+  question     String
+  platform     String
+  email        String?
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  manualAnswer String?
+  isPublic     Boolean  @default(false)
+  sourceUrl    String?
+  tags         String[]
+  aiGenerated  Boolean  @default(false)
+  tone         String?
+  embedding    Float[]
+
+  @@index([platform])
+  @@index([status])
+}
+
 model ArticleParagraph {
   id        String   @id @default(cuid())
   articleId String
@@ -38,57 +89,3 @@ model ArticleParagraph {
 
   @@index([articleId])
 }
-
-model Answer {
-  id                    String   @id @default(cuid())
-  question              String
-  answer                String   @db.Text
-  firstAnswerParagraph  String?  @db.Text
-  summary               String?  @db.Text
-  sourceUrl             String   @unique
-  platform              String
-  category              String
-  tags                  String[]
-  dateCollected         DateTime @default(now())
-  lastCrawled           DateTime @default(now())
-  crawlFrequency        String   @default("daily") // "daily" | "weekly" | "manual"
-  isActive              Boolean  @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  @@index([platform])
-  @@index([category])
-  @@index([tags])
-  @@index([lastCrawled])
-}
-
-model CrawlJob {
-  id        String   @id @default(cuid())
-  source    String
-  status    String   // "pending" | "running" | "completed" | "failed"
-  startedAt DateTime?
-  endedAt   DateTime?
-  error     String?  @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model SubmittedQuestion {
-  id            String   @id @default(cuid())
-  question      String
-  platform      String
-  email         String?  // Optional email field
-  status        String   @default("pending")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  manualAnswer  String?  @db.Text
-  isPublic      Boolean  @default(false)
-  sourceUrl     String?
-  tags          String[]
-  aiGenerated   Boolean  @default(false)
-  tone          String?  // "professional", "friendly", "empathetic", etc.
-  embedding     Float[]  // AI vector embedding
-
-  @@index([platform])
-  @@index([status])
-} 

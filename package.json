@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "tsc && next build",
+    "build": "npm run build:scripts && next build",
+    "build:scripts": "tsc --project tsconfig.scripts.json && tsc-alias -p tsconfig.scripts.json",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
@@ -44,7 +45,8 @@
     "eslint-config-next": "14.1.0",
     "ignore-loader": "^0.1.2",
     "prisma": "^5.10.2",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16"
   },
   "engines": {
     "node": ">=18.0.0 <19.0.0"
