@@ -96,6 +96,7 @@ Required environment variables:
 
 - `DATABASE_URL`: Your PostgreSQL database URL
 - `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answer-hub.onrender.com)
+- `OPENAI_API_KEY`: Your OpenAI API key for embeddings
 
 Optional environment variables for OTA platform access:
 

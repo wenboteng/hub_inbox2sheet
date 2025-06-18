@@ -1,6 +1,7 @@
-import { crawlGetYourGuideArticles } from '../crawlers/getyourguide';
-import { crawlAirbnbArticles } from '../crawlers/airbnb';
 import { PrismaClient } from '@prisma/client';
+import { getContentEmbeddings } from '@/utils/openai';
+import { scrapeAirbnb } from './scrapers/airbnb';
+import { scrapeGetYourGuide } from './scrapers/getyourguide';
 
 const prisma = new PrismaClient();
 
@@ -13,71 +14,59 @@ const URLs = [
 ];
 
 async function main() {
-  console.log('[SCRAPER] Starting scraper script');
-  
   try {
-    // Crawl GetYourGuide articles
-    console.log('[SCRAPER] Crawling GetYourGuide help center articles');
-    const gygArticles = await crawlGetYourGuideArticles();
-    
-    // Store GetYourGuide articles in database
-    for (const article of gygArticles) {
-      await prisma.article.upsert({
-        where: {
-          url: article.url
-        },
-        update: {
-          question: article.question,
-          answer: article.answer,
-          platform: article.platform,
-          category: 'Help Center',  // Default category
-          lastUpdated: new Date()
-        },
-        create: {
-          url: article.url,
-          question: article.question,
-          answer: article.answer,
-          platform: article.platform,
-          category: 'Help Center',  // Default category
-          lastUpdated: new Date()
-        }
-      });
-    }
-    
-    console.log(`[SCRAPER] Successfully stored ${gygArticles.length} GetYourGuide articles in database`);
+    console.log('Starting scrape...');
 
-    // Crawl Airbnb articles
-    console.log('[SCRAPER] Crawling Airbnb help center articles');
-    const airbnbArticles = await crawlAirbnbArticles();
-    
-    // Store Airbnb articles in database
-    for (const article of airbnbArticles) {
+    // Scrape articles from different platforms
+    const airbnbArticles = await scrapeAirbnb();
+    const gygArticles = await scrapeGetYourGuide();
+    const articles = [...airbnbArticles, ...gygArticles];
+
+    console.log(`Found ${articles.length} articles`);
+
+    // Process each article
+    for (const article of articles) {
+      console.log(`Processing article: ${article.question}`);
+
+      // Generate embeddings for paragraphs
+      const paragraphsWithEmbeddings = await getContentEmbeddings(article.answer);
+
+      // Upsert article with paragraphs
       await prisma.article.upsert({
-        where: {
-          url: article.url
-        },
+        where: { url: article.url },
         update: {
           question: article.question,
           answer: article.answer,
+          category: article.category,
           platform: article.platform,
-          category: 'Help Center',  // Default category
-          lastUpdated: new Date()
+          lastUpdated: new Date(),
+          paragraphs: {
+            deleteMany: {},
+            create: paragraphsWithEmbeddings.map(p => ({
+              text: p.text,
+              embedding: p.embedding,
+            })),
+          },
         },
         create: {
           url: article.url,
           question: article.question,
           answer: article.answer,
+          category: article.category,
           platform: article.platform,
-          category: 'Help Center',  // Default category
-          lastUpdated: new Date()
-        }
+          paragraphs: {
+            create: paragraphsWithEmbeddings.map(p => ({
+              text: p.text,
+              embedding: p.embedding,
+            })),
+          },
+        },
       });
     }
-    
-    console.log(`[SCRAPER] Successfully stored ${airbnbArticles.length} Airbnb articles in database`);
-    console.log(`[SCRAPER] Total articles stored: ${gygArticles.length + airbnbArticles.length}`);
+
+    console.log('Scrape completed successfully');
   } catch (error) {
-    console.error('[SCRAPER] Error in scraper script:', error);
+    console.error('Error during scrape:', error);
     process.exit(1);
   } finally {
     await prisma.$disconnect();

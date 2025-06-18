@@ -1,18 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { extractRelevantSnippet, rankArticlesByRelevance } from "@/utils/searchHelpers";
+import prisma from '@/lib/prisma';
+import { getEmbedding } from '@/utils/openai';
 
-const prisma = new PrismaClient();
+interface ArticleParagraph {
+  text: string;
+  embedding: number[];
+}
+
+interface Article {
+  id: string;
+  url: string;
+  question: string;
+  platform: string;
+  category: string;
+  paragraphs: ArticleParagraph[];
+}
+
+interface SearchResult {
+  id: string;
+  url: string;
+  question: string;
+  platform: string;
+  category: string;
+  snippets: string[];
+  score: number;
+}
+
+// Helper function to highlight search terms in text
+function highlightTerms(text: string, terms: string[]): string {
+  let highlighted = text;
+  terms.forEach(term => {
+    const regex = new RegExp(`(${term})`, 'gi');
+    highlighted = highlighted.replace(regex, '<mark>$1</mark>');
+  });
+  return highlighted;
+}
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const query = searchParams.get("q") || "";
-    const platform = searchParams.get("platform");
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('q') || '';
+    const platform = searchParams.get('platform');
     const category = searchParams.get("category");
 
-    // Get matching articles
-    const articles = await prisma.article.findMany({
+    if (!query) {
+      return NextResponse.json({ articles: [] });
+    }
+
+    // Get query embedding
+    const queryEmbedding = await getEmbedding(query);
+
+    // Build base query
+    const baseQuery = {
       where: {
         AND: [
           {
@@ -28,22 +67,65 @@ export async function GET(request: NextRequest) {
       orderBy: {
         lastUpdated: "desc",
       },
-    });
+      include: {
+        paragraphs: true,
+      },
+      take: 3,
+    };
 
-    // Rank articles and extract snippets
-    const rankedArticles = rankArticlesByRelevance(articles, query);
-    const results = rankedArticles.map(article => ({
-      ...article,
-      snippet: extractRelevantSnippet(article.answer, query),
-      answer: undefined, // Don't send full answer in initial response
-    }));
+    // Get articles with paragraphs
+    const articles = await prisma.article.findMany(baseQuery) as Article[];
 
-    return NextResponse.json({ hits: results });
-  } catch (error) {
-    console.error("Search error:", error);
-    return NextResponse.json(
-      { error: "Failed to perform search" },
-      { status: 500 }
+    // Process and rank results
+    const results = await Promise.all(
+      articles.map(async (article) => {
+        // Find most relevant paragraphs using vector similarity
+        const relevantParagraphs = article.paragraphs
+          .map(para => ({
+            text: para.text,
+            similarity: cosineSimilarity(queryEmbedding, para.embedding),
+          }))
+          .sort((a, b) => b.similarity - a.similarity)
+          .slice(0, 2);
+
+        // Calculate overall article score based on best paragraph similarity
+        const score = relevantParagraphs.length > 0 
+          ? relevantParagraphs[0].similarity
+          : 0;
+
+        // Highlight search terms in snippets
+        const snippets = relevantParagraphs.map(p => 
+          highlightTerms(p.text, query.split(' '))
+        );
+
+        return {
+          id: article.id,
+          url: article.url,
+          question: article.question,
+          platform: article.platform,
+          category: article.category,
+          snippets,
+          score,
+        } as SearchResult;
+      })
     );
+
+    // Sort by score and return top results
+    const sortedResults = results
+      .sort((a, b) => b.score - a.score)
+      .filter(r => r.score > 0.7); // Only return reasonably good matches
+
+    return NextResponse.json({ articles: sortedResults });
+  } catch (error) {
+    console.error('Search error:', error);
+    return NextResponse.json({ error: 'Failed to perform search' }, { status: 500 });
   }
+}
+
+// Helper function for cosine similarity
+function cosineSimilarity(vecA: number[], vecB: number[]): number {
+  const dotProduct = vecA.reduce((acc, val, i) => acc + val * vecB[i], 0);
+  const normA = Math.sqrt(vecA.reduce((acc, val) => acc + val * val, 0));
+  const normB = Math.sqrt(vecB.reduce((acc, val) => acc + val * val, 0));
+  return dotProduct / (normA * normB);
 } 
