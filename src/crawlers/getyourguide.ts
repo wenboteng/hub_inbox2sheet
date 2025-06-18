@@ -1,13 +1,11 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-// Verified GetYourGuide help center articles
-const VERIFIED_URLS = [
+// Public GetYourGuide help center articles
+const PUBLIC_URLS = [
   'https://support.getyourguide.com/s/article/Cancel-a-booking?language=en_US',
   'https://support.getyourguide.com/s/article/Change-travelers-or-date?language=en_US',
-  'https://support.getyourguide.com/s/article/How-do-I-get-a-refund?language=en_US',
-  'https://support.getyourguide.com/s/article/How-do-I-contact-customer-service?language=en_US',
-  'https://support.getyourguide.com/s/article/What-is-the-cancellation-policy?language=en_US'
+  'https://support.getyourguide.com/s/article/How-do-I-get-a-refund?language=en_US'
 ];
 
 export interface GetYourGuideArticle {
@@ -58,20 +56,15 @@ export async function crawlGetYourGuideArticle(url: string): Promise<GetYourGuid
 
     const $ = cheerio.load(response.data);
     
-    // Extract title and content
+    // Extract title and content from public help center
     const title = $('h1').first().text().trim();
     const content = $('.article-content, .content').first().text().trim();
     
-    // Check for soft-404s
-    if (isSoft404(title, content)) {
-      console.warn(`[GETYOURGUIDE][WARN] Soft-404 detected for ${url}`);
+    // Basic validation
+    if (!title || !content || content.length < 50) {
+      console.warn(`[GETYOURGUIDE][WARN] Invalid content for ${url}`);
       console.warn(`[GETYOURGUIDE][WARN] Title: "${title}"`);
       console.warn(`[GETYOURGUIDE][WARN] Content length: ${content.length}`);
-      return null;
-    }
-
-    if (!title || !content) {
-      console.warn(`[GETYOURGUIDE][WARN] Missing title or content for ${url}`);
       return null;
     }
 
@@ -87,8 +80,8 @@ export async function crawlGetYourGuideArticle(url: string): Promise<GetYourGuid
   }
 }
 
-export async function crawlGetYourGuideArticles(urls: string[] = VERIFIED_URLS): Promise<GetYourGuideArticle[]> {
-  console.log('[GETYOURGUIDE] Starting crawl of articles');
+export async function crawlGetYourGuideArticles(urls: string[] = PUBLIC_URLS): Promise<GetYourGuideArticle[]> {
+  console.log('[GETYOURGUIDE] Starting crawl of public help center articles');
   
   const results: GetYourGuideArticle[] = [];
   
