@@ -7,6 +7,13 @@ export async function createBrowser() {
   const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
   console.log(`[PUPPETEER] Environment: ${isRender ? 'Render/Production' : 'Development'}`);
   
+  // Force Puppeteer to skip its bundled Chrome in production
+  if (isRender) {
+    process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
+    process.env.PUPPETEER_SKIP_DOWNLOAD = 'true';
+    console.log('[PUPPETEER] Skipping Puppeteer bundled Chrome download');
+  }
+  
   // Try to find Chrome in common locations
   const possiblePaths = [
     process.env.PUPPETEER_EXECUTABLE_PATH,

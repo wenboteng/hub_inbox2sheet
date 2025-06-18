@@ -1,4 +1,6 @@
 import { createBrowser } from '../../utils/puppeteer';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
 
 interface Article {
   url: string;
@@ -15,6 +17,45 @@ const AIRBNB_ARTICLES = [
   'https://www.airbnb.com/help/article/789',
   // Add more specific article URLs as needed
 ];
+
+// Fallback scraping method using axios/cheerio
+async function scrapeAirbnbWithAxios(): Promise<Article[]> {
+  console.log('[AIRBNB] Using fallback axios/cheerio method...');
+  const articles: Article[] = [];
+  
+  try {
+    // Try to scrape some basic help content
+    const response = await axios.get('https://www.airbnb.com/help', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+      timeout: 10000,
+    });
+
+    const $ = cheerio.load(response.data);
+    
+    // Try to find any help content
+    const title = $('title').text().trim() || 'Airbnb Help Center';
+    const content = $('body').text().trim().substring(0, 1000); // Limit content
+    
+    if (content && content.length > 100) {
+      articles.push({
+        url: 'https://www.airbnb.com/help',
+        question: title,
+        answer: content,
+        platform: 'Airbnb',
+        category: 'Help Center',
+      });
+      console.log('[AIRBNB] Successfully scraped basic help content with axios');
+    }
+  } catch (error) {
+    console.error('[AIRBNB] Fallback axios method also failed:', error);
+  }
+  
+  return articles;
+}
 
 export async function scrapeAirbnb(): Promise<Article[]> {
   console.log('[AIRBNB] Starting Airbnb scraping...');
@@ -127,7 +168,11 @@ export async function scrapeAirbnb(): Promise<Article[]> {
       console.log('[AIRBNB] Browser closed');
     }
   } catch (error) {
-    console.error('[AIRBNB] Failed to create browser:', error);
+    console.error('[AIRBNB] Failed to create browser, trying fallback method:', error);
+    
+    // Try fallback method if Puppeteer fails
+    const fallbackArticles = await scrapeAirbnbWithAxios();
+    articles.push(...fallbackArticles);
   }
 
   console.log(`[AIRBNB] Scraping completed. Found ${articles.length} articles`);

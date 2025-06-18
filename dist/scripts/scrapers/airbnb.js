@@ -1,7 +1,45 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.scrapeAirbnb = scrapeAirbnb;
 const puppeteer_1 = require("../../utils/puppeteer");
+const axios_1 = __importDefault(require("axios"));
+const cheerio = __importStar(require("cheerio"));
 // List of known Airbnb help articles to scrape
 const AIRBNB_ARTICLES = [
     'https://www.airbnb.com/help/article/123',
@@ -9,6 +47,40 @@ const AIRBNB_ARTICLES = [
     'https://www.airbnb.com/help/article/789',
     // Add more specific article URLs as needed
 ];
+// Fallback scraping method using axios/cheerio
+async function scrapeAirbnbWithAxios() {
+    console.log('[AIRBNB] Using fallback axios/cheerio method...');
+    const articles = [];
+    try {
+        // Try to scrape some basic help content
+        const response = await axios_1.default.get('https://www.airbnb.com/help', {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+            },
+            timeout: 10000,
+        });
+        const $ = cheerio.load(response.data);
+        // Try to find any help content
+        const title = $('title').text().trim() || 'Airbnb Help Center';
+        const content = $('body').text().trim().substring(0, 1000); // Limit content
+        if (content && content.length > 100) {
+            articles.push({
+                url: 'https://www.airbnb.com/help',
+                question: title,
+                answer: content,
+                platform: 'Airbnb',
+                category: 'Help Center',
+            });
+            console.log('[AIRBNB] Successfully scraped basic help content with axios');
+        }
+    }
+    catch (error) {
+        console.error('[AIRBNB] Fallback axios method also failed:', error);
+    }
+    return articles;
+}
 async function scrapeAirbnb() {
     console.log('[AIRBNB] Starting Airbnb scraping...');
     const articles = [];
@@ -105,7 +177,10 @@ async function scrapeAirbnb() {
         }
     }
     catch (error) {
-        console.error('[AIRBNB] Failed to create browser:', error);
+        console.error('[AIRBNB] Failed to create browser, trying fallback method:', error);
+        // Try fallback method if Puppeteer fails
+        const fallbackArticles = await scrapeAirbnbWithAxios();
+        articles.push(...fallbackArticles);
     }
     console.log(`[AIRBNB] Scraping completed. Found ${articles.length} articles`);
     return articles;
