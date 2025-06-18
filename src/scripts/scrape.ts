@@ -30,6 +30,7 @@ async function main() {
           question: article.question,
           answer: article.answer,
           platform: article.platform,
+          category: 'Help Center',  // Default category
           lastUpdated: new Date()
         },
         create: {
@@ -37,6 +38,7 @@ async function main() {
           question: article.question,
           answer: article.answer,
           platform: article.platform,
+          category: 'Help Center',  // Default category
           lastUpdated: new Date()
         }
       });
@@ -58,6 +60,7 @@ async function main() {
           question: article.question,
           answer: article.answer,
           platform: article.platform,
+          category: 'Help Center',  // Default category
           lastUpdated: new Date()
         },
         create: {
@@ -65,6 +68,7 @@ async function main() {
           question: article.question,
           answer: article.answer,
           platform: article.platform,
+          category: 'Help Center',  // Default category
           lastUpdated: new Date()
         }
       });
