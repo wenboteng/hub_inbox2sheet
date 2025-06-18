@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import { createBrowser } from '../../utils/puppeteer';
 
 interface Article {
   url: string;
@@ -10,10 +10,7 @@ interface Article {
 
 export async function scrapeAirbnb(): Promise<Article[]> {
   const articles: Article[] = [];
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox'],
-  });
+  const browser = await createBrowser();
 
   try {
     const page = await browser.newPage();

@@ -1,16 +1,10 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.scrapeAirbnb = scrapeAirbnb;
-const puppeteer_1 = __importDefault(require("puppeteer"));
+const puppeteer_1 = require("../../utils/puppeteer");
 async function scrapeAirbnb() {
     const articles = [];
-    const browser = await puppeteer_1.default.launch({
-        headless: true,
-        args: ['--no-sandbox'],
-    });
+    const browser = await (0, puppeteer_1.createBrowser)();
     try {
         const page = await browser.newPage();
         await page.goto('https://www.airbnb.com/help/article-categories/hosting');
