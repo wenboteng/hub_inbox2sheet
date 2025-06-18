@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from '@/lib/prisma';
 import { getEmbedding } from '@/utils/openai';
+import { Prisma } from '@prisma/client';
 
 interface ArticleParagraph {
   text: string;
@@ -79,8 +80,14 @@ export async function GET(request: NextRequest) {
     // Process and rank results
     const results = await Promise.all(
       articles.map(async (article) => {
+        // Convert JSON embeddings to number arrays
+        const paragraphs = article.paragraphs.map(p => ({
+          text: p.text,
+          embedding: p.embedding as number[],
+        }));
+
         // Find most relevant paragraphs using vector similarity
-        const relevantParagraphs = article.paragraphs
+        const relevantParagraphs = paragraphs
           .map(para => ({
             text: para.text,
             similarity: cosineSimilarity(queryEmbedding, para.embedding),

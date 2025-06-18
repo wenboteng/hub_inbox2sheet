@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { getContentEmbeddings } from '@/utils/openai';
-import { scrapeAirbnb } from './scrapers/airbnb';
-import { scrapeGetYourGuide } from './scrapers/getyourguide';
+import { scrapeAirbnb } from '@/scripts/scrapers/airbnb';
+import { scrapeGetYourGuide } from '@/scripts/scrapers/getyourguide';
 
 const prisma = new PrismaClient();
 
