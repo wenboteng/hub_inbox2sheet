@@ -7,10 +7,16 @@ interface Article {
   id: string;
   url: string;
   question: string;
-  answer: string;
+  answer?: string;
+  snippet: string;
   category: string;
   platform: string;
   lastUpdated: string;
+  relevanceScore: number;
+}
+
+interface ExpandedState {
+  [key: string]: boolean;
 }
 
 export default function SearchPage() {
@@ -18,6 +24,7 @@ export default function SearchPage() {
   const [selectedPlatform, setSelectedPlatform] = useState("all");
   const [results, setResults] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [expandedArticles, setExpandedArticles] = useState<ExpandedState>({});
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
 
   useEffect(() => {
@@ -46,6 +53,32 @@ export default function SearchPage() {
 
     performSearch();
   }, [debouncedSearchQuery, selectedPlatform]);
+
+  const toggleArticle = async (articleId: string) => {
+    if (expandedArticles[articleId]) {
+      setExpandedArticles(prev => ({ ...prev, [articleId]: false }));
+      return;
+    }
+
+    // Fetch full article content
+    try {
+      const response = await fetch(`/api/articles/${articleId}`);
+      const article = await response.json();
+      
+      // Update the article in results with full content
+      setResults(prev => 
+        prev.map(a => 
+          a.id === articleId 
+            ? { ...a, answer: article.answer }
+            : a
+        )
+      );
+      
+      setExpandedArticles(prev => ({ ...prev, [articleId]: true }));
+    } catch (error) {
+      console.error("Failed to fetch article:", error);
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -93,18 +126,30 @@ export default function SearchPage() {
               </div>
               <h2 className="text-xl font-semibold mb-4">{article.question}</h2>
               <div className="prose max-w-none mb-4">
-                <div dangerouslySetInnerHTML={{ __html: article.answer }} />
+                {expandedArticles[article.id] ? (
+                  <div dangerouslySetInnerHTML={{ __html: article.answer || "" }} />
+                ) : (
+                  <div dangerouslySetInnerHTML={{ __html: article.snippet }} />
+                )}
               </div>
-              <div className="flex items-center justify-between text-sm text-gray-500">
-                <a
-                  href={article.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:text-blue-600"
-                >
-                  View Source →
-                </a>
-                <span>
+              <div className="flex items-center justify-between text-sm">
+                <div className="space-x-4">
+                  <button
+                    onClick={() => toggleArticle(article.id)}
+                    className="text-blue-500 hover:text-blue-600"
+                  >
+                    {expandedArticles[article.id] ? "Show Less" : "View Full Article"}
+                  </button>
+                  <a
+                    href={article.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:text-blue-600"
+                  >
+                    View Source →
+                  </a>
+                </div>
+                <span className="text-gray-500">
                   Last updated: {new Date(article.lastUpdated).toLocaleDateString()}
                 </span>
               </div>
