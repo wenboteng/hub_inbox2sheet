@@ -72,7 +72,7 @@ To run the scraper on a schedule (e.g., daily), create a new Cron Job service in
 
 - **Build Command:**
   ```bash
-  npm install && npx prisma generate && npm run build
+  npm install && npx puppeteer browsers install chrome && npx prisma generate && npm run build
   ```
 - **Command:**
   ```bash

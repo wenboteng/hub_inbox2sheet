@@ -11,7 +11,8 @@
     "crawl": "ts-node src/crawl.ts",
     "scrape": "ts-node src/scripts/scrape.ts",
     "test:getyourguide": "ts-node src/scripts/test-getyourguide.ts",
-    "test:airbnb": "ts-node src/scripts/test-airbnb.ts"
+    "test:airbnb": "ts-node src/scripts/test-airbnb.ts",
+    "view:articles": "ts-node src/scripts/view-articles.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.0.0",
