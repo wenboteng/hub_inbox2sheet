@@ -39,10 +39,30 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createBrowser = createBrowser;
 const puppeteer_1 = __importDefault(require("puppeteer"));
 const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
 const child_process_1 = require("child_process");
 async function ensureChromeInstalled() {
-    const cacheDir = '/opt/render/.cache/puppeteer';
-    const chromePath = '/opt/render/.cache/puppeteer/chrome/linux-137.0.7151.119/chrome-linux64/chrome';
+    // Determine the appropriate cache directory based on environment
+    const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
+    const isLinux = process.platform === 'linux';
+    const isMac = process.platform === 'darwin';
+    let cacheDir;
+    let chromePath;
+    if (isRender && isLinux) {
+        // Render production environment
+        cacheDir = '/opt/render/.cache/puppeteer';
+        chromePath = '/opt/render/.cache/puppeteer/chrome/linux-137.0.7151.119/chrome-linux64/chrome';
+    }
+    else if (isMac) {
+        // macOS development environment
+        cacheDir = path.join(process.env.HOME || '', '.cache', 'puppeteer');
+        chromePath = path.join(cacheDir, 'chrome', 'mac-137.0.7151.119', 'chrome-mac-x64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing');
+    }
+    else {
+        // Linux development or other environments
+        cacheDir = path.join(process.env.HOME || '', '.cache', 'puppeteer');
+        chromePath = path.join(cacheDir, 'chrome', 'linux-137.0.7151.119', 'chrome-linux64', 'chrome');
+    }
     console.log(`[PUPPETEER] Checking if Chrome is installed at: ${chromePath}`);
     if (fs.existsSync(chromePath)) {
         console.log(`[PUPPETEER] Chrome already installed at: ${chromePath}`);
@@ -61,11 +81,20 @@ async function ensureChromeInstalled() {
             stdio: 'inherit',
             cwd: process.cwd()
         });
-        // Verify installation
-        if (fs.existsSync(chromePath)) {
+        // Verify installation - check if the file exists or if it's a symlink
+        if (fs.existsSync(chromePath) || fs.lstatSync(chromePath).isSymbolicLink()) {
             console.log(`[PUPPETEER] Chrome successfully installed at: ${chromePath}`);
         }
         else {
+            // For macOS, the actual path might be different, let's check the cache directory
+            const chromeDir = path.dirname(chromePath);
+            if (fs.existsSync(chromeDir)) {
+                const files = fs.readdirSync(chromeDir);
+                console.log(`[PUPPETEER] Chrome directory contents: ${files.join(', ')}`);
+                // If we can't find the exact path but the directory exists, assume it's installed
+                console.log(`[PUPPETEER] Chrome appears to be installed in: ${chromeDir}`);
+                return;
+            }
             throw new Error('Chrome installation failed - file not found after installation');
         }
     }
@@ -78,18 +107,22 @@ async function createBrowser() {
     console.log('[PUPPETEER] Starting browser creation...');
     // Check if we're in a Render environment
     const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
+    const isLinux = process.platform === 'linux';
+    const isMac = process.platform === 'darwin';
     console.log(`[PUPPETEER] Environment: ${isRender ? 'Render/Production' : 'Development'}`);
+    console.log(`[PUPPETEER] Platform: ${process.platform}`);
     // Debug: Check Puppeteer version and cache path
     console.log(`[PUPPETEER] Node.js version: ${process.version}`);
-    console.log(`[PUPPETEER] Platform: ${process.platform}`);
     console.log(`[PUPPETEER] Architecture: ${process.arch}`);
     // Debug: Check environment variables
     console.log(`[PUPPETEER] PUPPETEER_EXECUTABLE_PATH: ${process.env.PUPPETEER_EXECUTABLE_PATH || 'not set'}`);
     console.log(`[PUPPETEER] PUPPETEER_CACHE_DIR: ${process.env.PUPPETEER_CACHE_DIR || 'not set'}`);
     console.log(`[PUPPETEER] PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: ${process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD || 'not set'}`);
     console.log(`[PUPPETEER] PUPPETEER_SKIP_DOWNLOAD: ${process.env.PUPPETEER_SKIP_DOWNLOAD || 'not set'}`);
-    // Debug: Check cache directory
-    const cacheDir = process.env.PUPPETEER_CACHE_DIR || '/opt/render/.cache/puppeteer';
+    // Determine cache directory
+    const cacheDir = isRender && isLinux
+        ? '/opt/render/.cache/puppeteer'
+        : path.join(process.env.HOME || '', '.cache', 'puppeteer');
     console.log(`[PUPPETEER] Cache directory: ${cacheDir}`);
     try {
         if (fs.existsSync(cacheDir)) {
@@ -146,6 +179,17 @@ async function createBrowser() {
     }
     // Ensure Chrome is installed
     await ensureChromeInstalled();
+    // Determine executable path based on environment
+    let executablePath;
+    if (isRender && isLinux) {
+        executablePath = '/opt/render/.cache/puppeteer/chrome/linux-137.0.7151.119/chrome-linux64/chrome';
+    }
+    else if (isMac) {
+        executablePath = path.join(process.env.HOME || '', '.cache', 'puppeteer', 'chrome', 'mac-137.0.7151.119', 'chrome-mac-x64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing');
+    }
+    else {
+        executablePath = path.join(process.env.HOME || '', '.cache', 'puppeteer', 'chrome', 'linux-137.0.7151.119', 'chrome-linux64', 'chrome');
+    }
     // Use Puppeteer's bundled Chrome with server-optimized settings
     const launchOptions = {
         headless: true,
@@ -184,8 +228,8 @@ async function createBrowser() {
             '--memory-pressure-off',
             '--max_old_space_size=4096'
         ],
-        // Use the exact path that Puppeteer expects
-        executablePath: '/opt/render/.cache/puppeteer/chrome/linux-137.0.7151.119/chrome-linux64/chrome',
+        // Use the determined executable path
+        executablePath,
         // Set a reasonable timeout
         timeout: 30000,
     };

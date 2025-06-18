@@ -1,4 +1,6 @@
 import { createBrowser } from '../../utils/puppeteer';
+import { cleanText } from '../../utils/parseHelpers';
+import { Page } from 'puppeteer';
 
 interface Article {
   url: string;
@@ -10,11 +12,83 @@ interface Article {
 
 // List of known Airbnb help articles to scrape
 const AIRBNB_ARTICLES = [
-  'https://www.airbnb.com/help/article/123',
-  'https://www.airbnb.com/help/article/456',
-  'https://www.airbnb.com/help/article/789',
-  // Add more specific article URLs as needed
+  'https://www.airbnb.com/help/article/2503',
+  'https://www.airbnb.com/help/article/2894',
+  'https://www.airbnb.com/help/article/2908',
+  'https://www.airbnb.com/help/article/2799',
+  'https://www.airbnb.com/help/article/2701',
+  'https://www.airbnb.com/help/article/3113', // Getting started on Airbnb
 ];
+
+async function extractArticleContent(page: Page, url: string): Promise<{ title: string; content: string; category: string } | null> {
+  try {
+    // Wait for h1 title first
+    await page.waitForSelector('h1', { timeout: 10000 });
+    const title = await page.$eval('h1', el => el.textContent?.trim() || '');
+    
+    // Try multiple content selectors in order of preference
+    const contentSelectors = [
+      'div[data-testid="CEPHtmlSection"]', // Airbnb's current main content selector
+      'article',
+      '.article-content',
+      '.help-content',
+      'main',
+      '.content',
+      '[role="main"]',
+      '.article-body',
+      '.help-article-content'
+    ];
+    
+    let content = '';
+    let usedSelector = '';
+    
+    for (const selector of contentSelectors) {
+      try {
+        await page.waitForSelector(selector, { timeout: 5000 });
+        const extractedContent = await page.$eval(selector, el => el.textContent?.trim() || '');
+        if (extractedContent && extractedContent.length > 50) {
+          content = extractedContent;
+          usedSelector = selector;
+          console.log(`[AIRBNB] Found content using selector: ${selector}`);
+          break;
+        }
+      } catch (e) {
+        console.log(`[AIRBNB] Selector ${selector} not found, trying next...`);
+      }
+    }
+    
+    // If no content found with specific selectors, try body as fallback
+    if (!content || content.length < 50) {
+      content = await page.$eval('body', el => el.textContent?.trim() || '');
+      usedSelector = 'body (fallback)';
+      console.log(`[AIRBNB] Using body fallback for content`);
+    }
+
+    // Get category from breadcrumb or default
+    let category = 'Help Center';
+    try {
+      category = await page.$eval('.breadcrumb, .breadcrumbs, nav[aria-label="breadcrumb"]', el => 
+        el.textContent?.split('>').pop()?.trim() || 'Help Center'
+      );
+    } catch (e) {
+      console.log('[AIRBNB] Could not extract category, using default');
+    }
+
+    if (content && content.length > 50) {
+      return {
+        title: cleanText(title),
+        content: cleanText(content),
+        category
+      };
+    } else {
+      console.log(`[AIRBNB] Insufficient content found for ${url}`);
+      return null;
+    }
+  } catch (error) {
+    console.error(`[AIRBNB] Error extracting content from ${url}:`, error);
+    return null;
+  }
+}
 
 export async function scrapeAirbnb(): Promise<Article[]> {
   console.log('[AIRBNB] Starting Airbnb scraping...');
@@ -30,6 +104,16 @@ export async function scrapeAirbnb(): Promise<Article[]> {
       // Set a reasonable timeout and user agent
       await page.setDefaultTimeout(30000);
       await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+      
+      // Enable request interception to block non-essential resources
+      await page.setRequestInterception(true);
+      page.on('request', (request) => {
+        if (['image', 'font', 'media'].includes(request.resourceType())) {
+          request.abort();
+        } else {
+          request.continue();
+        }
+      });
       
       // Try to scrape from the main help center first
       try {
@@ -52,31 +136,16 @@ export async function scrapeAirbnb(): Promise<Article[]> {
             console.log(`[AIRBNB] Scraping article: ${title}`);
             await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
 
-            // Wait for content to load
-            await page.waitForSelector('article, .article-content, .help-content', { timeout: 10000 });
-
-            // Extract article content
-            const content = await page.$eval('article, .article-content, .help-content', el => el.textContent?.trim() || '');
-
-            // Get category from breadcrumb or default
-            let category = 'Help Center';
-            try {
-              category = await page.$eval('.breadcrumb, .breadcrumbs', el => 
-                el.textContent?.split('>').pop()?.trim() || 'Help Center'
-              );
-            } catch (e) {
-              console.log('[AIRBNB] Could not extract category, using default');
-            }
-
-            if (content && content.length > 50) {
+            const extracted = await extractArticleContent(page, url);
+            if (extracted) {
               articles.push({
                 url,
-                question: title || 'Airbnb Help Article',
-                answer: content,
+                question: extracted.title || title,
+                answer: extracted.content,
                 platform: 'Airbnb',
-                category,
+                category: extracted.category,
               });
-              console.log(`[AIRBNB] Successfully scraped article: ${title}`);
+              console.log(`[AIRBNB] Successfully scraped article: ${extracted.title}`);
             } else {
               console.log(`[AIRBNB] Skipping article with insufficient content: ${title}`);
             }
@@ -100,19 +169,16 @@ export async function scrapeAirbnb(): Promise<Article[]> {
             console.log(`[AIRBNB] Trying known article: ${url}`);
             await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
             
-            // Try to extract any content
-            const title = await page.title();
-            const content = await page.$eval('body', el => el.textContent?.trim() || '');
-            
-            if (content && content.length > 100) {
+            const extracted = await extractArticleContent(page, url);
+            if (extracted) {
               articles.push({
                 url,
-                question: title || 'Airbnb Help Article',
-                answer: content.substring(0, 1000), // Limit content length
+                question: extracted.title || 'Airbnb Help Article',
+                answer: extracted.content,
                 platform: 'Airbnb',
-                category: 'Help Center',
+                category: extracted.category,
               });
-              console.log(`[AIRBNB] Successfully scraped known article: ${title}`);
+              console.log(`[AIRBNB] Successfully scraped known article: ${extracted.title}`);
             }
           } catch (error) {
             console.error(`[AIRBNB] Error scraping known article ${url}:`, error);
