@@ -1,11 +1,10 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-// Public GetYourGuide help center articles
+// Public GetYourGuide support center articles
 const PUBLIC_URLS = [
   'https://support.getyourguide.com/s/article/Cancel-a-booking?language=en_US',
-  'https://support.getyourguide.com/s/article/Change-travelers-or-date?language=en_US',
-  'https://support.getyourguide.com/s/article/How-do-I-get-a-refund?language=en_US'
+  'https://support.getyourguide.com/s/article/Change-travelers-or-date?language=en_US'
 ];
 
 export interface GetYourGuideArticle {
@@ -41,6 +40,11 @@ function isSoft404(title: string, content: string): boolean {
 }
 
 export async function crawlGetYourGuideArticle(url: string): Promise<GetYourGuideArticle | null> {
+  if (!url.startsWith('https://support.getyourguide.com/')) {
+    console.error(`[GETYOURGUIDE][ERROR] Invalid domain. Only support.getyourguide.com is allowed: ${url}`);
+    return null;
+  }
+
   console.log(`[GETYOURGUIDE] Crawling ${url}`);
   
   try {
@@ -56,9 +60,9 @@ export async function crawlGetYourGuideArticle(url: string): Promise<GetYourGuid
 
     const $ = cheerio.load(response.data);
     
-    // Extract title and content from public help center
+    // Extract title and content using correct selectors for support.getyourguide.com
     const title = $('h1').first().text().trim();
-    const content = $('.article-content, .content').first().text().trim();
+    const content = $('div[class*="slds-rich-text-editor__output"]').first().text().trim();
     
     // Basic validation
     if (!title || !content || content.length < 50) {
@@ -67,6 +71,10 @@ export async function crawlGetYourGuideArticle(url: string): Promise<GetYourGuid
       console.warn(`[GETYOURGUIDE][WARN] Content length: ${content.length}`);
       return null;
     }
+
+    console.log(`[GETYOURGUIDE][SUCCESS] Found content:`);
+    console.log(`[GETYOURGUIDE][SUCCESS] Title: ${title}`);
+    console.log(`[GETYOURGUIDE][SUCCESS] Content preview: ${content.substring(0, 100)}...`);
 
     return {
       platform: 'GetYourGuide',
@@ -81,7 +89,7 @@ export async function crawlGetYourGuideArticle(url: string): Promise<GetYourGuid
 }
 
 export async function crawlGetYourGuideArticles(urls: string[] = PUBLIC_URLS): Promise<GetYourGuideArticle[]> {
-  console.log('[GETYOURGUIDE] Starting crawl of public help center articles');
+  console.log('[GETYOURGUIDE] Starting crawl of public support center articles');
   
   const results: GetYourGuideArticle[] = [];
   
