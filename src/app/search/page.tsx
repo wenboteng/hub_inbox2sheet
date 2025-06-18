@@ -43,7 +43,7 @@ export default function SearchPage() {
 
         const response = await fetch(`/api/search?${params}`);
         const data = await response.json();
-        setResults(data.hits || []);
+        setResults(data.articles || []);
       } catch (error) {
         console.error("Search failed:", error);
       } finally {
