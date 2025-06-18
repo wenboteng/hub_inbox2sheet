@@ -2,25 +2,17 @@ import { scrapeUrls } from '../lib/crawler';
 
 // List of URLs to scrape
 const URLs = [
-  // Airbnb
-  'https://www.airbnb.com/help/article/123',
-  'https://www.airbnb.com/help/article/456',
+  // GetYourGuide (public support center)
+  'https://support.getyourguide.com/s/article/Cancel-a-booking?language=en_US',
+  'https://support.getyourguide.com/s/article/Change-travelers-or-date?language=en_US',
   
-  // Booking.com
-  'https://partner.booking.com/en-us/help/article/789',
-  'https://partner.booking.com/en-us/help/article/012',
-  
-  // GetYourGuide
-  'https://supplier.getyourguide.com/help/article/345',
-  'https://supplier.getyourguide.com/help/article/678',
-  
-  // Expedia
-  'https://apps.expediapartnercentral.com/help/article/901',
-  'https://apps.expediapartnercentral.com/help/article/234',
+  // TODO: Add more verified URLs from support.getyourguide.com/s/
+  // For now, we're testing with just these two verified URLs
 ];
 
 async function main() {
   console.log('[SCRAPER] Starting scraper script');
+  console.log('[SCRAPER] Testing with verified public support center URLs');
   
   try {
     await scrapeUrls(URLs);

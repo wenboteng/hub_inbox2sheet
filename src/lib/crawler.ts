@@ -17,7 +17,7 @@ const BROWSER_HEADERS = {
 interface ScraperConfig {
   name: string;
   baseUrl: string;
-  selectors: {
+  selectors?: {
     title: string;
     content: string;
   };
@@ -25,6 +25,8 @@ interface ScraperConfig {
   transformUrl?: (url: string) => string;
   // Optional function to clean extracted content
   cleanContent?: (content: string) => string;
+  // Optional function to fetch content using API
+  fetchContent?: (url: string) => Promise<{ title: string; content: string }>;
 }
 
 const SCRAPER_CONFIGS: Record<string, ScraperConfig> = {
@@ -40,25 +42,57 @@ const SCRAPER_CONFIGS: Record<string, ScraperConfig> = {
   booking: {
     name: 'Booking.com',
     baseUrl: 'https://partner.booking.com/en-us/help/',
-    selectors: {
-      title: 'h1, .article-title, .help-center-title',
-      content: '.article-content, .help-center-content, .article-body',
+    // Use Booking.com Partner API instead of web scraping
+    fetchContent: async (url: string) => {
+      const articleId = url.split('/').pop();
+      const response = await axios.get(
+        `https://distribution-xml.booking.com/json/bookings.getHelpArticle`,
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.BOOKING_API_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          params: {
+            article_id: articleId,
+          },
+        }
+      );
+      
+      return {
+        title: response.data.title,
+        content: response.data.content,
+      };
     },
   },
   getyourguide: {
     name: 'GetYourGuide',
-    baseUrl: 'https://supplier.getyourguide.com/help/',
+    baseUrl: 'https://support.getyourguide.com/s/',
     selectors: {
-      title: 'h1, .article-title, .help-center-title',
-      content: '.article-content, .help-center-content, .article-body',
+      title: 'h1',
+      content: 'div[class*="slds-rich-text-editor__output"]',
     },
+    cleanContent: (content: string) => content.replace(/\s+/g, ' ').trim(),
   },
   expedia: {
     name: 'Expedia',
     baseUrl: 'https://apps.expediapartnercentral.com/help/',
-    selectors: {
-      title: 'h1, .article-title, .help-center-title',
-      content: '.article-content, .help-center-content, .article-body',
+    // Use Expedia Partner API instead of web scraping
+    fetchContent: async (url: string) => {
+      const articleId = url.split('/').pop();
+      const response = await axios.get(
+        `https://api.ean.com/v3/help/articles/${articleId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.EXPEDIA_API_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      return {
+        title: response.data.title,
+        content: response.data.content,
+      };
     },
   },
 };
@@ -73,54 +107,55 @@ async function scrapePage(url: string, config: ScraperConfig): Promise<void> {
   try {
     console.log(`[SCRAPER] Scraping ${url} (${config.name})`);
     
-    const response = await axios.get(url, {
-      headers: BROWSER_HEADERS,
-      timeout: 10000,
-    });
+    let title: string;
+    let content: string;
 
-    if (response.status !== 200) {
-      console.log(`[SCRAPER][WARN] Non-200 status code (${response.status}) for ${url}`);
-      return;
+    if (config.fetchContent) {
+      // Use API to fetch content
+      const result = await config.fetchContent(url);
+      title = result.title;
+      content = result.content;
+    } else {
+      // Use web scraping
+      const response = await axios.get(url, {
+        headers: BROWSER_HEADERS,
+        timeout: 10000,
+      });
+
+      if (response.status !== 200) {
+        console.log(`[SCRAPER][WARN] Non-200 status code (${response.status}) for ${url}`);
+        return;
+      }
+
+      const $ = cheerio.load(response.data);
+      
+      // Extract title and content
+      title = $(config.selectors!.title).first().text().trim();
+      content = $(config.selectors!.content).first().text().trim();
     }
-
-    const $ = cheerio.load(response.data);
-    
-    // Extract title and content
-    const title = $(config.selectors.title).first().text().trim();
-    const content = $(config.selectors.content).first().text().trim();
     
     // Log what we found
     console.log(`[SCRAPER][DEBUG] Page title: ${title}`);
     console.log(`[SCRAPER][DEBUG] Content length: ${content.length} characters`);
+    console.log(`[SCRAPER][DEBUG] Content preview: ${content.substring(0, 100)}...`);
     
-    if (!title) {
-      console.log(`[SCRAPER][WARN] No title found at ${url}`);
-      console.log(`[SCRAPER][DEBUG] Available headers:`, $('h1, h2, h3').map((_, el) => $(el).text().trim()).get());
-      return;
-    }
-
-    if (!content) {
-      console.log(`[SCRAPER][WARN] No content found for title: ${title}`);
+    if (!title || !content || content.length < 50) {
+      console.log(`[SCRAPER][WARN] Invalid content for ${url}`);
+      console.log(`[SCRAPER][WARN] Title: "${title}"`);
+      console.log(`[SCRAPER][WARN] Content length: ${content.length}`);
       return;
     }
 
     // Clean content if needed
     const cleanedContent = config.cleanContent ? config.cleanContent(content) : content;
     
-    // Extract first paragraph for summary
-    const firstParagraph = $(config.selectors.content)
-      .find('p')
-      .first()
-      .text()
-      .trim();
-
     // Store in database
     await prisma.answer.upsert({
       where: { sourceUrl: url },
       create: {
         question: title,
         answer: cleanedContent,
-        firstAnswerParagraph: firstParagraph,
+        firstAnswerParagraph: cleanedContent.split('\n')[0],
         sourceUrl: url,
         platform: config.name,
         category: 'help-center',
@@ -129,7 +164,7 @@ async function scrapePage(url: string, config: ScraperConfig): Promise<void> {
       update: {
         question: title,
         answer: cleanedContent,
-        firstAnswerParagraph: firstParagraph,
+        firstAnswerParagraph: cleanedContent.split('\n')[0],
         platform: config.name,
       },
     });
