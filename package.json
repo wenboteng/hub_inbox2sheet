@@ -13,6 +13,7 @@
     "scrape": "node dist/scripts/scrape.js",
     "test:getyourguide": "ts-node src/scripts/test-getyourguide.ts",
     "test:airbnb": "ts-node src/scripts/test-airbnb.ts",
+    "test:puppeteer": "ts-node src/scripts/test-puppeteer.ts",
     "view:articles": "ts-node src/scripts/view-articles.ts"
   },
   "dependencies": {
