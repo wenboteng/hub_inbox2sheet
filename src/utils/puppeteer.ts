@@ -1,6 +1,46 @@
 import puppeteer from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
+
+async function ensureChromeInstalled(): Promise<void> {
+  const cacheDir = '/opt/render/.cache/puppeteer';
+  const chromePath = '/opt/render/.cache/puppeteer/chrome/linux-137.0.7151.119/chrome-linux64/chrome';
+  
+  console.log(`[PUPPETEER] Checking if Chrome is installed at: ${chromePath}`);
+  
+  if (fs.existsSync(chromePath)) {
+    console.log(`[PUPPETEER] Chrome already installed at: ${chromePath}`);
+    return;
+  }
+  
+  console.log(`[PUPPETEER] Chrome not found, installing...`);
+  
+  try {
+    // Create cache directory if it doesn't exist
+    if (!fs.existsSync(cacheDir)) {
+      console.log(`[PUPPETEER] Creating cache directory: ${cacheDir}`);
+      fs.mkdirSync(cacheDir, { recursive: true });
+    }
+    
+    // Install Chrome
+    console.log(`[PUPPETEER] Running: npx puppeteer browsers install chrome`);
+    execSync('npx puppeteer browsers install chrome', { 
+      stdio: 'inherit',
+      cwd: process.cwd()
+    });
+    
+    // Verify installation
+    if (fs.existsSync(chromePath)) {
+      console.log(`[PUPPETEER] Chrome successfully installed at: ${chromePath}`);
+    } else {
+      throw new Error('Chrome installation failed - file not found after installation');
+    }
+  } catch (error) {
+    console.error(`[PUPPETEER] Failed to install Chrome:`, error);
+    throw error;
+  }
+}
 
 export async function createBrowser() {
   console.log('[PUPPETEER] Starting browser creation...');
@@ -74,6 +114,9 @@ export async function createBrowser() {
   } catch (error) {
     console.log(`[PUPPETEER] Could not get Puppeteer executable path: ${error}`);
   }
+  
+  // Ensure Chrome is installed
+  await ensureChromeInstalled();
   
   // Use Puppeteer's bundled Chrome with server-optimized settings
   const launchOptions = {
