@@ -10,24 +10,8 @@ async function createBrowser() {
     // Check if we're in a Render environment
     const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
     console.log(`[PUPPETEER] Environment: ${isRender ? 'Render/Production' : 'Development'}`);
-    // Force Puppeteer to skip its bundled Chrome in production
-    if (isRender) {
-        process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
-        process.env.PUPPETEER_SKIP_DOWNLOAD = 'true';
-        console.log('[PUPPETEER] Skipping Puppeteer bundled Chrome download');
-    }
-    // Try to find Chrome in common locations
-    const possiblePaths = [
-        process.env.PUPPETEER_EXECUTABLE_PATH,
-        '/usr/bin/google-chrome',
-        '/usr/bin/google-chrome-stable',
-        '/usr/bin/chromium-browser',
-        '/usr/bin/chromium',
-        '/opt/google/chrome/chrome',
-        '/usr/bin/chrome',
-    ].filter(Boolean);
-    console.log(`[PUPPETEER] Possible Chrome paths: ${possiblePaths.join(', ')}`);
-    const baseLaunchOptions = {
+    // Use Puppeteer's bundled Chrome with server-optimized settings
+    const launchOptions = {
         headless: true,
         args: [
             '--no-sandbox',
@@ -60,75 +44,53 @@ async function createBrowser() {
             '--ignore-certificate-errors',
             '--ignore-ssl-errors',
             '--ignore-certificate-errors-spki-list',
-            '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            '--memory-pressure-off',
+            '--max_old_space_size=4096'
         ],
+        // Force Puppeteer to use its bundled Chrome
+        executablePath: undefined,
+        // Set a reasonable timeout
+        timeout: 30000,
     };
-    // Try launching with different configurations
-    for (const path of possiblePaths) {
+    try {
+        console.log('[PUPPETEER] Launching Puppeteer with bundled Chrome...');
+        const browser = await puppeteer_1.default.launch(launchOptions);
+        console.log('[PUPPETEER] Successfully launched browser with bundled Chrome');
+        return browser;
+    }
+    catch (error) {
+        console.error('[PUPPETEER] Failed to launch with bundled Chrome:', error.message);
+        // Try with minimal options as fallback
         try {
-            console.log(`[PUPPETEER] Trying to launch Chrome from: ${path}`);
+            console.log('[PUPPETEER] Trying with minimal options...');
             const browser = await puppeteer_1.default.launch({
-                ...baseLaunchOptions,
-                executablePath: path,
+                headless: true,
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--no-first-run',
+                    '--disable-extensions',
+                    '--disable-default-apps',
+                    '--disable-sync',
+                    '--disable-translate',
+                    '--hide-scrollbars',
+                    '--mute-audio',
+                    '--no-default-browser-check',
+                    '--safebrowsing-disable-auto-update',
+                    '--ignore-certificate-errors',
+                    '--ignore-ssl-errors',
+                    '--ignore-certificate-errors-spki-list'
+                ],
             });
-            console.log(`[PUPPETEER] Successfully launched Chrome from: ${path}`);
+            console.log('[PUPPETEER] Successfully launched with minimal options');
             return browser;
         }
-        catch (error) {
-            console.log(`[PUPPETEER] Failed to launch from ${path}:`, error.message);
+        catch (fallbackError) {
+            console.error('[PUPPETEER] All launch attempts failed:', fallbackError);
+            throw new Error(`Failed to launch Chrome: ${fallbackError.message}`);
         }
-    }
-    // Try without specifying executable path (let Puppeteer find it)
-    try {
-        console.log('[PUPPETEER] Trying to launch Chrome without specifying path...');
-        const browser = await puppeteer_1.default.launch(baseLaunchOptions);
-        console.log('[PUPPETEER] Successfully launched Chrome without specifying path');
-        return browser;
-    }
-    catch (error) {
-        console.log('[PUPPETEER] Failed to launch without path:', error.message);
-    }
-    // Try with Puppeteer's bundled Chromium
-    try {
-        console.log('[PUPPETEER] Trying with Puppeteer bundled Chromium...');
-        const browser = await puppeteer_1.default.launch({
-            ...baseLaunchOptions,
-        });
-        console.log('[PUPPETEER] Successfully launched with bundled Chromium');
-        return browser;
-    }
-    catch (error) {
-        console.log('[PUPPETEER] Failed to launch with bundled Chromium:', error.message);
-    }
-    // Final fallback with minimal options
-    try {
-        console.log('[PUPPETEER] Trying final fallback configuration...');
-        const browser = await puppeteer_1.default.launch({
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--no-first-run',
-                '--disable-extensions',
-                '--disable-default-apps',
-                '--disable-sync',
-                '--disable-translate',
-                '--hide-scrollbars',
-                '--mute-audio',
-                '--no-default-browser-check',
-                '--safebrowsing-disable-auto-update',
-                '--ignore-certificate-errors',
-                '--ignore-ssl-errors',
-                '--ignore-certificate-errors-spki-list'
-            ],
-        });
-        console.log('[PUPPETEER] Successfully launched with fallback configuration');
-        return browser;
-    }
-    catch (error) {
-        console.error('[PUPPETEER] All launch attempts failed. Error details:', error);
-        throw new Error(`Failed to launch Chrome after trying all configurations: ${error.message}. For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.`);
     }
 }

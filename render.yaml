@@ -44,66 +44,6 @@ jobs:
     env: node
     schedule: "0 2 * * *"  # Run daily at 2am UTC
     buildCommand: |
-      # Update package lists
-      apt-get update
-      
-      # Install Chrome dependencies
-      apt-get install -y \
-        ca-certificates \
-        fonts-liberation \
-        libasound2 \
-        libatk-bridge2.0-0 \
-        libatk1.0-0 \
-        libc6 \
-        libcairo2 \
-        libcups2 \
-        libdbus-1-3 \
-        libexpat1 \
-        libfontconfig1 \
-        libgbm1 \
-        libgcc1 \
-        libglib2.0-0 \
-        libgtk-3-0 \
-        libnspr4 \
-        libnss3 \
-        libpango-1.0-0 \
-        libpangocairo-1.0-0 \
-        libstdc++6 \
-        libx11-6 \
-        libx11-xcb1 \
-        libxcb1 \
-        libxcomposite1 \
-        libxcursor1 \
-        libxdamage1 \
-        libxext6 \
-        libxfixes3 \
-        libxi6 \
-        libxrandr2 \
-        libxrender1 \
-        libxss1 \
-        libxtst6 \
-        lsb-release \
-        wget \
-        xdg-utils \
-        gnupg \
-        curl
-      
-      # Download and install Chrome
-      echo "Downloading Chrome..."
-      curl -fsSL https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o chrome.deb
-      echo "Installing Chrome..."
-      apt-get install -y ./chrome.deb
-      rm chrome.deb
-      
-      # Verify Chrome installation
-      echo "Verifying Chrome installation..."
-      google-chrome --version
-      
-      # Test Chrome executable path
-      echo "Testing Chrome executable paths..."
-      ls -la /usr/bin/google-chrome*
-      ls -la /usr/bin/chromium*
-      
       # Install Node.js dependencies
       npm install
       npx prisma generate
@@ -116,11 +56,5 @@ jobs:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-      - key: PUPPETEER_EXECUTABLE_PATH
-        value: /usr/bin/google-chrome
-      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: "true"
-      - key: PUPPETEER_SKIP_DOWNLOAD
-        value: "true"
       - key: NODE_VERSION
         value: 18.20.2 
