@@ -1,4 +1,4 @@
-import { scrapeUrls } from '../lib/crawler';
+import { crawlGetYourGuideArticles } from '../crawlers/getyourguide';
 
 // List of URLs to scrape
 const URLs = [
@@ -13,8 +13,8 @@ async function main() {
   console.log('[SCRAPER] Testing with verified supplier help center URLs');
   
   try {
-    await scrapeUrls(URLs);
-    console.log('[SCRAPER] Scraper script completed successfully');
+    const articles = await crawlGetYourGuideArticles();
+    console.log(`[SCRAPER] Successfully crawled ${articles.length} articles`);
   } catch (error) {
     console.error('[SCRAPER] Error in scraper script:', error);
     process.exit(1);
