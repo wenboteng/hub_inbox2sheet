@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from '@/lib/prisma';
 import { getEmbedding } from '@/utils/openai';
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
 interface ArticleParagraph {
   text: string;
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const queryEmbedding = await getEmbedding(query);
 
     // Build base query
-    const baseQuery = {
+    const baseQuery: Prisma.ArticleFindManyArgs = {
       where: {
         AND: [
           {
@@ -75,24 +75,24 @@ export async function GET(request: NextRequest) {
     };
 
     // Get articles with paragraphs
-    const articles = await prisma.article.findMany(baseQuery) as Article[];
+    const articles = await prisma.article.findMany(baseQuery);
 
     // Process and rank results
     const results = await Promise.all(
-      articles.map(async (article) => {
+      articles.map(async (article: any) => {
         // Convert JSON embeddings to number arrays
-        const paragraphs = article.paragraphs.map(p => ({
+        const paragraphs = article.paragraphs.map((p: { text: string; embedding: unknown }) => ({
           text: p.text,
           embedding: p.embedding as number[],
         }));
 
         // Find most relevant paragraphs using vector similarity
         const relevantParagraphs = paragraphs
-          .map(para => ({
+          .map((para: { text: string; embedding: number[] }) => ({
             text: para.text,
             similarity: cosineSimilarity(queryEmbedding, para.embedding),
           }))
-          .sort((a, b) => b.similarity - a.similarity)
+          .sort((a: { similarity: number }, b: { similarity: number }) => b.similarity - a.similarity)
           .slice(0, 2);
 
         // Calculate overall article score based on best paragraph similarity
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
           : 0;
 
         // Highlight search terms in snippets
-        const snippets = relevantParagraphs.map(p => 
+        const snippets = relevantParagraphs.map((p: { text: string }) => 
           highlightTerms(p.text, query.split(' '))
         );
 
