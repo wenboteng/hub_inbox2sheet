@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
     // Sort by score and return top results
     const sortedResults = results
       .sort((a, b) => b.score - a.score)
-      .filter(r => r.score > 0.7); // Only return reasonably good matches
+      .filter(r => r.score > 0.3); // Lowered threshold for more results
 
     return NextResponse.json({ articles: sortedResults });
   } catch (error) {
