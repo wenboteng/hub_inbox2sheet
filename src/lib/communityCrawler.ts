@@ -203,11 +203,35 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
         content = $(config.selectors.fallbackContent).first().text().trim();
         
         // Try to find any text content if still empty
-        if (!content || content.length < 50) {
-          const allText = $('body').text().trim();
-          const lines = allText.split('\n').filter(line => line.trim().length > 20);
-          if (lines.length > 0) {
-            content = lines.slice(0, 3).join(' ').substring(0, 500); // Take first 3 meaningful lines
+        if (!content || content.length < 100) {
+          console.log(`[COMMUNITY][DEBUG] Fallback selectors failed, trying body text extraction`);
+          
+          // Try multiple content extraction strategies
+          const strategies = [
+            // Strategy 1: Look for main content areas
+            () => $('.main-content, .content-area, .post-content, .message-content, .topic-content').text().trim(),
+            // Strategy 2: Look for article content
+            () => $('article, .article, .post, .message').text().trim(),
+            // Strategy 3: Look for divs with substantial text
+            () => $('div').map((i, el) => {
+              const text = $(el).text().trim();
+              return text.length > 200 ? text : '';
+            }).get().filter((t: string) => t.length > 0).join(' '),
+            // Strategy 4: Get all text and filter meaningful lines
+            () => {
+              const allText = $('body').text().trim();
+              const lines = allText.split('\n').filter(line => line.trim().length > 30);
+              return lines.slice(0, 5).join(' ').substring(0, 1000);
+            }
+          ];
+          
+          for (const strategy of strategies) {
+            const extracted = strategy();
+            if (extracted && extracted.length > 100) {
+              content = extracted;
+              console.log(`[COMMUNITY][DEBUG] Found content via strategy: ${content.length} chars`);
+              break;
+            }
           }
         }
       }
@@ -234,11 +258,35 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
         content = $(config.selectors.fallbackContent).first().text().trim();
         
         // Try to find any text content if still empty
-        if (!content || content.length < 50) {
-          const allText = $('body').text().trim();
-          const lines = allText.split('\n').filter(line => line.trim().length > 20);
-          if (lines.length > 0) {
-            content = lines.slice(0, 3).join(' ').substring(0, 500); // Take first 3 meaningful lines
+        if (!content || content.length < 100) {
+          console.log(`[COMMUNITY][DEBUG] Fallback selectors failed, trying body text extraction`);
+          
+          // Try multiple content extraction strategies
+          const strategies = [
+            // Strategy 1: Look for main content areas
+            () => $('.main-content, .content-area, .post-content, .message-content, .topic-content').text().trim(),
+            // Strategy 2: Look for article content
+            () => $('article, .article, .post, .message').text().trim(),
+            // Strategy 3: Look for divs with substantial text
+            () => $('div').map((i, el) => {
+              const text = $(el).text().trim();
+              return text.length > 200 ? text : '';
+            }).get().filter((t: string) => t.length > 0).join(' '),
+            // Strategy 4: Get all text and filter meaningful lines
+            () => {
+              const allText = $('body').text().trim();
+              const lines = allText.split('\n').filter(line => line.trim().length > 30);
+              return lines.slice(0, 5).join(' ').substring(0, 1000);
+            }
+          ];
+          
+          for (const strategy of strategies) {
+            const extracted = strategy();
+            if (extracted && extracted.length > 100) {
+              content = extracted;
+              console.log(`[COMMUNITY][DEBUG] Found content via strategy: ${content.length} chars`);
+              break;
+            }
           }
         }
       }
@@ -255,6 +303,26 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
     console.log(`[COMMUNITY][DEBUG] Extracted - Title: "${title.substring(0, 50)}..."`);
     console.log(`[COMMUNITY][DEBUG] Extracted - Content length: ${content.length}`);
     console.log(`[COMMUNITY][DEBUG] Extracted - Author: "${author}"`);
+    
+    // Try to find author if not found
+    if (!author) {
+      console.log(`[COMMUNITY][DEBUG] No author found, trying additional author selectors`);
+      const authorSelectors = [
+        '.author, .username, .user-name, .post-author, .message-author',
+        '.creator, .owner, .byline, .author-name',
+        '[data-author], [data-username], [data-user]',
+        '.user-info, .user-details, .profile-name'
+      ];
+      
+      for (const selector of authorSelectors) {
+        const foundAuthor = $(selector).first().text().trim();
+        if (foundAuthor && foundAuthor.length > 0 && foundAuthor.length < 50) {
+          author = foundAuthor;
+          console.log(`[COMMUNITY][DEBUG] Found author via selector "${selector}": "${author}"`);
+          break;
+        }
+      }
+    }
     
     if (!title || !content || content.length < 50) {
       console.log(`[COMMUNITY][WARN] Invalid content for ${url}`);
@@ -276,6 +344,26 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
       if (!content || content.length < 50) {
         return null;
       }
+    }
+
+    // Content quality check - filter out landing pages and generic content
+    const genericPhrases = [
+      'welcome', 'community', 'forum', 'discussion', 'join us', 'sign up',
+      'benvenuto', 'comunità', 'forum', 'discussione', 'iscriviti', // Italian
+      'bienvenido', 'comunidad', 'foro', 'discusión', 'únete' // Spanish
+    ];
+    
+    const titleLower = title.toLowerCase();
+    const contentLower = content.toLowerCase();
+    
+    // Check if content seems like a landing page
+    const isLandingPage = genericPhrases.some(phrase => 
+      titleLower.includes(phrase) || contentLower.includes(phrase)
+    );
+    
+    if (isLandingPage && content.length < 200) {
+      console.log(`[COMMUNITY][WARN] Skipping landing page content: "${title.substring(0, 50)}..."`);
+      return null;
     }
 
     const cleanedContent = cleanContent(content);
@@ -458,12 +546,10 @@ export async function getCommunityContentUrls(): Promise<string[]> {
   const COMMUNITY_URLS = [
     // Airbnb Community - Real Khoros/Lithium forum URLs (working ones)
     'https://community.withairbnb.com/t5/Ask-about-your-listing/bd-p/manage-listing',
-    'https://community.withairbnb.com/t5/Hosting/ct-p/hosts',
     'https://community.withairbnb.com/t5/Hosting/When-does-Airbnb-pay-hosts/td-p/123456',
     
     // AirHosts Forum - Real public forum URLs (working ones)
     'https://airhostsforum.com/t/listing-issues/59544',
-    'https://airhostsforum.com/t/welcome-to-airhosts-forum/1',
     'https://airhostsforum.com/t/hosting-tips-and-advice/2',
     
     // Note: Quora URLs removed due to 403 blocking
