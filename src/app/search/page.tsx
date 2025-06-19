@@ -51,6 +51,7 @@ export default function SearchPage() {
   const [gptFallbackAnswer, setGptFallbackAnswer] = useState<string | null>(null);
   const [searchSummary, setSearchSummary] = useState<SearchSummary | null>(null);
   const [answerSummary, setAnswerSummary] = useState<string | null>(null);
+  const [gptResponseLayerAnswer, setGptResponseLayerAnswer] = useState<string | null>(null);
   const [showAllResults, setShowAllResults] = useState(false);
   const [totalResults, setTotalResults] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -67,6 +68,7 @@ export default function SearchPage() {
         setGptFallbackAnswer(null);
         setSearchSummary(null);
         setAnswerSummary(null);
+        setGptResponseLayerAnswer(null);
         setRelatedSearches([]);
         setPlatformMismatch(false);
         setPlatformWarning(null);
@@ -130,6 +132,22 @@ export default function SearchPage() {
               setAnswerSummary(answerData.summary);
             } catch (error) {
               console.error("Failed to get answer summary:", error);
+            }
+
+            // Generate GPT Response Layer answer
+            try {
+              const gptResponse = await fetch('/api/gpt-response-layer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  query: debouncedSearchQuery,
+                  topResult 
+                })
+              });
+              const gptData = await gptResponse.json();
+              setGptResponseLayerAnswer(gptData.aiAnswer);
+            } catch (error) {
+              console.error("Failed to get GPT response layer answer:", error);
             }
           }
         }
@@ -273,6 +291,23 @@ export default function SearchPage() {
                 <span className="text-blue-600 text-lg">💡</span>
                 <p className="text-blue-900">{answerSummary}</p>
               </div>
+            </div>
+          )}
+
+          {/* GPT Response Layer Answer */}
+          {gptResponseLayerAnswer && (
+            <div className="bg-indigo-50 p-6 rounded-lg shadow-sm border border-indigo-100">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="px-3 py-1 text-sm font-medium bg-indigo-100 text-indigo-800 rounded-full">
+                  AI Answer
+                </span>
+              </div>
+              <div className="prose max-w-none">
+                <p className="text-indigo-900">{gptResponseLayerAnswer}</p>
+              </div>
+              <p className="mt-4 text-sm text-indigo-700">
+                💡 This answer is based on the official documentation shown in the search results below.
+              </p>
             </div>
           )}
 
