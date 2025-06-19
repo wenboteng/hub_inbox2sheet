@@ -35,24 +35,31 @@ const COMMUNITY_CONFIGS = {
     baseUrl: 'https://community.withairbnb.com',
     selectors: {
       // Updated Airbnb Community selectors based on Khoros/Lithium structure
-      title: '.lia-message-subject, .page-title, .topic-title, h1',
+      title: '.lia-message-subject, .page-title, .topic-title, h1, .lia-message-subject a',
       // Main content area where OP and replies live
-      content: '.lia-message-body-content',
+      content: '.lia-message-body-content, .lia-message-body',
       // Author information
-      author: '.lia-user-name, .author-name, .user-name',
+      author: '.lia-user-name, .author-name, .user-name, .lia-user-name a',
       // Date/time information
       date: 'time[datetime], .lia-message-date, .post-date',
-      // Individual posts/replies
-      posts: '.lia-message, article.lia-message-body',
+      // Individual posts/replies - updated selectors
+      posts: '.lia-message-body, .lia-message, .message-body, article.lia-message-body',
       // Post content within each message
-      postContent: '.lia-message-body-content',
+      postContent: '.lia-message-body-content, .message-content, .post-content',
       // Post author within each message
-      postAuthor: '.lia-user-name',
+      postAuthor: '.lia-user-name, .author-name, .user-name, .lia-user-name a',
       // Post date within each message
-      postDate: 'time[datetime], .lia-message-date',
+      postDate: 'time[datetime], .lia-message-date, .post-date',
       // Fallback selectors
-      fallbackTitle: '.page-title, .topic-title, h1, h2',
-      fallbackContent: '.message-content, .post-content, .topic-content, .content',
+      fallbackTitle: '.page-title, .topic-title, h1, h2, .lia-message-subject',
+      fallbackContent: '.message-content, .post-content, .topic-content, .content, .lia-message-body',
+      // New selectors for better extraction
+      threadTitle: '.lia-message-subject, .topic-title, h1',
+      threadContent: '.lia-message-body-content, .lia-message-body',
+      threadAuthor: '.lia-user-name, .author-name',
+      // Meta selectors for fallback
+      metaTitle: 'meta[property="og:title"], meta[name="title"]',
+      metaDescription: 'meta[property="og:description"], meta[name="description"]',
     },
     category: 'Airbnb Community Discussion',
     rateLimit: { burst: 5, interval: 2000 }, // ≤5 req/s, 1 req every 2s
@@ -256,15 +263,53 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
         }
       }
     } else if (url.includes('community.withairbnb.com')) {
-      // Airbnb Community: Use updated Khoros/Lithium selectors
+      // Airbnb Community: Use updated Khoros/Lithium selectors with redirect handling
       console.log(`[COMMUNITY][AIRBNB] Using updated Airbnb Community selectors for ${url}`);
       
-      // Extract title
+      // Check for redirects by comparing URL with canonical URL
+      const canonicalUrl = $('link[rel="canonical"]').attr('href');
+      const metaTitle = $('meta[property="og:title"]').attr('content') || '';
+      const pageTitle = $('title').text() || '';
+      
+      if (canonicalUrl && canonicalUrl !== url) {
+        console.log(`[COMMUNITY][AIRBNB] Detected redirect: ${url} -> ${canonicalUrl}`);
+        
+        // Check if the content is in a different language (common redirect issue)
+        if (metaTitle.includes('Douchescherm') || pageTitle.includes('Douchescherm')) {
+          console.log(`[COMMUNITY][AIRBNB] Skipping content due to redirect to Dutch content (shower screen thread)`);
+          return null;
+        }
+        
+        // Check if the canonical URL has a different thread ID
+        const originalThreadId = url.match(/td-p\/(\d+)/)?.[1];
+        const canonicalThreadId = canonicalUrl.match(/td-p\/(\d+)/)?.[1];
+        
+        if (originalThreadId && canonicalThreadId && originalThreadId !== canonicalThreadId) {
+          console.log(`[COMMUNITY][AIRBNB] Skipping content due to redirect to different thread (${originalThreadId} -> ${canonicalThreadId})`);
+          return null;
+        }
+      }
+      
+      // Extract title with multiple fallbacks
       title = $(config.selectors.title).first().text().trim();
+      if (!title) {
+        title = $(config.selectors.threadTitle).first().text().trim();
+      }
+      if (!title) {
+        // Try meta tags as fallback
+        const metaTitle = $(config.selectors.metaTitle).attr('content');
+        if (metaTitle) {
+          title = metaTitle.replace(' - Airbnb Community', '').replace('Re: ', '');
+        }
+      }
       console.log(`[COMMUNITY][AIRBNB] Title extracted: "${title.substring(0, 50)}..."`);
       
-      // Extract all posts/replies
-      const posts = $(config.selectors.posts);
+      // Extract all posts/replies with improved selectors
+      let posts = $(config.selectors.posts);
+      if (posts.length === 0) {
+        // Try alternative post selectors
+        posts = $('.lia-message-body, .message-body, .post-body');
+      }
       console.log(`[COMMUNITY][AIRBNB] Found ${posts.length} posts/replies`);
       
       const allContent: string[] = [];
@@ -272,14 +317,25 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
       
       posts.each((index, post) => {
         const $post = $(post);
-        const postContent = $post.find(config.selectors.postContent).text().trim();
-        const postAuthor = $post.find(config.selectors.postAuthor).first().text().trim();
+        let postContent = $post.find(config.selectors.postContent).text().trim();
+        
+        // If no content found with specific selector, try broader selectors
+        if (!postContent) {
+          postContent = $post.text().trim();
+        }
+        
+        let postAuthor = $post.find(config.selectors.postAuthor).first().text().trim();
+        // If no author found, try parent elements
+        if (!postAuthor) {
+          postAuthor = $post.closest('.lia-message, .message, .post').find(config.selectors.postAuthor).first().text().trim();
+        }
+        
         const postDate = $post.find(config.selectors.postDate).first().attr('datetime') || 
                         $post.find(config.selectors.postDate).first().text().trim();
         
         if (postContent && postContent.length > 20) {
           allContent.push(postContent);
-          if (postAuthor) allAuthors.push(postAuthor);
+          if (postAuthor && postAuthor !== 'Anonymous') allAuthors.push(postAuthor);
           
           if (index === 0) {
             postsExtracted++;
@@ -292,18 +348,63 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
         }
       });
       
+      // If no posts found with specific selectors, try broader content extraction
+      if (allContent.length === 0) {
+        console.log(`[COMMUNITY][AIRBNB] No posts found with specific selectors, trying broader extraction`);
+        
+        // Try to extract main content area
+        const mainContent = $(config.selectors.content).first().text().trim();
+        if (mainContent && mainContent.length > 50) {
+          allContent.push(mainContent);
+          postsExtracted = 1;
+          console.log(`[COMMUNITY][AIRBNB] Found main content: ${mainContent.length} chars`);
+        }
+        
+        // Try fallback content selectors
+        if (allContent.length === 0) {
+          const fallbackContent = $(config.selectors.fallbackContent).first().text().trim();
+          if (fallbackContent && fallbackContent.length > 50) {
+            allContent.push(fallbackContent);
+            postsExtracted = 1;
+            console.log(`[COMMUNITY][AIRBNB] Found content via fallback: ${fallbackContent.length} chars`);
+          }
+        }
+      }
+      
       // Concatenate all content for embedding
       content = allContent.join('\n\n');
       
-      // If no content found with specific selectors, try fallbacks
+      // If still no content, try meta description as last resort
       if (!content || content.length < 50) {
-        console.log(`[COMMUNITY][AIRBNB] Primary selectors failed, trying fallbacks`);
-        title = title || $(config.selectors.fallbackTitle).first().text().trim();
-        content = $(config.selectors.fallbackContent).first().text().trim();
-        
-        if (content && content.length > 50) {
+        console.log(`[COMMUNITY][AIRBNB] No content found, trying meta description`);
+        const metaDescription = $(config.selectors.metaDescription).attr('content');
+        if (metaDescription && metaDescription.length > 50) {
+          content = metaDescription;
           postsExtracted = 1;
-          console.log(`[COMMUNITY][AIRBNB] Found content via fallback: ${content.length} chars`);
+          console.log(`[COMMUNITY][AIRBNB] Using meta description: ${content.length} chars`);
+        }
+      }
+      
+      // Try to find author if not found
+      if (!author || author === 'Anonymous') {
+        console.log(`[COMMUNITY][AIRBNB] No author found, trying additional author selectors`);
+        const authorSelectors = [
+          '.lia-user-name a',
+          '.author a',
+          '.user-name a',
+          '.post-author',
+          '.message-author',
+          '.creator',
+          '.owner'
+        ];
+        
+        for (const selector of authorSelectors) {
+          const foundAuthor = $(selector).first().text().trim();
+          if (foundAuthor && foundAuthor.length > 0 && foundAuthor.length < 50 && foundAuthor !== 'Anonymous') {
+            author = foundAuthor;
+            console.log(`[COMMUNITY][AIRBNB] Found author via selector "${selector}": "${author}"`);
+            break;
+          }
         }
       }
       
