@@ -23,6 +23,8 @@ interface SearchResponse {
   searchType: 'semantic' | 'combined' | 'none';
   totalResults: number;
   hasMore: boolean;
+  platformMismatch?: boolean;
+  platformWarning?: string;
   gptFallbackAnswer?: string;
 }
 
@@ -41,9 +43,12 @@ export default function SearchPage() {
   const [expandedArticles, setExpandedArticles] = useState<Record<string, boolean>>({});
   const [gptFallbackAnswer, setGptFallbackAnswer] = useState<string | null>(null);
   const [searchSummary, setSearchSummary] = useState<SearchSummary | null>(null);
+  const [answerSummary, setAnswerSummary] = useState<string | null>(null);
   const [showAllResults, setShowAllResults] = useState(false);
   const [totalResults, setTotalResults] = useState(0);
   const [hasMore, setHasMore] = useState(false);
+  const [platformMismatch, setPlatformMismatch] = useState(false);
+  const [platformWarning, setPlatformWarning] = useState<string | null>(null);
   const [relatedSearches, setRelatedSearches] = useState<string[]>([]);
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
 
@@ -53,7 +58,10 @@ export default function SearchPage() {
         setResults([]);
         setGptFallbackAnswer(null);
         setSearchSummary(null);
+        setAnswerSummary(null);
         setRelatedSearches([]);
+        setPlatformMismatch(false);
+        setPlatformWarning(null);
         return;
       }
 
@@ -72,6 +80,8 @@ export default function SearchPage() {
         setSearchType(data.searchType);
         setTotalResults(data.totalResults);
         setHasMore(data.hasMore);
+        setPlatformMismatch(data.platformMismatch || false);
+        setPlatformWarning(data.platformWarning || null);
         
         // Generate related searches
         setRelatedSearches(generateRelatedSearches(debouncedSearchQuery));
@@ -91,6 +101,25 @@ export default function SearchPage() {
             setSearchSummary(summaryData);
           } catch (error) {
             console.error("Failed to get search summary:", error);
+          }
+
+          // Generate answer summary for top result
+          const topResult = data.articles.find(article => article.isTopMatch);
+          if (topResult) {
+            try {
+              const answerResponse = await fetch('/api/answer-summary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  query: debouncedSearchQuery,
+                  topResult 
+                })
+              });
+              const answerData = await answerResponse.json();
+              setAnswerSummary(answerData.summary);
+            } catch (error) {
+              console.error("Failed to get answer summary:", error);
+            }
           }
         }
         
@@ -148,6 +177,18 @@ export default function SearchPage() {
     setShowAllResults(false);
   };
 
+  // Helper function to format date safely
+  const formatDate = (dateString: string) => {
+    if (!dateString || dateString === 'Invalid Date') return null;
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return null;
+      return date.toLocaleDateString();
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Search Knowledge Base</h1>
@@ -179,6 +220,16 @@ export default function SearchPage() {
         </div>
       ) : searchQuery && (results.length > 0 || gptFallbackAnswer || searchSummary?.summary) ? (
         <div className="space-y-6">
+          {/* Platform Mismatch Warning */}
+          {platformMismatch && platformWarning && (
+            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              <div className="flex items-center gap-2">
+                <span className="text-yellow-800">⚠️</span>
+                <p className="text-yellow-800 text-sm">{platformWarning}</p>
+              </div>
+            </div>
+          )}
+
           {/* GPT-Powered Summary */}
           {searchSummary?.summary && (
             <div className="bg-green-50 p-6 rounded-lg shadow-sm border border-green-100">
@@ -191,6 +242,16 @@ export default function SearchPage() {
                 </span>
               </div>
               <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: searchSummary.summary }} />
+            </div>
+          )}
+
+          {/* GPT-Powered Answer Summary */}
+          {answerSummary && (
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-start gap-3">
+                <span className="text-blue-600 text-lg">💡</span>
+                <p className="text-blue-900">{answerSummary}</p>
+              </div>
             </div>
           )}
 
@@ -286,9 +347,11 @@ export default function SearchPage() {
                           View Source →
                         </a>
                       </div>
-                      <span className="text-gray-500">
-                        Last updated: {new Date(article.lastUpdated).toLocaleDateString()}
-                      </span>
+                      {formatDate(article.lastUpdated) && (
+                        <span className="text-gray-500">
+                          Last updated: {formatDate(article.lastUpdated)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}

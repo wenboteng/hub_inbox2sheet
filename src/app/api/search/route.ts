@@ -125,6 +125,21 @@ export async function GET(request: NextRequest) {
     // Get articles with paragraphs
     const articles = await prisma.article.findMany(baseQuery);
 
+    // Check for platform mismatch
+    let platformMismatch = false;
+    let platformWarning = null;
+    
+    if (platform && articles.length > 0) {
+      const hasPlatformMatch = articles.some((article: any) => 
+        article.platform.toLowerCase() === platform.toLowerCase()
+      );
+      
+      if (!hasPlatformMatch) {
+        platformMismatch = true;
+        platformWarning = `No exact matches from ${platform} yet, but these may still help.`;
+      }
+    }
+
     // Process and rank results using semantic search
     const semanticResults = await Promise.all(
       articles.map(async (article: any) => {
@@ -185,7 +200,9 @@ export async function GET(request: NextRequest) {
         articles: limitedResults,
         searchType: 'semantic',
         totalResults: results.length,
-        hasMore: !showAll && results.length > 5
+        hasMore: !showAll && results.length > 5,
+        platformMismatch,
+        platformWarning
       });
     }
 
@@ -219,7 +236,9 @@ export async function GET(request: NextRequest) {
         articles: limitedResults,
         searchType: 'combined',
         totalResults: combinedResults.length,
-        hasMore: !showAll && combinedResults.length > 5
+        hasMore: !showAll && combinedResults.length > 5,
+        platformMismatch,
+        platformWarning
       });
     }
 
@@ -228,7 +247,9 @@ export async function GET(request: NextRequest) {
       articles: [],
       searchType: 'none',
       totalResults: 0,
-      hasMore: false
+      hasMore: false,
+      platformMismatch,
+      platformWarning
     });
 
   } catch (error) {
