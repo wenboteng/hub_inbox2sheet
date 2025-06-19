@@ -23,6 +23,9 @@ interface CommunityContent {
   source: string;
   contentType: 'community' | 'user_generated';
   category: string;
+  postsExtracted?: number;
+  repliesExtracted?: number;
+  totalCharacters?: number;
 }
 
 // Platform-specific configurations for community content
@@ -31,16 +34,25 @@ const COMMUNITY_CONFIGS = {
     name: 'Airbnb Community',
     baseUrl: 'https://community.withairbnb.com',
     selectors: {
-      title: 'h1, .c-article-title, .article-title, .message-title, .lia-message-subject, .page-title, .topic-title',
-      content: '.c-article-content, .article-content, .message-body, .message-content, .lia-message-body, .post-content, .topic-content, .message-text',
-      author: '.author-name, .user-name, .c-article-author, .message-author, .lia-message-author, .post-author, .username',
-      votes: '.vote-count, .rating, .score, .message-rating, .lia-message-rating, .post-rating, .upvotes',
-      // Khoros/Lithium specific selectors - updated
-      posts: 'article.lia-message-body, .lia-message, .message, .post, .topic-post',
-      meta: 'div.lia-message-meta, .message-meta, .post-meta, .topic-meta',
-      // Fallback selectors for different page types
-      fallbackTitle: '.page-title, .topic-title, .thread-title, h1, h2',
-      fallbackContent: '.message-content, .post-content, .topic-content, .thread-content, .content',
+      // Updated Airbnb Community selectors based on Khoros/Lithium structure
+      title: '.lia-message-subject, .page-title, .topic-title, h1',
+      // Main content area where OP and replies live
+      content: '.lia-message-body-content',
+      // Author information
+      author: '.lia-user-name, .author-name, .user-name',
+      // Date/time information
+      date: 'time[datetime], .lia-message-date, .post-date',
+      // Individual posts/replies
+      posts: '.lia-message, article.lia-message-body',
+      // Post content within each message
+      postContent: '.lia-message-body-content',
+      // Post author within each message
+      postAuthor: '.lia-user-name',
+      // Post date within each message
+      postDate: 'time[datetime], .lia-message-date',
+      // Fallback selectors
+      fallbackTitle: '.page-title, .topic-title, h1, h2',
+      fallbackContent: '.message-content, .post-content, .topic-content, .content',
     },
     category: 'Airbnb Community Discussion',
     rateLimit: { burst: 5, interval: 2000 }, // ≤5 req/s, 1 req every 2s
@@ -69,12 +81,15 @@ const COMMUNITY_CONFIGS = {
     name: 'AirHosts Forum',
     baseUrl: 'https://airhostsforum.com',
     selectors: {
-      title: 'h1, .title, .topic-title, [data-testid="topic-title"], .fancy-title, .topic-title',
-      content: '.post-content, .message-content, .topic-content, article[data-post-id], .cooked, .topic-body, .post-message',
-      author: '.author, .username, .post-author, [data-testid="post-author"], .names, .creator',
-      votes: '.score, .upvotes, .rating, [data-testid="post-score"], .like-count, .post-likes',
-      // AirHosts specific - updated
+      title: '.fancy-title, .topic-title, h1, .title',
+      content: '.cooked, .post-message, .topic-body, .content',
+      author: '.names, .creator, .author, .username',
+      votes: '.score, .upvotes, .rating, .like-count',
+      // AirHosts specific - updated for Discourse structure
       posts: 'article[data-post-id], .topic-post, .post, .message',
+      postContent: '.cooked, .post-message, .topic-body',
+      postAuthor: '.names, .creator, .author',
+      postDate: '.post-date, .date, time',
       // Fallback selectors
       fallbackTitle: '.fancy-title, .topic-title, h1, .title',
       fallbackContent: '.cooked, .post-message, .topic-body, .content',
@@ -128,9 +143,40 @@ function getJitteredDelay(baseDelay: number): number {
   return baseDelay + (Math.random() * jitter * 2 - jitter);
 }
 
+// Function to check if URL is a category listing page (should be skipped)
+function isCategoryListingPage(url: string): boolean {
+  // Airbnb Community category listing patterns
+  if (url.includes('community.withairbnb.com')) {
+    // Skip URLs ending with /bd-p/* (board pages)
+    if (url.includes('/bd-p/')) {
+      return true;
+    }
+    // Skip URLs that don't match thread pattern /t5/*/td-p/*
+    if (!url.match(/\/t5\/.*\/td-p\/\d+/)) {
+      return true;
+    }
+  }
+  
+  // AirHosts Forum category listing patterns
+  if (url.includes('airhostsforum.com')) {
+    // Skip URLs that don't have a topic ID
+    if (!url.match(/\/t\/.*\/\d+/)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 async function scrapeCommunityPage(url: string, config: any): Promise<CommunityContent | null> {
   try {
     console.log(`[COMMUNITY] Scraping ${url} (${config.name})`);
+    
+    // Check if this is a category listing page that should be skipped
+    if (isCategoryListingPage(url)) {
+      console.log(`[COMMUNITY][SKIP] Skipping category listing page: ${url}`);
+      return null;
+    }
     
     // Apply rate limiting
     const delayMs = getJitteredDelay(config.rateLimit?.interval || 3000);
@@ -142,7 +188,32 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
       ...config.headers,
     };
     
-    const response = await axios.get(url, {
+    let response;
+    let $;
+    
+    // Special handling for AirHosts Forum JSON API
+    if (url.includes('airhostsforum.com')) {
+      try {
+        // Try JSON API first
+        const jsonUrl = url.endsWith('.json') ? url : url + '.json';
+        console.log(`[COMMUNITY][AIRHOSTS] Trying JSON API: ${jsonUrl}`);
+        
+        response = await axios.get(jsonUrl, {
+          headers,
+          timeout: 15000,
+        });
+        
+        if (response.status === 200 && response.data) {
+          console.log(`[COMMUNITY][AIRHOSTS] JSON API successful`);
+          return await parseAirHostsJson(response.data, url, config);
+        }
+      } catch (jsonError: any) {
+        console.log(`[COMMUNITY][AIRHOSTS] JSON API failed, falling back to HTML: ${jsonError.message}`);
+      }
+    }
+    
+    // Fallback to HTML scraping
+    response = await axios.get(url, {
       headers,
       timeout: 15000,
     });
@@ -152,13 +223,15 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
       return null;
     }
 
-    const $ = cheerio.load(response.data);
+    $ = cheerio.load(response.data);
     
     // Platform-specific content extraction
     let title = '';
     let content = '';
     let author = '';
     let voteText = '';
+    let postsExtracted = 0;
+    let repliesExtracted = 0;
     
     if (url.includes('quora.com')) {
       // Quora: Parse JSON data from script tag
@@ -175,6 +248,7 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
               content = topAnswer.content || topAnswer.answer?.content || '';
               author = topAnswer.author?.name || topAnswer.answerer?.name || '';
               voteText = topAnswer.upvotes?.toString() || '0';
+              postsExtracted = 1;
             }
           }
         } catch (jsonError) {
@@ -182,112 +256,105 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
         }
       }
     } else if (url.includes('community.withairbnb.com')) {
-      // Airbnb Community: Use Khoros/Lithium selectors with fallbacks
-      console.log(`[COMMUNITY][DEBUG] Trying Airbnb Community selectors for ${url}`);
+      // Airbnb Community: Use updated Khoros/Lithium selectors
+      console.log(`[COMMUNITY][AIRBNB] Using updated Airbnb Community selectors for ${url}`);
       
-      // Try primary selectors first
+      // Extract title
       title = $(config.selectors.title).first().text().trim();
+      console.log(`[COMMUNITY][AIRBNB] Title extracted: "${title.substring(0, 50)}..."`);
+      
+      // Extract all posts/replies
       const posts = $(config.selectors.posts);
+      console.log(`[COMMUNITY][AIRBNB] Found ${posts.length} posts/replies`);
       
-      if (posts.length > 0) {
-        const firstPost = posts.first();
-        content = firstPost.find(config.selectors.content).text().trim();
-        author = firstPost.find(config.selectors.author).first().text().trim();
-        voteText = firstPost.find(config.selectors.votes).first().text().trim();
-      }
+      const allContent: string[] = [];
+      const allAuthors: string[] = [];
       
-      // If no content found, try fallback selectors
+      posts.each((index, post) => {
+        const $post = $(post);
+        const postContent = $post.find(config.selectors.postContent).text().trim();
+        const postAuthor = $post.find(config.selectors.postAuthor).first().text().trim();
+        const postDate = $post.find(config.selectors.postDate).first().attr('datetime') || 
+                        $post.find(config.selectors.postDate).first().text().trim();
+        
+        if (postContent && postContent.length > 20) {
+          allContent.push(postContent);
+          if (postAuthor) allAuthors.push(postAuthor);
+          
+          if (index === 0) {
+            postsExtracted++;
+            author = postAuthor;
+          } else {
+            repliesExtracted++;
+          }
+          
+          console.log(`[COMMUNITY][AIRBNB] Post ${index + 1}: ${postContent.length} chars, author: "${postAuthor}", date: "${postDate}"`);
+        }
+      });
+      
+      // Concatenate all content for embedding
+      content = allContent.join('\n\n');
+      
+      // If no content found with specific selectors, try fallbacks
       if (!content || content.length < 50) {
-        console.log(`[COMMUNITY][DEBUG] Primary selectors failed, trying fallbacks`);
+        console.log(`[COMMUNITY][AIRBNB] Primary selectors failed, trying fallbacks`);
         title = title || $(config.selectors.fallbackTitle).first().text().trim();
         content = $(config.selectors.fallbackContent).first().text().trim();
         
-        // Try to find any text content if still empty
-        if (!content || content.length < 100) {
-          console.log(`[COMMUNITY][DEBUG] Fallback selectors failed, trying body text extraction`);
-          
-          // Try multiple content extraction strategies
-          const strategies = [
-            // Strategy 1: Look for main content areas
-            () => $('.main-content, .content-area, .post-content, .message-content, .topic-content').text().trim(),
-            // Strategy 2: Look for article content
-            () => $('article, .article, .post, .message').text().trim(),
-            // Strategy 3: Look for divs with substantial text
-            () => $('div').map((i, el) => {
-              const text = $(el).text().trim();
-              return text.length > 200 ? text : '';
-            }).get().filter((t: string) => t.length > 0).join(' '),
-            // Strategy 4: Get all text and filter meaningful lines
-            () => {
-              const allText = $('body').text().trim();
-              const lines = allText.split('\n').filter(line => line.trim().length > 30);
-              return lines.slice(0, 5).join(' ').substring(0, 1000);
-            }
-          ];
-          
-          for (const strategy of strategies) {
-            const extracted = strategy();
-            if (extracted && extracted.length > 100) {
-              content = extracted;
-              console.log(`[COMMUNITY][DEBUG] Found content via strategy: ${content.length} chars`);
-              break;
-            }
-          }
+        if (content && content.length > 50) {
+          postsExtracted = 1;
+          console.log(`[COMMUNITY][AIRBNB] Found content via fallback: ${content.length} chars`);
         }
       }
       
     } else if (url.includes('airhostsforum.com')) {
-      // AirHosts Forum: Use updated selectors with fallbacks
-      console.log(`[COMMUNITY][DEBUG] Trying AirHosts Forum selectors for ${url}`);
+      // AirHosts Forum: Use updated Discourse selectors
+      console.log(`[COMMUNITY][AIRHOSTS] Using updated AirHosts Forum selectors for ${url}`);
       
-      // Try primary selectors first
+      // Extract title
       title = $(config.selectors.title).first().text().trim();
+      console.log(`[COMMUNITY][AIRHOSTS] Title extracted: "${title.substring(0, 50)}..."`);
+      
+      // Extract all posts/replies
       const posts = $(config.selectors.posts);
+      console.log(`[COMMUNITY][AIRHOSTS] Found ${posts.length} posts/replies`);
       
-      if (posts.length > 0) {
-        const firstPost = posts.first();
-        content = firstPost.find(config.selectors.content).text().trim();
-        author = firstPost.find(config.selectors.author).first().text().trim();
-        voteText = firstPost.find(config.selectors.votes).first().text().trim();
-      }
+      const allContent: string[] = [];
+      const allAuthors: string[] = [];
       
-      // If no content found, try fallback selectors
+      posts.each((index, post) => {
+        const $post = $(post);
+        const postContent = $post.find(config.selectors.postContent).text().trim();
+        const postAuthor = $post.find(config.selectors.postAuthor).first().text().trim();
+        const postDate = $post.find(config.selectors.postDate).first().text().trim();
+        
+        if (postContent && postContent.length > 20) {
+          allContent.push(postContent);
+          if (postAuthor) allAuthors.push(postAuthor);
+          
+          if (index === 0) {
+            postsExtracted++;
+            author = postAuthor;
+          } else {
+            repliesExtracted++;
+          }
+          
+          console.log(`[COMMUNITY][AIRHOSTS] Post ${index + 1}: ${postContent.length} chars, author: "${postAuthor}", date: "${postDate}"`);
+        }
+      });
+      
+      // Concatenate all content for embedding
+      content = allContent.join('\n\n');
+      
+      // If no content found with specific selectors, try fallbacks
       if (!content || content.length < 50) {
-        console.log(`[COMMUNITY][DEBUG] Primary selectors failed, trying fallbacks`);
+        console.log(`[COMMUNITY][AIRHOSTS] Primary selectors failed, trying fallbacks`);
         title = title || $(config.selectors.fallbackTitle).first().text().trim();
         content = $(config.selectors.fallbackContent).first().text().trim();
         
-        // Try to find any text content if still empty
-        if (!content || content.length < 100) {
-          console.log(`[COMMUNITY][DEBUG] Fallback selectors failed, trying body text extraction`);
-          
-          // Try multiple content extraction strategies
-          const strategies = [
-            // Strategy 1: Look for main content areas
-            () => $('.main-content, .content-area, .post-content, .message-content, .topic-content').text().trim(),
-            // Strategy 2: Look for article content
-            () => $('article, .article, .post, .message').text().trim(),
-            // Strategy 3: Look for divs with substantial text
-            () => $('div').map((i, el) => {
-              const text = $(el).text().trim();
-              return text.length > 200 ? text : '';
-            }).get().filter((t: string) => t.length > 0).join(' '),
-            // Strategy 4: Get all text and filter meaningful lines
-            () => {
-              const allText = $('body').text().trim();
-              const lines = allText.split('\n').filter(line => line.trim().length > 30);
-              return lines.slice(0, 5).join(' ').substring(0, 1000);
-            }
-          ];
-          
-          for (const strategy of strategies) {
-            const extracted = strategy();
-            if (extracted && extracted.length > 100) {
-              content = extracted;
-              console.log(`[COMMUNITY][DEBUG] Found content via strategy: ${content.length} chars`);
-              break;
-            }
-          }
+        if (content && content.length > 50) {
+          postsExtracted = 1;
+          console.log(`[COMMUNITY][AIRHOSTS] Found content via fallback: ${content.length} chars`);
         }
       }
       
@@ -297,12 +364,8 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
       content = $(config.selectors.content).first().text().trim();
       author = $(config.selectors.author).first().text().trim();
       voteText = $(config.selectors.votes).first().text().trim();
+      postsExtracted = 1;
     }
-    
-    // Debug output
-    console.log(`[COMMUNITY][DEBUG] Extracted - Title: "${title.substring(0, 50)}..."`);
-    console.log(`[COMMUNITY][DEBUG] Extracted - Content length: ${content.length}`);
-    console.log(`[COMMUNITY][DEBUG] Extracted - Author: "${author}"`);
     
     // Try to find author if not found
     if (!author) {
@@ -328,22 +391,9 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
       console.log(`[COMMUNITY][WARN] Invalid content for ${url}`);
       console.log(`[COMMUNITY][DEBUG] Title: "${title}"`);
       console.log(`[COMMUNITY][DEBUG] Content length: ${content.length}`);
-      
-      // Try one more fallback - look for any meaningful text
-      if (!content || content.length < 50) {
-        const $body = $('body');
-        const paragraphs = $body.find('p').map((i, el) => $(el).text().trim()).get();
-        const meaningfulParagraphs = paragraphs.filter((p: string) => p.length > 50);
-        
-        if (meaningfulParagraphs.length > 0) {
-          content = meaningfulParagraphs.slice(0, 2).join(' ');
-          console.log(`[COMMUNITY][DEBUG] Found content via paragraph fallback: ${content.length} chars`);
-        }
-      }
-      
-      if (!content || content.length < 50) {
-        return null;
-      }
+      console.log(`[COMMUNITY][DEBUG] Posts extracted: ${postsExtracted}`);
+      console.log(`[COMMUNITY][DEBUG] Replies extracted: ${repliesExtracted}`);
+      return null;
     }
 
     // Content quality check - filter out landing pages and generic content
@@ -370,6 +420,15 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
     const votes = extractVotes(voteText);
     const platform = getPlatformFromUrl(url);
     const source = getSourceFromUrl(url);
+    const totalCharacters = cleanedContent.length;
+    
+    // Log extraction statistics
+    console.log(`[COMMUNITY][SUCCESS] Extraction complete for ${url}:`);
+    console.log(`[COMMUNITY][SUCCESS] - Title: "${title.substring(0, 50)}..."`);
+    console.log(`[COMMUNITY][SUCCESS] - Posts extracted: ${postsExtracted}`);
+    console.log(`[COMMUNITY][SUCCESS] - Replies extracted: ${repliesExtracted}`);
+    console.log(`[COMMUNITY][SUCCESS] - Total characters: ${totalCharacters}`);
+    console.log(`[COMMUNITY][SUCCESS] - Author: "${author}"`);
     
     return {
       title,
@@ -381,6 +440,9 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
       source,
       contentType: 'community',
       category: config.category,
+      postsExtracted,
+      repliesExtracted,
+      totalCharacters,
     };
   } catch (error: any) {
     // Handle specific error types
@@ -405,6 +467,86 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
       console.error(`[COMMUNITY] Error scraping ${url}:`, error.message);
       return null;
     }
+  }
+}
+
+// Function to parse AirHosts Forum JSON API response
+async function parseAirHostsJson(jsonData: any, url: string, config: any): Promise<CommunityContent | null> {
+  try {
+    console.log(`[COMMUNITY][AIRHOSTS] Parsing JSON response`);
+    
+    const title = jsonData.title || jsonData.fancy_title || '';
+    const posts = jsonData.post_stream?.posts || [];
+    
+    console.log(`[COMMUNITY][AIRHOSTS] Found ${posts.length} posts in JSON`);
+    
+    if (posts.length === 0) {
+      console.log(`[COMMUNITY][AIRHOSTS] No posts found in JSON response`);
+      return null;
+    }
+    
+    const allContent: string[] = [];
+    const allAuthors: string[] = [];
+    let postsExtracted = 0;
+    let repliesExtracted = 0;
+    let author = '';
+    
+    posts.forEach((post: any, index: number) => {
+      const postContent = post.cooked || '';
+      const postAuthor = post.username || post.name || '';
+      const postDate = post.created_at || '';
+      
+      if (postContent && postContent.length > 20) {
+        // Convert HTML to text (basic conversion)
+        const textContent = postContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        
+        if (textContent.length > 20) {
+          allContent.push(textContent);
+          if (postAuthor) allAuthors.push(postAuthor);
+          
+          if (index === 0) {
+            postsExtracted++;
+            author = postAuthor;
+          } else {
+            repliesExtracted++;
+          }
+          
+          console.log(`[COMMUNITY][AIRHOSTS] Post ${index + 1}: ${textContent.length} chars, author: "${postAuthor}", date: "${postDate}"`);
+        }
+      }
+    });
+    
+    const content = allContent.join('\n\n');
+    const totalCharacters = content.length;
+    
+    if (!title || !content || content.length < 50) {
+      console.log(`[COMMUNITY][AIRHOSTS] Invalid content from JSON`);
+      return null;
+    }
+    
+    console.log(`[COMMUNITY][AIRHOSTS][SUCCESS] JSON extraction complete:`);
+    console.log(`[COMMUNITY][AIRHOSTS][SUCCESS] - Title: "${title.substring(0, 50)}..."`);
+    console.log(`[COMMUNITY][AIRHOSTS][SUCCESS] - Posts extracted: ${postsExtracted}`);
+    console.log(`[COMMUNITY][AIRHOSTS][SUCCESS] - Replies extracted: ${repliesExtracted}`);
+    console.log(`[COMMUNITY][AIRHOSTS][SUCCESS] - Total characters: ${totalCharacters}`);
+    
+    return {
+      title,
+      content: cleanContent(content),
+      author: author || undefined,
+      votes: 0,
+      url,
+      platform: getPlatformFromUrl(url),
+      source: getSourceFromUrl(url),
+      contentType: 'community',
+      category: config.category,
+      postsExtracted,
+      repliesExtracted,
+      totalCharacters,
+    };
+  } catch (error) {
+    console.error(`[COMMUNITY][AIRHOSTS] Error parsing JSON:`, error);
+    return null;
   }
 }
 
@@ -475,7 +617,7 @@ function getConfigForUrl(url: string): any {
  * Crawls user-generated content from community platforms like:
  * - Airbnb Community (community.withairbnb.com)
  * - Quora (quora.com) 
- * - Booking.com Partner Community (partner.booking.com)
+ * - AirHosts Forum (airhostsforum.com)
  * 
  * Note: Reddit is excluded due to anti-bot protection (403 errors)
  * To add Reddit support, would need:
@@ -489,8 +631,12 @@ function getConfigForUrl(url: string): any {
 export async function scrapeCommunityUrls(urls: string[]): Promise<void> {
   console.log(`[COMMUNITY] Starting community content scraping for ${urls.length} URLs`);
   
+  // Filter out category listing pages
+  const filteredUrls = urls.filter(url => !isCategoryListingPage(url));
+  console.log(`[COMMUNITY] After filtering category pages: ${filteredUrls.length} URLs remaining`);
+  
   // First verify which URLs are accessible
-  const verificationResults = await verifyCommunityUrls(urls);
+  const verificationResults = await verifyCommunityUrls(filteredUrls);
   const accessibleUrls = verificationResults.filter(r => r.accessible).map(r => r.url);
   
   if (accessibleUrls.length === 0) {
@@ -527,6 +673,16 @@ export async function scrapeCommunityUrls(urls: string[]): Promise<void> {
   
   console.log(`[COMMUNITY] Successfully scraped ${results.length}/${accessibleUrls.length} accessible URLs`);
   
+  // Log summary statistics
+  const totalPosts = results.reduce((sum, r) => sum + (r.postsExtracted || 0), 0);
+  const totalReplies = results.reduce((sum, r) => sum + (r.repliesExtracted || 0), 0);
+  const totalChars = results.reduce((sum, r) => sum + (r.totalCharacters || 0), 0);
+  
+  console.log(`[COMMUNITY] Summary:`);
+  console.log(`[COMMUNITY] - Total posts extracted: ${totalPosts}`);
+  console.log(`[COMMUNITY] - Total replies extracted: ${totalReplies}`);
+  console.log(`[COMMUNITY] - Total characters: ${totalChars}`);
+  
   // Save to database
   for (const content of results) {
     try {
@@ -542,22 +698,17 @@ export async function scrapeCommunityUrls(urls: string[]): Promise<void> {
 
 // Function to get community content URLs (to be called from admin)
 export async function getCommunityContentUrls(): Promise<string[]> {
-  // Real, verified community URLs for production
+  // Updated test URLs based on the action plan
   const COMMUNITY_URLS = [
-    // Airbnb Community - Real Khoros/Lithium forum URLs (working ones)
-    'https://community.withairbnb.com/t5/Ask-about-your-listing/bd-p/manage-listing',
-    'https://community.withairbnb.com/t5/Hosting/When-does-Airbnb-pay-hosts/td-p/123456',
+    // Airbnb Community - Thread pages only (matching /t5/*/td-p/* pattern)
+    'https://community.withairbnb.com/t5/Hosting/When-does-Airbnb-pay-hosts/td-p/184758',
     
-    // AirHosts Forum - Real public forum URLs (working ones)
+    // AirHosts Forum - Thread pages with .json API support (using a more common URL pattern)
     'https://airhostsforum.com/t/listing-issues/59544',
-    'https://airhostsforum.com/t/hosting-tips-and-advice/2',
     
-    // Note: Quora URLs removed due to 403 blocking
-    // To add Quora back, would need:
-    // - Reddit API integration
-    // - User agent rotation
-    // - Rate limiting
-    // - Authentication
+    // Note: Removed category listing pages like:
+    // 'https://community.withairbnb.com/t5/Ask-about-your-listing/bd-p/manage-listing'
+    // These will be automatically filtered out by isCategoryListingPage()
   ];
 
   return COMMUNITY_URLS;

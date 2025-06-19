@@ -3,7 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const openai_1 = require("../utils/openai");
 const airbnb_1 = require("../scripts/scrapers/airbnb");
-const getyourguide_1 = require("../scripts/scrapers/getyourguide");
+const getyourguide_1 = require("../crawlers/getyourguide");
+const communityCrawler_1 = require("../lib/communityCrawler");
 const prisma = new client_1.PrismaClient();
 // List of URLs to scrape
 const URLs = [
@@ -40,22 +41,47 @@ async function main() {
         console.log('[SCRAPE] Starting GetYourGuide scraping...');
         let gygArticles = [];
         try {
-            gygArticles = await (0, getyourguide_1.scrapeGetYourGuide)();
-            console.log(`[SCRAPE] GetYourGuide scraping completed. Found ${gygArticles.length} articles`);
+            // Use the robust crawler version
+            const crawled = await (0, getyourguide_1.crawlGetYourGuideArticles)();
+            // Map to Article type with a default category if needed
+            gygArticles = crawled.map(a => ({
+                ...a,
+                category: 'Help Center', // or extract category if available
+            }));
+            console.log(`[SCRAPE] GetYourGuide crawling completed. Found ${gygArticles.length} articles`);
         }
         catch (gygError) {
-            console.error('[SCRAPE] GetYourGuide scraping failed:', gygError);
+            console.error('[SCRAPE] GetYourGuide crawling failed:', gygError);
             // Continue with other scrapers even if GetYourGuide fails
         }
-        const articles = [...airbnbArticles, ...gygArticles];
-        console.log(`[SCRAPE] Total articles found: ${articles.length}`);
-        if (articles.length === 0) {
-            console.log('[SCRAPE] No articles found. Exiting gracefully.');
-            return;
+        // Scrape community content
+        console.log('[SCRAPE] Starting community content scraping...');
+        try {
+            const communityUrls = await (0, communityCrawler_1.getCommunityContentUrls)();
+            console.log(`[SCRAPE] Found ${communityUrls.length} community URLs to scrape`);
+            // Note: scrapeCommunityUrls handles its own database operations
+            // so we don't need to process the results here
+            await (0, communityCrawler_1.scrapeCommunityUrls)(communityUrls);
+            console.log('[SCRAPE] Community content scraping completed');
         }
-        // Process each article
+        catch (communityError) {
+            console.error('[SCRAPE] Community content scraping failed:', communityError);
+            // Continue even if community scraping fails
+        }
+        const articles = [...airbnbArticles, ...gygArticles];
+        console.log(`[SCRAPE] Total official articles found: ${articles.length}`);
+        if (articles.length === 0) {
+            console.log('[SCRAPE] No official articles found, but community content may have been scraped.');
+        }
+        // Process each official article
         for (const article of articles) {
             try {
+                // Check if article exists and if content has changed
+                const existing = await prisma.article.findUnique({ where: { url: article.url } });
+                if (existing && existing.answer === article.answer) {
+                    console.log(`[SCRAPE] Skipping unchanged article: ${article.question}`);
+                    continue;
+                }
                 console.log(`[SCRAPE] Processing article: ${article.question}`);
                 // Generate embeddings for paragraphs
                 let paragraphsWithEmbeddings = [];
@@ -75,6 +101,8 @@ async function main() {
                         answer: article.answer,
                         category: article.category,
                         platform: article.platform,
+                        contentType: 'official', // Ensure official content type
+                        source: 'help_center',
                         lastUpdated: new Date(),
                     },
                     create: {
@@ -83,6 +111,8 @@ async function main() {
                         answer: article.answer,
                         category: article.category,
                         platform: article.platform,
+                        contentType: 'official',
+                        source: 'help_center',
                     },
                 });
                 console.log(`[SCRAPE] Article upserted with ID: ${upserted.id}`);

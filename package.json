@@ -10,11 +10,12 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "crawl": "ts-node src/crawl.ts",
-    "scrape": "node dist/scripts/scrape.js",
+    "scrape": "tsx src/scripts/scrape.ts",
     "test:getyourguide": "ts-node src/scripts/test-getyourguide.ts",
     "test:airbnb": "ts-node src/scripts/test-airbnb.ts",
     "test:puppeteer": "ts-node src/scripts/test-puppeteer.ts",
-    "view:articles": "ts-node src/scripts/view-articles.ts"
+    "view:articles": "ts-node src/scripts/view-articles.ts",
+    "test:community": "tsx src/scripts/test-community-crawler.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.0.0",
