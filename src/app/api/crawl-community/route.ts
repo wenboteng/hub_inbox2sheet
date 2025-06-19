@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scrapeCommunityUrls, getCommunityContentUrls } from '@/lib/communityCrawler';
 
+// Force dynamic rendering for community crawl API
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const { urls, useDefaultUrls = true } = await req.json();

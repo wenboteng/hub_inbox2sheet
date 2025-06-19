@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import prisma from '@/lib/prisma';
 
+// Force dynamic rendering for search summary API
+export const dynamic = 'force-dynamic';
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });

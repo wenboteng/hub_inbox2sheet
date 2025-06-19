@@ -5,6 +5,9 @@ import type { Prisma } from '@prisma/client';
 import { rankArticlesByRelevance } from '@/utils/searchHelpers';
 import { expandSearchTerms, getRelatedTerms } from '@/utils/searchExpansion';
 
+// Force dynamic rendering for search API
+export const dynamic = 'force-dynamic';
+
 interface ArticleParagraph {
   text: string;
   embedding: number[];

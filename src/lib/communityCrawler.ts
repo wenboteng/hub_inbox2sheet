@@ -238,18 +238,21 @@ export async function scrapeCommunityUrls(urls: string[]): Promise<void> {
 // Function to get community content URLs (to be called from admin)
 export async function getCommunityContentUrls(): Promise<string[]> {
   // This would be populated with actual community URLs
-  // For now, returning a sample set
+  // For now, returning a sample set of realistic URLs
   return [
-    // Airbnb Community
+    // Airbnb Community - these are example URLs that would need to be replaced with real ones
     'https://community.withairbnb.com/t5/Hosting/When-does-Airbnb-pay-hosts/td-p/123456',
     'https://community.withairbnb.com/t5/Hosting/How-to-handle-cancellations/td-p/123457',
+    'https://community.withairbnb.com/t5/Hosting/Payout-delay-issues/td-p/123458',
     
-    // Reddit (example URLs - would need actual Reddit API or specific subreddit URLs)
+    // Reddit - these would need to be replaced with actual Reddit post URLs
     'https://www.reddit.com/r/Airbnb/comments/example1',
     'https://www.reddit.com/r/TravelHacks/comments/example2',
+    'https://www.reddit.com/r/AirbnbHosts/comments/example3',
     
-    // Quora (example URLs)
+    // Quora - these would need to be replaced with actual Quora URLs
     'https://www.quora.com/How-does-Airbnb-payout-work-for-hosts',
     'https://www.quora.com/What-are-the-best-practices-for-Airbnb-hosting',
+    'https://www.quora.com/How-do-I-handle-Airbnb-cancellations',
   ];
 } 

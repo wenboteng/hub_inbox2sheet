@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { getContentEmbeddings } from '@/utils/openai';
 import { scrapeAirbnb } from '@/scripts/scrapers/airbnb';
 import { crawlGetYourGuideArticles } from '@/crawlers/getyourguide';
+import { scrapeCommunityUrls, getCommunityContentUrls } from '@/lib/communityCrawler';
 
 const prisma = new PrismaClient();
 
@@ -68,15 +69,29 @@ async function main() {
       // Continue with other scrapers even if GetYourGuide fails
     }
 
-    const articles = [...airbnbArticles, ...gygArticles];
-    console.log(`[SCRAPE] Total articles found: ${articles.length}`);
-
-    if (articles.length === 0) {
-      console.log('[SCRAPE] No articles found. Exiting gracefully.');
-      return;
+    // Scrape community content
+    console.log('[SCRAPE] Starting community content scraping...');
+    try {
+      const communityUrls = await getCommunityContentUrls();
+      console.log(`[SCRAPE] Found ${communityUrls.length} community URLs to scrape`);
+      
+      // Note: scrapeCommunityUrls handles its own database operations
+      // so we don't need to process the results here
+      await scrapeCommunityUrls(communityUrls);
+      console.log('[SCRAPE] Community content scraping completed');
+    } catch (communityError) {
+      console.error('[SCRAPE] Community content scraping failed:', communityError);
+      // Continue even if community scraping fails
     }
 
-    // Process each article
+    const articles = [...airbnbArticles, ...gygArticles];
+    console.log(`[SCRAPE] Total official articles found: ${articles.length}`);
+
+    if (articles.length === 0) {
+      console.log('[SCRAPE] No official articles found, but community content may have been scraped.');
+    }
+
+    // Process each official article
     for (const article of articles) {
       try {
         // Check if article exists and if content has changed
@@ -105,6 +120,8 @@ async function main() {
             answer: article.answer,
             category: article.category,
             platform: article.platform,
+            contentType: 'official', // Ensure official content type
+            source: 'help_center',
             lastUpdated: new Date(),
           },
           create: {
@@ -113,6 +130,8 @@ async function main() {
             answer: article.answer,
             category: article.category,
             platform: article.platform,
+            contentType: 'official',
+            source: 'help_center',
           },
         });
 
