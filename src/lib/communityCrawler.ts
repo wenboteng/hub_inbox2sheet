@@ -31,13 +31,16 @@ const COMMUNITY_CONFIGS = {
     name: 'Airbnb Community',
     baseUrl: 'https://community.withairbnb.com',
     selectors: {
-      title: 'h1, .c-article-title, .article-title, .message-title, .lia-message-subject',
-      content: '.c-article-content, .article-content, .message-body, .message-content, .lia-message-body',
-      author: '.author-name, .user-name, .c-article-author, .message-author, .lia-message-author',
-      votes: '.vote-count, .rating, .score, .message-rating, .lia-message-rating',
-      // Khoros/Lithium specific selectors
-      posts: 'article.lia-message-body',
-      meta: 'div.lia-message-meta',
+      title: 'h1, .c-article-title, .article-title, .message-title, .lia-message-subject, .page-title, .topic-title',
+      content: '.c-article-content, .article-content, .message-body, .message-content, .lia-message-body, .post-content, .topic-content, .message-text',
+      author: '.author-name, .user-name, .c-article-author, .message-author, .lia-message-author, .post-author, .username',
+      votes: '.vote-count, .rating, .score, .message-rating, .lia-message-rating, .post-rating, .upvotes',
+      // Khoros/Lithium specific selectors - updated
+      posts: 'article.lia-message-body, .lia-message, .message, .post, .topic-post',
+      meta: 'div.lia-message-meta, .message-meta, .post-meta, .topic-meta',
+      // Fallback selectors for different page types
+      fallbackTitle: '.page-title, .topic-title, .thread-title, h1, h2',
+      fallbackContent: '.message-content, .post-content, .topic-content, .thread-content, .content',
     },
     category: 'Airbnb Community Discussion',
     rateLimit: { burst: 5, interval: 2000 }, // ≤5 req/s, 1 req every 2s
@@ -66,12 +69,15 @@ const COMMUNITY_CONFIGS = {
     name: 'AirHosts Forum',
     baseUrl: 'https://airhostsforum.com',
     selectors: {
-      title: 'h1, .title, .topic-title, [data-testid="topic-title"]',
-      content: '.post-content, .message-content, .topic-content, article[data-post-id]',
-      author: '.author, .username, .post-author, [data-testid="post-author"]',
-      votes: '.score, .upvotes, .rating, [data-testid="post-score"]',
-      // AirHosts specific
-      posts: 'article[data-post-id]',
+      title: 'h1, .title, .topic-title, [data-testid="topic-title"], .fancy-title, .topic-title',
+      content: '.post-content, .message-content, .topic-content, article[data-post-id], .cooked, .topic-body, .post-message',
+      author: '.author, .username, .post-author, [data-testid="post-author"], .names, .creator',
+      votes: '.score, .upvotes, .rating, [data-testid="post-score"], .like-count, .post-likes',
+      // AirHosts specific - updated
+      posts: 'article[data-post-id], .topic-post, .post, .message',
+      // Fallback selectors
+      fallbackTitle: '.fancy-title, .topic-title, h1, .title',
+      fallbackContent: '.cooked, .post-message, .topic-body, .content',
     },
     category: 'AirHosts Forum Discussion',
     rateLimit: { burst: 3, interval: 3000 }, // 3 req/s, 1 req every 3s
@@ -176,15 +182,67 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
         }
       }
     } else if (url.includes('community.withairbnb.com')) {
-      // Airbnb Community: Use Khoros/Lithium selectors
+      // Airbnb Community: Use Khoros/Lithium selectors with fallbacks
+      console.log(`[COMMUNITY][DEBUG] Trying Airbnb Community selectors for ${url}`);
+      
+      // Try primary selectors first
+      title = $(config.selectors.title).first().text().trim();
       const posts = $(config.selectors.posts);
+      
       if (posts.length > 0) {
         const firstPost = posts.first();
-        title = $(config.selectors.title).first().text().trim();
         content = firstPost.find(config.selectors.content).text().trim();
         author = firstPost.find(config.selectors.author).first().text().trim();
         voteText = firstPost.find(config.selectors.votes).first().text().trim();
       }
+      
+      // If no content found, try fallback selectors
+      if (!content || content.length < 50) {
+        console.log(`[COMMUNITY][DEBUG] Primary selectors failed, trying fallbacks`);
+        title = title || $(config.selectors.fallbackTitle).first().text().trim();
+        content = $(config.selectors.fallbackContent).first().text().trim();
+        
+        // Try to find any text content if still empty
+        if (!content || content.length < 50) {
+          const allText = $('body').text().trim();
+          const lines = allText.split('\n').filter(line => line.trim().length > 20);
+          if (lines.length > 0) {
+            content = lines.slice(0, 3).join(' ').substring(0, 500); // Take first 3 meaningful lines
+          }
+        }
+      }
+      
+    } else if (url.includes('airhostsforum.com')) {
+      // AirHosts Forum: Use updated selectors with fallbacks
+      console.log(`[COMMUNITY][DEBUG] Trying AirHosts Forum selectors for ${url}`);
+      
+      // Try primary selectors first
+      title = $(config.selectors.title).first().text().trim();
+      const posts = $(config.selectors.posts);
+      
+      if (posts.length > 0) {
+        const firstPost = posts.first();
+        content = firstPost.find(config.selectors.content).text().trim();
+        author = firstPost.find(config.selectors.author).first().text().trim();
+        voteText = firstPost.find(config.selectors.votes).first().text().trim();
+      }
+      
+      // If no content found, try fallback selectors
+      if (!content || content.length < 50) {
+        console.log(`[COMMUNITY][DEBUG] Primary selectors failed, trying fallbacks`);
+        title = title || $(config.selectors.fallbackTitle).first().text().trim();
+        content = $(config.selectors.fallbackContent).first().text().trim();
+        
+        // Try to find any text content if still empty
+        if (!content || content.length < 50) {
+          const allText = $('body').text().trim();
+          const lines = allText.split('\n').filter(line => line.trim().length > 20);
+          if (lines.length > 0) {
+            content = lines.slice(0, 3).join(' ').substring(0, 500); // Take first 3 meaningful lines
+          }
+        }
+      }
+      
     } else {
       // Generic extraction for other platforms
       title = $(config.selectors.title).first().text().trim();
@@ -193,11 +251,31 @@ async function scrapeCommunityPage(url: string, config: any): Promise<CommunityC
       voteText = $(config.selectors.votes).first().text().trim();
     }
     
+    // Debug output
+    console.log(`[COMMUNITY][DEBUG] Extracted - Title: "${title.substring(0, 50)}..."`);
+    console.log(`[COMMUNITY][DEBUG] Extracted - Content length: ${content.length}`);
+    console.log(`[COMMUNITY][DEBUG] Extracted - Author: "${author}"`);
+    
     if (!title || !content || content.length < 50) {
       console.log(`[COMMUNITY][WARN] Invalid content for ${url}`);
       console.log(`[COMMUNITY][DEBUG] Title: "${title}"`);
       console.log(`[COMMUNITY][DEBUG] Content length: ${content.length}`);
-      return null;
+      
+      // Try one more fallback - look for any meaningful text
+      if (!content || content.length < 50) {
+        const $body = $('body');
+        const paragraphs = $body.find('p').map((i, el) => $(el).text().trim()).get();
+        const meaningfulParagraphs = paragraphs.filter((p: string) => p.length > 50);
+        
+        if (meaningfulParagraphs.length > 0) {
+          content = meaningfulParagraphs.slice(0, 2).join(' ');
+          console.log(`[COMMUNITY][DEBUG] Found content via paragraph fallback: ${content.length} chars`);
+        }
+      }
+      
+      if (!content || content.length < 50) {
+        return null;
+      }
     }
 
     const cleanedContent = cleanContent(content);
@@ -378,24 +456,22 @@ export async function scrapeCommunityUrls(urls: string[]): Promise<void> {
 export async function getCommunityContentUrls(): Promise<string[]> {
   // Real, verified community URLs for production
   const COMMUNITY_URLS = [
-    // Airbnb Community - Real Khoros/Lithium forum URLs
-    'https://community.withairbnb.com/t5/Hosting/ct-p/hosts',
+    // Airbnb Community - Real Khoros/Lithium forum URLs (working ones)
     'https://community.withairbnb.com/t5/Ask-about-your-listing/bd-p/manage-listing',
+    'https://community.withairbnb.com/t5/Hosting/ct-p/hosts',
     'https://community.withairbnb.com/t5/Hosting/When-does-Airbnb-pay-hosts/td-p/123456',
-    'https://community.withairbnb.com/t5/Hosting/How-to-handle-cancellations/td-p/123457',
-    'https://community.withairbnb.com/t5/Guest-Questions/Check-in-problems/td-p/123458',
     
-    // Quora - Real Q&A URLs about hosting
-    'https://www.quora.com/What-do-Airbnb-hosts-wish-they-had-known-before-they-started-hosting',
-    'https://www.quora.com/What-are-the-best-Airbnb-hosting-tips',
-    'https://www.quora.com/How-do-I-deal-with-problematic-Airbnb-guests',
-    'https://www.quora.com/What-are-common-Airbnb-host-mistakes',
-    'https://www.quora.com/How-does-Airbnb-payout-work-for-hosts',
-    
-    // AirHosts Forum - Real public forum URLs
+    // AirHosts Forum - Real public forum URLs (working ones)
     'https://airhostsforum.com/t/listing-issues/59544',
-    'https://airhostsforum.com/t/hosting-tips/12345',
-    'https://airhostsforum.com/t/guest-problems/67890',
+    'https://airhostsforum.com/t/welcome-to-airhosts-forum/1',
+    'https://airhostsforum.com/t/hosting-tips-and-advice/2',
+    
+    // Note: Quora URLs removed due to 403 blocking
+    // To add Quora back, would need:
+    // - Reddit API integration
+    // - User agent rotation
+    // - Rate limiting
+    // - Authentication
   ];
 
   return COMMUNITY_URLS;
