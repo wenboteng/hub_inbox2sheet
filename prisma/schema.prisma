@@ -27,12 +27,17 @@ model Article {
   author      String?  // For user-generated content
   votes       Int      @default(0) // For community content with voting
   isVerified  Boolean  @default(false) // For community content verification
+  
+  // Content-based deduplication
+  contentHash String?  // SHA-256 hash of the main content for deduplication
+  isDuplicate Boolean  @default(false) // Flag for near-duplicate content
 
   @@index([platform])
   @@index([category])
   @@index([lastUpdated])
   @@index([contentType])
   @@index([source])
+  @@index([contentHash])
 }
 
 model Answer {

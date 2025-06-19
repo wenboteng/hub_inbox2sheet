@@ -130,8 +130,8 @@ export async function scrapeAirbnb(): Promise<Article[]> {
 
         console.log(`[AIRBNB] Found ${articleLinks.length} article links`);
 
-        // Process each article (limit to first 5 for testing)
-        for (const { url, title } of articleLinks.slice(0, 5)) {
+        // Process each article (increased limit for better coverage)
+        for (const { url, title } of articleLinks.slice(0, 20)) {
           try {
             console.log(`[AIRBNB] Scraping article: ${title}`);
             await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
@@ -164,7 +164,7 @@ export async function scrapeAirbnb(): Promise<Article[]> {
       if (articles.length === 0) {
         console.log('[AIRBNB] No articles found from main page, trying known articles...');
         
-        for (const url of AIRBNB_ARTICLES.slice(0, 3)) {
+        for (const url of AIRBNB_ARTICLES.slice(0, 6)) {
           try {
             console.log(`[AIRBNB] Trying known article: ${url}`);
             await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
