@@ -28,12 +28,60 @@ interface SearchResult {
   snippets: string[];
   score: number;
   isSemanticMatch: boolean;
+  isTopMatch?: boolean;
+}
+
+// Helper function to extract tight, relevant snippets
+function extractTightSnippet(text: string, queryTerms: string[], maxLength: number = 200): string {
+  // Split into sentences
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  
+  // Score sentences based on query term density
+  const scoredSentences = sentences.map(sentence => {
+    const lowerSentence = sentence.toLowerCase();
+    let score = 0;
+    let termMatches = 0;
+    
+    queryTerms.forEach(term => {
+      const count = (lowerSentence.match(new RegExp(term, 'g')) || []).length;
+      if (count > 0) {
+        score += count;
+        termMatches++;
+      }
+    });
+    
+    // Bonus for having multiple terms
+    if (termMatches > 1) score *= 1.5;
+    
+    return { sentence: sentence.trim(), score };
+  });
+  
+  // Get the best sentence
+  const bestSentence = scoredSentences
+    .filter(s => s.score > 0)
+    .sort((a, b) => b.score - a.score)[0];
+    
+  if (!bestSentence) {
+    // Fallback to first sentence
+    return sentences[0]?.slice(0, maxLength) + '...' || text.slice(0, maxLength) + '...';
+  }
+  
+  let snippet = bestSentence.sentence;
+  
+  // Truncate if too long
+  if (snippet.length > maxLength) {
+    snippet = snippet.slice(0, maxLength).replace(/\s[^\s]*$/, '') + '...';
+  }
+  
+  return snippet;
 }
 
 // Helper function to highlight search terms in text
 function highlightTerms(text: string, terms: string[]): string {
   let highlighted = text;
-  terms.forEach(term => {
+  // Only highlight the most relevant terms (limit to 3 to avoid over-highlighting)
+  const topTerms = terms.slice(0, 3);
+  topTerms.forEach(term => {
     const regex = new RegExp(`(${term})`, 'gi');
     highlighted = highlighted.replace(regex, '<mark>$1</mark>');
   });
@@ -46,6 +94,7 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q') || '';
     const platform = searchParams.get('platform');
     const category = searchParams.get("category");
+    const showAll = searchParams.get("showAll") === 'true';
 
     if (!query) {
       return NextResponse.json({ articles: [] });
@@ -92,16 +141,16 @@ export async function GET(request: NextRequest) {
             similarity: cosineSimilarity(queryEmbedding, para.embedding),
           }))
           .sort((a: { similarity: number }, b: { similarity: number }) => b.similarity - a.similarity)
-          .slice(0, 2);
+          .slice(0, 1); // Only take the best paragraph
 
         // Calculate overall article score based on best paragraph similarity
         const score = relevantParagraphs.length > 0 
           ? relevantParagraphs[0].similarity
           : 0;
 
-        // Highlight search terms in snippets
+        // Extract tight, relevant snippets
         const snippets = relevantParagraphs.map((p: { text: string }) => 
-          highlightTerms(p.text, expandedTerms)
+          highlightTerms(extractTightSnippet(p.text, expandedTerms), expandedTerms)
         );
 
         return {
@@ -125,20 +174,29 @@ export async function GET(request: NextRequest) {
     const hasGoodSemanticMatches = sortedSemanticResults.some(r => r.score > 0.3);
 
     if (hasGoodSemanticMatches) {
-      // Return only good semantic matches
+      // Mark top match and limit results
+      const results = sortedSemanticResults
+        .filter(r => r.score > 0.3)
+        .map((r, index) => ({ ...r, isTopMatch: index === 0 }));
+      
+      const limitedResults = showAll ? results : results.slice(0, 5);
+      
       return NextResponse.json({ 
-        articles: sortedSemanticResults.filter(r => r.score > 0.3),
-        searchType: 'semantic'
+        articles: limitedResults,
+        searchType: 'semantic',
+        totalResults: results.length,
+        hasMore: !showAll && results.length > 5
       });
     }
 
     // If no good semantic matches, try keyword search as fallback
     const keywordResults = rankArticlesByRelevance(articles, expandedTerms.join(" "))
-      .map(article => ({
+      .map((article, index) => ({
         ...article,
-        snippets: [highlightTerms(article.paragraphs[0].text, expandedTerms)],
+        snippets: [highlightTerms(extractTightSnippet(article.paragraphs[0].text, expandedTerms), expandedTerms)],
         score: article.relevanceScore,
-        isSemanticMatch: false
+        isSemanticMatch: false,
+        isTopMatch: index === 0
       }));
 
     // If we have any results from either method, return the best ones
@@ -148,22 +206,29 @@ export async function GET(request: NextRequest) {
         // Include top semantic match even if below threshold
         ...sortedSemanticResults.slice(0, 1).map(r => ({
           ...r,
-          snippets: [...r.snippets, "This may not be a perfect match, but it's semantically related."]
+          snippets: [...r.snippets, "This may not be a perfect match, but it's semantically related."],
+          isTopMatch: true
         })),
         // Include keyword matches
         ...keywordResults
-      ].slice(0, 5); // Limit to top 5 results
+      ];
+
+      const limitedResults = showAll ? combinedResults : combinedResults.slice(0, 5);
 
       return NextResponse.json({ 
-        articles: combinedResults,
-        searchType: 'combined'
+        articles: limitedResults,
+        searchType: 'combined',
+        totalResults: combinedResults.length,
+        hasMore: !showAll && combinedResults.length > 5
       });
     }
 
     // If still no results, we'll handle this case in the frontend
     return NextResponse.json({ 
       articles: [],
-      searchType: 'none'
+      searchType: 'none',
+      totalResults: 0,
+      hasMore: false
     });
 
   } catch (error) {
