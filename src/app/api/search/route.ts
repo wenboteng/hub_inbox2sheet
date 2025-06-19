@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
         category: true,
         paragraphs: true,
       },
-      take: 3,
+      take: 50,
     };
 
     // Get articles with paragraphs

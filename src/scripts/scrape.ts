@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { getContentEmbeddings } from '@/utils/openai';
 import { scrapeAirbnb } from '@/scripts/scrapers/airbnb';
-import { scrapeGetYourGuide } from '@/scripts/scrapers/getyourguide';
+import { crawlGetYourGuideArticles } from '@/crawlers/getyourguide';
 
 const prisma = new PrismaClient();
 
@@ -55,10 +55,16 @@ async function main() {
     console.log('[SCRAPE] Starting GetYourGuide scraping...');
     let gygArticles: Article[] = [];
     try {
-      gygArticles = await scrapeGetYourGuide();
-      console.log(`[SCRAPE] GetYourGuide scraping completed. Found ${gygArticles.length} articles`);
+      // Use the robust crawler version
+      const crawled = await crawlGetYourGuideArticles();
+      // Map to Article type with a default category if needed
+      gygArticles = crawled.map(a => ({
+        ...a,
+        category: 'Help Center', // or extract category if available
+      }));
+      console.log(`[SCRAPE] GetYourGuide crawling completed. Found ${gygArticles.length} articles`);
     } catch (gygError) {
-      console.error('[SCRAPE] GetYourGuide scraping failed:', gygError);
+      console.error('[SCRAPE] GetYourGuide crawling failed:', gygError);
       // Continue with other scrapers even if GetYourGuide fails
     }
 
@@ -73,6 +79,12 @@ async function main() {
     // Process each article
     for (const article of articles) {
       try {
+        // Check if article exists and if content has changed
+        const existing = await prisma.article.findUnique({ where: { url: article.url } });
+        if (existing && existing.answer === article.answer) {
+          console.log(`[SCRAPE] Skipping unchanged article: ${article.question}`);
+          continue;
+        }
         console.log(`[SCRAPE] Processing article: ${article.question}`);
 
         // Generate embeddings for paragraphs
