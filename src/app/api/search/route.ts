@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from '@/lib/prisma';
 import { getEmbedding } from '@/utils/openai';
 import type { Prisma } from '@prisma/client';
+import { rankArticlesByRelevance } from '@/utils/searchHelpers';
+import { expandSearchTerms, getRelatedTerms } from '@/utils/searchExpansion';
 
 interface ArticleParagraph {
   text: string;
@@ -25,6 +27,7 @@ interface SearchResult {
   category: string;
   snippets: string[];
   score: number;
+  isSemanticMatch: boolean;
 }
 
 // Helper function to highlight search terms in text
@@ -48,8 +51,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ articles: [] });
     }
 
-    // Get query embedding
-    const queryEmbedding = await getEmbedding(query);
+    // Get query embedding and expanded terms
+    const [queryEmbedding, expandedTerms] = await Promise.all([
+      getEmbedding(query),
+      Promise.resolve(getRelatedTerms(query))
+    ]);
 
     // Build base query
     const baseQuery = {
@@ -70,8 +76,8 @@ export async function GET(request: NextRequest) {
     // Get articles with paragraphs
     const articles = await prisma.article.findMany(baseQuery);
 
-    // Process and rank results
-    const results = await Promise.all(
+    // Process and rank results using semantic search
+    const semanticResults = await Promise.all(
       articles.map(async (article: any) => {
         // Convert JSON embeddings to number arrays
         const paragraphs = article.paragraphs.map((p: { text: string; embedding: unknown }) => ({
@@ -95,7 +101,7 @@ export async function GET(request: NextRequest) {
 
         // Highlight search terms in snippets
         const snippets = relevantParagraphs.map((p: { text: string }) => 
-          highlightTerms(p.text, query.split(' '))
+          highlightTerms(p.text, expandedTerms)
         );
 
         return {
@@ -106,16 +112,60 @@ export async function GET(request: NextRequest) {
           category: article.category,
           snippets,
           score,
+          isSemanticMatch: true,
         } as SearchResult;
       })
     );
 
-    // Sort by score and return top results
-    const sortedResults = results
-      .sort((a, b) => b.score - a.score)
-      .filter(r => r.score > 0.3); // Lowered threshold for more results
+    // Sort by score
+    const sortedSemanticResults = semanticResults
+      .sort((a, b) => b.score - a.score);
 
-    return NextResponse.json({ articles: sortedResults });
+    // Check if we have good semantic matches
+    const hasGoodSemanticMatches = sortedSemanticResults.some(r => r.score > 0.3);
+
+    if (hasGoodSemanticMatches) {
+      // Return only good semantic matches
+      return NextResponse.json({ 
+        articles: sortedSemanticResults.filter(r => r.score > 0.3),
+        searchType: 'semantic'
+      });
+    }
+
+    // If no good semantic matches, try keyword search as fallback
+    const keywordResults = rankArticlesByRelevance(articles, expandedTerms.join(" "))
+      .map(article => ({
+        ...article,
+        snippets: [highlightTerms(article.paragraphs[0].text, expandedTerms)],
+        score: article.relevanceScore,
+        isSemanticMatch: false
+      }));
+
+    // If we have any results from either method, return the best ones
+    if (sortedSemanticResults.length > 0 || keywordResults.length > 0) {
+      // Combine and sort results, preferring semantic matches
+      const combinedResults = [
+        // Include top semantic match even if below threshold
+        ...sortedSemanticResults.slice(0, 1).map(r => ({
+          ...r,
+          snippets: [...r.snippets, "This may not be a perfect match, but it's semantically related."]
+        })),
+        // Include keyword matches
+        ...keywordResults
+      ].slice(0, 5); // Limit to top 5 results
+
+      return NextResponse.json({ 
+        articles: combinedResults,
+        searchType: 'combined'
+      });
+    }
+
+    // If still no results, we'll handle this case in the frontend
+    return NextResponse.json({ 
+      articles: [],
+      searchType: 'none'
+    });
+
   } catch (error) {
     console.error('Search error:', error);
     return NextResponse.json({ error: 'Failed to perform search' }, { status: 500 });

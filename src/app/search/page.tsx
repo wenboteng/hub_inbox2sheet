@@ -8,29 +8,35 @@ interface Article {
   url: string;
   question: string;
   answer?: string;
-  snippet: string;
+  snippets: string[];
   category: string;
   platform: string;
   lastUpdated: string;
-  relevanceScore: number;
+  score: number;
+  isSemanticMatch: boolean;
 }
 
-interface ExpandedState {
-  [key: string]: boolean;
+interface SearchResponse {
+  articles: Article[];
+  searchType: 'semantic' | 'combined' | 'none';
+  gptFallbackAnswer?: string;
 }
 
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatform, setSelectedPlatform] = useState("all");
   const [results, setResults] = useState<Article[]>([]);
+  const [searchType, setSearchType] = useState<'semantic' | 'combined' | 'none'>('semantic');
   const [isLoading, setIsLoading] = useState(false);
-  const [expandedArticles, setExpandedArticles] = useState<ExpandedState>({});
+  const [expandedArticles, setExpandedArticles] = useState<Record<string, boolean>>({});
+  const [gptFallbackAnswer, setGptFallbackAnswer] = useState<string | null>(null);
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
 
   useEffect(() => {
     async function performSearch() {
       if (!debouncedSearchQuery) {
         setResults([]);
+        setGptFallbackAnswer(null);
         return;
       }
 
@@ -42,8 +48,26 @@ export default function SearchPage() {
         });
 
         const response = await fetch(`/api/search?${params}`);
-        const data = await response.json();
+        const data: SearchResponse = await response.json();
+        
         setResults(data.articles || []);
+        setSearchType(data.searchType);
+        
+        // If no good matches found, try GPT fallback
+        if (data.searchType === 'none' || (data.articles.length === 0 && debouncedSearchQuery.length > 0)) {
+          const gptResponse = await fetch('/api/gpt-search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              query: debouncedSearchQuery,
+              availableArticles: data.articles 
+            })
+          });
+          const gptData = await gptResponse.json();
+          setGptFallbackAnswer(gptData.answer);
+        } else {
+          setGptFallbackAnswer(null);
+        }
       } catch (error) {
         console.error("Search failed:", error);
       } finally {
@@ -60,12 +84,10 @@ export default function SearchPage() {
       return;
     }
 
-    // Fetch full article content
     try {
       const response = await fetch(`/api/articles/${articleId}`);
       const article = await response.json();
       
-      // Update the article in results with full content
       setResults(prev => 
         prev.map(a => 
           a.id === articleId 
@@ -109,8 +131,24 @@ export default function SearchPage() {
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em]" />
           <p className="mt-2 text-sm text-gray-500">Searching...</p>
         </div>
-      ) : results.length > 0 ? (
+      ) : searchQuery && (results.length > 0 || gptFallbackAnswer) ? (
         <div className="space-y-6">
+          {/* GPT Fallback Answer Box */}
+          {gptFallbackAnswer && (
+            <div className="bg-blue-50 p-6 rounded-lg shadow-sm border border-blue-100">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded-full">
+                  AI-Generated Response
+                </span>
+              </div>
+              <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: gptFallbackAnswer }} />
+              <p className="mt-4 text-sm text-gray-500">
+                This is a best-effort summary based on available articles. Please verify any critical information.
+              </p>
+            </div>
+          )}
+
+          {/* Search Results */}
           {results.map((article) => (
             <div
               key={article.id}
@@ -123,13 +161,24 @@ export default function SearchPage() {
                 <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded">
                   {article.category}
                 </span>
+                {!article.isSemanticMatch && (
+                  <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                    Keyword Match
+                  </span>
+                )}
               </div>
               <h2 className="text-xl font-semibold mb-4">{article.question}</h2>
               <div className="prose max-w-none mb-4">
                 {expandedArticles[article.id] ? (
                   <div dangerouslySetInnerHTML={{ __html: article.answer || "" }} />
                 ) : (
-                  <div dangerouslySetInnerHTML={{ __html: article.snippet }} />
+                  article.snippets.map((snippet, idx) => (
+                    <div 
+                      key={idx} 
+                      className="mb-2 last:mb-0"
+                      dangerouslySetInnerHTML={{ __html: snippet }}
+                    />
+                  ))
                 )}
               </div>
               <div className="flex items-center justify-between text-sm">
