@@ -32,6 +32,8 @@ export default function AdminPage() {
   const [crawlMessage, setCrawlMessage] = useState<string | null>(null);
   const [communityCrawlLoading, setCommunityCrawlLoading] = useState(false);
   const [communityCrawlMessage, setCommunityCrawlMessage] = useState<string | null>(null);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyResults, setVerifyResults] = useState<any>(null);
 
   const platforms = ["All", "Airbnb", "Viator", "Booking.com", "GetYourGuide", "Expedia", "TripAdvisor"];
   const statuses = ["All", "pending", "answered", "rejected"];
@@ -164,11 +166,11 @@ export default function AdminPage() {
       const response = await fetch("/api/crawl-community", { 
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ useDefaultUrls: true })
+        body: JSON.stringify({ action: 'crawl' })
       });
       const data = await response.json();
       if (response.ok) {
-        setCommunityCrawlMessage(data.message || "Community crawl started successfully!");
+        setCommunityCrawlMessage(data.message || "Community crawl completed successfully!");
       } else {
         setCommunityCrawlMessage(data.error || "Community crawl failed");
       }
@@ -176,6 +178,28 @@ export default function AdminPage() {
       setCommunityCrawlMessage("Community crawl failed: " + (error as Error).message);
     } finally {
       setCommunityCrawlLoading(false);
+    }
+  };
+
+  const verifyCommunityUrls = async () => {
+    setVerifyLoading(true);
+    setVerifyResults(null);
+    try {
+      const response = await fetch("/api/crawl-community", { 
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify' })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setVerifyResults(data);
+      } else {
+        setVerifyResults({ error: data.error || "Verification failed" });
+      }
+    } catch (error) {
+      setVerifyResults({ error: "Verification failed: " + (error as Error).message });
+    } finally {
+      setVerifyLoading(false);
     }
   };
 
@@ -215,6 +239,49 @@ export default function AdminPage() {
         </button>
         {communityCrawlMessage && (
           <span className="ml-4 text-sm font-medium text-green-600">{communityCrawlMessage}</span>
+        )}
+        
+        {/* Verify Community URLs Button */}
+        <button
+          className={`px-4 py-2 rounded text-white ${verifyLoading ? 'bg-gray-400' : 'bg-purple-600 hover:bg-purple-700'}`}
+          onClick={verifyCommunityUrls}
+          disabled={verifyLoading}
+        >
+          {verifyLoading ? 'Verifying...' : 'Verify Community URLs'}
+        </button>
+        
+        {/* Verification Results */}
+        {verifyResults && (
+          <div className="w-full mt-4 p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-semibold mb-2">Verification Results</h3>
+            {verifyResults.error ? (
+              <div className="text-red-600">{verifyResults.error}</div>
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-4 gap-4 text-sm">
+                  <div>Total: <span className="font-semibold">{verifyResults.summary?.total}</span></div>
+                  <div>Accessible: <span className="font-semibold text-green-600">{verifyResults.summary?.accessible}</span></div>
+                  <div>Blocked: <span className="font-semibold text-red-600">{verifyResults.summary?.blocked}</span></div>
+                  <div>Not Found: <span className="font-semibold text-yellow-600">{verifyResults.summary?.notFound}</span></div>
+                </div>
+                <div className="max-h-40 overflow-y-auto">
+                  {verifyResults.results?.map((result: any, index: number) => (
+                    <div key={index} className="text-xs p-2 bg-white rounded border">
+                      <div className="flex justify-between">
+                        <span className="truncate">{result.url}</span>
+                        <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                          result.accessible ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {result.accessible ? '✅' : '❌'}
+                        </span>
+                      </div>
+                      {result.error && <div className="text-red-600 mt-1">{result.error}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
         
         <input
