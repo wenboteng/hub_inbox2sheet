@@ -20,10 +20,19 @@ model Article {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   paragraphs  ArticleParagraph[]
+  
+  // New fields for user-generated content
+  contentType String   @default("official") // "official" | "community" | "user_generated"
+  source      String   @default("help_center") // "help_center" | "community" | "reddit" | "quora" | "blog"
+  author      String?  // For user-generated content
+  votes       Int      @default(0) // For community content with voting
+  isVerified  Boolean  @default(false) // For community content verification
 
   @@index([platform])
   @@index([category])
   @@index([lastUpdated])
+  @@index([contentType])
+  @@index([source])
 }
 
 model Answer {

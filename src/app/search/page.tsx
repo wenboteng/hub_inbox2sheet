@@ -16,6 +16,11 @@ interface Article {
   score: number;
   isSemanticMatch: boolean;
   isTopMatch?: boolean;
+  contentType?: string;
+  source?: string;
+  author?: string;
+  votes?: number;
+  isVerified?: boolean;
 }
 
 interface SearchResponse {
@@ -25,6 +30,7 @@ interface SearchResponse {
   hasMore: boolean;
   platformMismatch?: boolean;
   platformWarning?: string;
+  contentTypes?: string[];
   gptFallbackAnswer?: string;
 }
 
@@ -37,6 +43,7 @@ interface SearchSummary {
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatform, setSelectedPlatform] = useState("all");
+  const [selectedContentType, setSelectedContentType] = useState("all");
   const [results, setResults] = useState<Article[]>([]);
   const [searchType, setSearchType] = useState<'semantic' | 'combined' | 'none'>('semantic');
   const [isLoading, setIsLoading] = useState(false);
@@ -49,6 +56,7 @@ export default function SearchPage() {
   const [hasMore, setHasMore] = useState(false);
   const [platformMismatch, setPlatformMismatch] = useState(false);
   const [platformWarning, setPlatformWarning] = useState<string | null>(null);
+  const [contentTypes, setContentTypes] = useState<string[]>([]);
   const [relatedSearches, setRelatedSearches] = useState<string[]>([]);
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
 
@@ -62,6 +70,7 @@ export default function SearchPage() {
         setRelatedSearches([]);
         setPlatformMismatch(false);
         setPlatformWarning(null);
+        setContentTypes([]);
         return;
       }
 
@@ -70,6 +79,7 @@ export default function SearchPage() {
         const params = new URLSearchParams({
           q: debouncedSearchQuery,
           ...(selectedPlatform !== "all" && { platform: selectedPlatform }),
+          ...(selectedContentType !== "all" && { contentType: selectedContentType }),
           showAll: showAllResults.toString(),
         });
 
@@ -82,6 +92,7 @@ export default function SearchPage() {
         setHasMore(data.hasMore);
         setPlatformMismatch(data.platformMismatch || false);
         setPlatformWarning(data.platformWarning || null);
+        setContentTypes(data.contentTypes || []);
         
         // Generate related searches
         setRelatedSearches(generateRelatedSearches(debouncedSearchQuery));
@@ -146,7 +157,7 @@ export default function SearchPage() {
     }
 
     performSearch();
-  }, [debouncedSearchQuery, selectedPlatform, showAllResults]);
+  }, [debouncedSearchQuery, selectedPlatform, selectedContentType, showAllResults]);
 
   const toggleArticle = async (articleId: string) => {
     if (expandedArticles[articleId]) {
@@ -210,6 +221,16 @@ export default function SearchPage() {
           <option value="all">All Platforms</option>
           <option value="Airbnb">Airbnb</option>
           <option value="GetYourGuide">GetYourGuide</option>
+        </select>
+
+        <select
+          className="px-4 py-2 border rounded-lg"
+          value={selectedContentType}
+          onChange={(e) => setSelectedContentType(e.target.value)}
+        >
+          <option value="all">All Content Types</option>
+          <option value="official">Official Help Center</option>
+          <option value="community">Community Content</option>
         </select>
       </div>
 
@@ -312,11 +333,37 @@ export default function SearchPage() {
                           Keyword Match
                         </span>
                       )}
+                      {article.contentType === 'community' && (
+                        <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                          Community
+                        </span>
+                      )}
+                      {article.isVerified && (
+                        <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded">
+                          ✓ Verified
+                        </span>
+                      )}
                       <span className="text-xs text-gray-500">
                         Score: {(article.score * 100).toFixed(0)}%
                       </span>
                     </div>
                     <h3 className="text-lg font-semibold mb-3">{article.question}</h3>
+                    
+                    {/* Community content metadata */}
+                    {article.contentType === 'community' && (
+                      <div className="mb-3 text-sm text-gray-600">
+                        {article.author && (
+                          <span className="mr-3">By {article.author}</span>
+                        )}
+                        {article.votes && article.votes > 0 && (
+                          <span className="mr-3">👍 {article.votes} votes</span>
+                        )}
+                        {article.source && (
+                          <span className="capitalize">{article.source}</span>
+                        )}
+                      </div>
+                    )}
+                    
                     <div className="prose max-w-none mb-4">
                       {expandedArticles[article.id] ? (
                         <div dangerouslySetInnerHTML={{ __html: article.answer || "" }} />

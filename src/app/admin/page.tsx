@@ -30,6 +30,8 @@ export default function AdminPage() {
   const [answerText, setAnswerText] = useState("");
   const [crawlLoading, setCrawlLoading] = useState(false);
   const [crawlMessage, setCrawlMessage] = useState<string | null>(null);
+  const [communityCrawlLoading, setCommunityCrawlLoading] = useState(false);
+  const [communityCrawlMessage, setCommunityCrawlMessage] = useState<string | null>(null);
 
   const platforms = ["All", "Airbnb", "Viator", "Booking.com", "GetYourGuide", "Expedia", "TripAdvisor"];
   const statuses = ["All", "pending", "answered", "rejected"];
@@ -155,6 +157,28 @@ export default function AdminPage() {
     }
   };
 
+  const triggerCommunityCrawl = async () => {
+    setCommunityCrawlLoading(true);
+    setCommunityCrawlMessage(null);
+    try {
+      const response = await fetch("/api/crawl-community", { 
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ useDefaultUrls: true })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setCommunityCrawlMessage(data.message || "Community crawl started successfully!");
+      } else {
+        setCommunityCrawlMessage(data.error || "Community crawl failed");
+      }
+    } catch (error) {
+      setCommunityCrawlMessage("Community crawl failed: " + (error as Error).message);
+    } finally {
+      setCommunityCrawlLoading(false);
+    }
+  };
+
   const filteredQuestions = questions.filter((q) => {
     const matchesSearch = q.question
       .toLowerCase()
@@ -180,6 +204,19 @@ export default function AdminPage() {
         {crawlMessage && (
           <span className="ml-4 text-sm font-medium text-green-600">{crawlMessage}</span>
         )}
+        
+        {/* Community Crawl Trigger Button */}
+        <button
+          className={`px-4 py-2 rounded text-white ${communityCrawlLoading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
+          onClick={triggerCommunityCrawl}
+          disabled={communityCrawlLoading}
+        >
+          {communityCrawlLoading ? 'Crawling Community...' : 'Crawl Community Content'}
+        </button>
+        {communityCrawlMessage && (
+          <span className="ml-4 text-sm font-medium text-green-600">{communityCrawlMessage}</span>
+        )}
+        
         <input
           type="text"
           placeholder="Search questions..."

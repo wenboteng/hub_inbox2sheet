@@ -29,6 +29,11 @@ interface SearchResult {
   score: number;
   isSemanticMatch: boolean;
   isTopMatch?: boolean;
+  contentType?: string;
+  source?: string;
+  author?: string;
+  votes?: number;
+  isVerified?: boolean;
 }
 
 // Helper function to extract tight, relevant snippets
@@ -95,6 +100,8 @@ export async function GET(request: NextRequest) {
     const platform = searchParams.get('platform');
     const category = searchParams.get("category");
     const showAll = searchParams.get("showAll") === 'true';
+    const contentType = searchParams.get("contentType") || 'all'; // 'all' | 'official' | 'community'
+    const includeCommunity = searchParams.get("includeCommunity") !== 'false'; // Default to true
 
     if (!query) {
       return NextResponse.json({ articles: [] });
@@ -106,10 +113,16 @@ export async function GET(request: NextRequest) {
       Promise.resolve(getRelatedTerms(query))
     ]);
 
-    // Build base query
+    // Build base query with content type filtering
     const baseQuery = {
       where: {
         ...(platform ? { platform } : {}),
+        ...(category ? { category } : {}),
+        // Content type filtering
+        ...(contentType === 'official' && { contentType: 'official' }),
+        ...(contentType === 'community' && { contentType: { in: ['community', 'user_generated'] } }),
+        // If not including community, filter it out
+        ...(!includeCommunity && { contentType: 'official' }),
       },
       select: {
         id: true,
@@ -118,6 +131,11 @@ export async function GET(request: NextRequest) {
         platform: true,
         category: true,
         paragraphs: true,
+        contentType: true,
+        source: true,
+        author: true,
+        votes: true,
+        isVerified: true,
       },
       take: 50,
     };
@@ -159,9 +177,15 @@ export async function GET(request: NextRequest) {
           .slice(0, 1); // Only take the best paragraph
 
         // Calculate overall article score based on best paragraph similarity
-        const score = relevantParagraphs.length > 0 
+        let score = relevantParagraphs.length > 0 
           ? relevantParagraphs[0].similarity
           : 0;
+
+        // Boost community content with high votes
+        if (article.contentType === 'community' && article.votes > 0) {
+          const voteBoost = Math.min(article.votes / 100, 0.1); // Max 10% boost
+          score += voteBoost;
+        }
 
         // Extract tight, relevant snippets
         const snippets = relevantParagraphs.map((p: { text: string }) => 
@@ -177,6 +201,11 @@ export async function GET(request: NextRequest) {
           snippets,
           score,
           isSemanticMatch: true,
+          contentType: article.contentType,
+          source: article.source,
+          author: article.author,
+          votes: article.votes,
+          isVerified: article.isVerified,
         } as SearchResult;
       })
     );
@@ -202,7 +231,8 @@ export async function GET(request: NextRequest) {
         totalResults: results.length,
         hasMore: !showAll && results.length > 5,
         platformMismatch,
-        platformWarning
+        platformWarning,
+        contentTypes: Array.from(new Set(results.map(r => r.contentType))),
       });
     }
 
@@ -213,7 +243,12 @@ export async function GET(request: NextRequest) {
         snippets: [highlightTerms(extractTightSnippet(article.paragraphs[0].text, expandedTerms), expandedTerms)],
         score: article.relevanceScore,
         isSemanticMatch: false,
-        isTopMatch: index === 0
+        isTopMatch: index === 0,
+        contentType: article.contentType || 'official',
+        source: article.source || 'help_center',
+        author: article.author,
+        votes: article.votes || 0,
+        isVerified: article.isVerified || false,
       }));
 
     // If we have any results from either method, return the best ones
@@ -238,7 +273,8 @@ export async function GET(request: NextRequest) {
         totalResults: combinedResults.length,
         hasMore: !showAll && combinedResults.length > 5,
         platformMismatch,
-        platformWarning
+        platformWarning,
+        contentTypes: Array.from(new Set(combinedResults.map(r => r.contentType))),
       });
     }
 
@@ -249,7 +285,8 @@ export async function GET(request: NextRequest) {
       totalResults: 0,
       hasMore: false,
       platformMismatch,
-      platformWarning
+      platformWarning,
+      contentTypes: [],
     });
 
   } catch (error) {
