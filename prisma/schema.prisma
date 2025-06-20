@@ -32,12 +32,22 @@ model Article {
   contentHash String?  // SHA-256 hash of the main content for deduplication
   isDuplicate Boolean  @default(false) // Flag for near-duplicate content
 
+  // New fields for refactored crawling system
+  lastCheckedAt DateTime? // When this article was last checked for updates
+  etag          String?   // ETag header for change detection
+  lastModified  String?   // Last-Modified header for change detection
+  crawlMode     String    @default("discovery") // "discovery" | "recheck"
+  crawlStatus   String    @default("active") // "active" | "archived" | "error"
+
   @@index([platform])
   @@index([category])
   @@index([lastUpdated])
   @@index([contentType])
   @@index([source])
   @@index([contentHash])
+  @@index([lastCheckedAt])
+  @@index([crawlMode])
+  @@index([crawlStatus])
 }
 
 model Answer {
@@ -102,4 +112,27 @@ model ArticleParagraph {
   article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
   @@index([articleId])
+}
+
+model CrawlQueue {
+  id          String   @id @default(cuid())
+  url         String   @unique
+  platform    String
+  type        String   // "article" | "thread" | "category"
+  status      String   @default("pending") // "pending" | "processing" | "completed" | "failed" | "skipped"
+  priority    Int      @default(5) // 1-10, higher = more important
+  firstSeen   DateTime @default(now())
+  lastChecked DateTime?
+  retryCount  Int      @default(0)
+  error       String?
+  metadata    Json?    // Additional platform-specific data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([platform])
+  @@index([type])
+  @@index([status])
+  @@index([priority])
+  @@index([firstSeen])
+  @@index([lastChecked])
 }

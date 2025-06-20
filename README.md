@@ -66,29 +66,42 @@ npm run dev
 
 4. Deploy!
 
-### Scheduled Scraper (Cron Job) on Render
+### Scheduled Crawling (Cron Jobs) on Render
 
-To run the scraper on a schedule (e.g., daily), create a new Cron Job service in Render with the following settings:
+To keep your knowledge base fresh and growing, set up the following **Render Cron Jobs**:
 
+| Task                  | Frequency    | Command                        | Description                         |
+|-----------------------|-------------|--------------------------------|-------------------------------------|
+| `recheck`             | Every 6 hrs | `npm run recheck`              | Refreshes existing content only if it is old or changed |
+| `discovery`           | Daily       | `npm run discovery`            | Discovers and crawls new official articles and threads  |
+| `community-discover`  | Every 12 hrs| `npm run community-discover`   | Finds and crawls new community/forum content           |
+
+**How to set up each job:**
 - **Build Command:**
   ```bash
-  npm install && npx puppeteer browsers install chrome && npx prisma generate && npm run build
+  npm install && npx prisma generate && npm run build
   ```
-- **Command:**
+- **Start Command:** (choose one per job)
   ```bash
-  npm run scrape
+  npm run recheck
+  # or
+  npm run discovery
+  # or
+  npm run community-discover
   ```
 - **Environment Variables:**
   - `DATABASE_URL`: Your PostgreSQL database URL
   - `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answer-hub.onrender.com)
+  - `OPENAI_API_KEY`: Your OpenAI API key for embeddings
 - **Schedule:**
-  - Use a cron expression like `0 2 * * *` to run daily at 2am UTC
+  - `recheck`: `0 */6 * * *` (every 6 hours)
+  - `discovery`: `0 3 * * *` (daily at 3am UTC)
+  - `community-discover`: `0 */12 * * *` (every 12 hours)
 
-The scraper will:
-1. Fetch help center pages using Axios
-2. Extract content using Cheerio
-3. Store the data in your PostgreSQL database
-4. Log all activities for monitoring
+**What each job does:**
+- `recheck`: Only re-scrapes articles that haven't been updated in 7+ days, using ETag/Last-Modified headers to avoid unnecessary work.
+- `discovery`: Starts from index/category pages, finds new articles/threads, and adds them to the crawl queue.
+- `community-discover`: Crawls community forums, paginates through threads, and adds new user-generated content.
 
 ## Environment Variables
 
