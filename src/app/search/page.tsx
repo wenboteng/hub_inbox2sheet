@@ -32,6 +32,17 @@ interface SearchResponse {
   platformWarning?: string;
   contentTypes?: string[];
   gptFallbackAnswer?: string;
+  faqFallback?: {
+    id: string;
+    platform: string;
+    category: string;
+    question: string;
+    answer: string;
+    confidence: 'high' | 'medium' | 'low';
+    source?: string;
+    lastUpdated: string;
+  };
+  noPlatformMatch?: boolean;
 }
 
 interface SearchSummary {
@@ -59,6 +70,8 @@ export default function SearchPage() {
   const [platformWarning, setPlatformWarning] = useState<string | null>(null);
   const [contentTypes, setContentTypes] = useState<string[]>([]);
   const [relatedSearches, setRelatedSearches] = useState<string[]>([]);
+  const [faqFallback, setFaqFallback] = useState<SearchResponse['faqFallback']>(undefined);
+  const [noPlatformMatch, setNoPlatformMatch] = useState(false);
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
 
   useEffect(() => {
@@ -73,6 +86,8 @@ export default function SearchPage() {
         setPlatformMismatch(false);
         setPlatformWarning(null);
         setContentTypes([]);
+        setFaqFallback(undefined);
+        setNoPlatformMatch(false);
         return;
       }
 
@@ -95,6 +110,8 @@ export default function SearchPage() {
         setPlatformMismatch(data.platformMismatch || false);
         setPlatformWarning(data.platformWarning || null);
         setContentTypes(data.contentTypes || []);
+        setFaqFallback(data.faqFallback || undefined);
+        setNoPlatformMatch(data.noPlatformMatch || false);
         
         // Generate related searches
         setRelatedSearches(generateRelatedSearches(debouncedSearchQuery));
@@ -159,7 +176,8 @@ export default function SearchPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               query: debouncedSearchQuery,
-              availableArticles: data.articles 
+              availableArticles: data.articles,
+              platform: selectedPlatform !== 'all' ? selectedPlatform : undefined
             })
           });
           const gptData = await gptResponse.json();
@@ -257,7 +275,7 @@ export default function SearchPage() {
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em]" />
           <p className="mt-2 text-sm text-gray-500">Searching...</p>
         </div>
-      ) : searchQuery && (results.length > 0 || gptFallbackAnswer || searchSummary?.summary) ? (
+      ) : searchQuery && (results.length > 0 || gptFallbackAnswer || searchSummary?.summary || faqFallback) ? (
         <div className="space-y-6">
           {/* Platform Mismatch Warning */}
           {platformMismatch && platformWarning && (
@@ -265,6 +283,58 @@ export default function SearchPage() {
               <div className="flex items-center gap-2">
                 <span className="text-yellow-800">⚠️</span>
                 <p className="text-yellow-800 text-sm">{platformWarning}</p>
+              </div>
+            </div>
+          )}
+
+          {/* FAQ Fallback Answer - Show prominently for platform-specific queries */}
+          {faqFallback && (
+            <div className="bg-emerald-50 p-6 rounded-lg shadow-sm border border-emerald-100">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="px-3 py-1 text-sm font-medium bg-emerald-100 text-emerald-800 rounded-full">
+                  {faqFallback.confidence === 'high' ? '✓ Verified Answer' : 'Quick Answer'}
+                </span>
+                <span className="px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded-full">
+                  {faqFallback.platform}
+                </span>
+                <span className="px-3 py-1 text-sm font-medium bg-gray-100 text-gray-800 rounded-full">
+                  {faqFallback.category}
+                </span>
+                <span className="text-sm text-gray-500 capitalize">
+                  {faqFallback.confidence} confidence
+                </span>
+              </div>
+              <h3 className="text-lg font-semibold mb-3 text-emerald-900">{faqFallback.question}</h3>
+              <div className="prose max-w-none mb-4">
+                <p className="text-emerald-800">{faqFallback.answer}</p>
+              </div>
+              {faqFallback.source && (
+                <div className="flex items-center justify-between text-sm">
+                  <a
+                    href={faqFallback.source}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-600 hover:text-emerald-800"
+                  >
+                    View Official Source →
+                  </a>
+                  <span className="text-gray-500">
+                    Last updated: {new Date(faqFallback.lastUpdated).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* No Platform Match Warning */}
+          {noPlatformMatch && (
+            <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+              <div className="flex items-center gap-2">
+                <span className="text-orange-800">ℹ️</span>
+                <p className="text-orange-800 text-sm">
+                  We found a curated answer for your query, but no specific content from {selectedPlatform} in our search results. 
+                  The answer above is based on official {selectedPlatform} documentation.
+                </p>
               </div>
             </div>
           )}

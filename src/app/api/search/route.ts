@@ -4,6 +4,7 @@ import { getEmbedding } from '@/utils/openai';
 import type { Prisma } from '@prisma/client';
 import { rankArticlesByRelevance } from '@/utils/searchHelpers';
 import { expandSearchTerms, getRelatedTerms } from '@/utils/searchExpansion';
+import { findMatchingFallback, type FAQFallback } from '@/lib/faqFallbacks';
 
 // Force dynamic rendering for search API
 export const dynamic = 'force-dynamic';
@@ -37,6 +38,18 @@ interface SearchResult {
   author?: string;
   votes?: number;
   isVerified?: boolean;
+}
+
+interface SearchResponse {
+  articles: SearchResult[];
+  searchType: 'semantic' | 'combined' | 'none';
+  totalResults: number;
+  hasMore: boolean;
+  platformMismatch?: boolean;
+  platformWarning?: string;
+  contentTypes?: string[];
+  faqFallback?: FAQFallback;
+  noPlatformMatch?: boolean;
 }
 
 // Helper function to extract tight, relevant snippets
@@ -110,6 +123,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ articles: [] });
     }
 
+    // Check for FAQ fallback first
+    const faqFallback = findMatchingFallback(query, platform || undefined);
+    
     // Get query embedding and expanded terms
     const [queryEmbedding, expandedTerms] = await Promise.all([
       getEmbedding(query),
@@ -146,9 +162,10 @@ export async function GET(request: NextRequest) {
     // Get articles with paragraphs
     const articles = await prisma.article.findMany(baseQuery);
 
-    // Check for platform mismatch
+    // Check for platform mismatch and no platform-specific content
     let platformMismatch = false;
     let platformWarning = null;
+    let noPlatformMatch = false;
     
     if (platform && articles.length > 0) {
       const hasPlatformMatch = articles.some((article: any) => 
@@ -159,6 +176,14 @@ export async function GET(request: NextRequest) {
         platformMismatch = true;
         platformWarning = `No exact matches from ${platform} yet, but these may still help.`;
       }
+    }
+
+    // If we have a platform-specific FAQ fallback and no platform-specific search results,
+    // prioritize the fallback and indicate no platform match
+    if (faqFallback && platform && !articles.some((article: any) => 
+      article.platform.toLowerCase() === platform.toLowerCase()
+    )) {
+      noPlatformMatch = true;
     }
 
     // Process and rank results using semantic search
@@ -236,7 +261,9 @@ export async function GET(request: NextRequest) {
         platformMismatch,
         platformWarning,
         contentTypes: Array.from(new Set(results.map(r => r.contentType))),
-      });
+        faqFallback,
+        noPlatformMatch,
+      } as SearchResponse);
     }
 
     // If no good semantic matches, try keyword search as fallback
@@ -278,10 +305,12 @@ export async function GET(request: NextRequest) {
         platformMismatch,
         platformWarning,
         contentTypes: Array.from(new Set(combinedResults.map(r => r.contentType))),
-      });
+        faqFallback,
+        noPlatformMatch,
+      } as SearchResponse);
     }
 
-    // If still no results, we'll handle this case in the frontend
+    // If still no results, return with FAQ fallback if available
     return NextResponse.json({ 
       articles: [],
       searchType: 'none',
@@ -290,7 +319,9 @@ export async function GET(request: NextRequest) {
       platformMismatch,
       platformWarning,
       contentTypes: [],
-    });
+      faqFallback,
+      noPlatformMatch,
+    } as SearchResponse);
 
   } catch (error) {
     console.error('Search error:', error);
