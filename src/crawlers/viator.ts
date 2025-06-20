@@ -1,19 +1,11 @@
 import { fetchHtml } from '../utils/fetchHtml';
 import { parseContent, cleanText, ParsedContent } from '../utils/parseHelpers';
+import * as cheerio from 'cheerio';
 
 const VIATOR_SELECTORS = {
   title: 'h1, .article-title, .help-center-title',
   content: '.article-content, .help-center-content, .article-body',
 };
-
-// Initial set of Viator help articles to crawl
-const VIATOR_ARTICLES = [
-  'https://www.viator.com/help/articles/1073', // How to cancel a booking
-  'https://www.viator.com/help/articles/1074', // How to request a refund
-  'https://www.viator.com/help/articles/1075', // How to contact customer service
-  'https://www.viator.com/help/articles/1076', // How to modify a booking
-  'https://www.viator.com/help/articles/1077', // How to leave a review
-];
 
 export interface ViatorArticle {
   platform: 'Viator';
@@ -45,22 +37,64 @@ export async function crawlViatorArticle(url: string): Promise<ViatorArticle> {
 }
 
 export async function crawlViatorArticles(): Promise<ViatorArticle[]> {
-  console.log('[VIATOR] Starting crawl of Viator articles');
+  const helpCenterUrl = 'https://www.viator.com/help/';
+  console.log(`[VIATOR] Starting discovery from ${helpCenterUrl}`);
+  const discoveredUrls = new Set<string>();
+
+  try {
+    const mainHtml = await fetchHtml(helpCenterUrl);
+    const $ = cheerio.load(mainHtml);
+    
+    // This selector is a general guess for finding category links on a help center homepage.
+    const categoryLinks: string[] = [];
+    $('.support-topics a, .help-center-categories a, a[href*="/help/"]').each((i, el) => {
+        const href = $(el).attr('href');
+        if (href && href.startsWith('/help')) { // Ensure we stay on the help domain
+            categoryLinks.push(new URL(href, helpCenterUrl).toString());
+        }
+    });
+    
+    console.log(`[VIATOR] Discovered ${categoryLinks.length} potential category pages.`);
+    
+    for (const link of categoryLinks) {
+        if (link.includes('/articles/')) {
+            discoveredUrls.add(link);
+        } else {
+            // It's likely a category page, so we'll crawl it for article links.
+            try {
+                const categoryHtml = await fetchHtml(link);
+                const $cat = cheerio.load(categoryHtml);
+                $cat('a[href*="/articles/"]').each((i, el) => {
+                    const articleHref = $(el).attr('href');
+                    if (articleHref) {
+                        discoveredUrls.add(new URL(articleHref, helpCenterUrl).toString());
+                    }
+                });
+            } catch (error) {
+                console.error(`[VIATOR] Failed to crawl category page ${link}:`, error);
+            }
+        }
+    }
+  } catch (error) {
+    console.error(`[VIATOR] Failed to crawl main help page ${helpCenterUrl}:`, error);
+  }
+
+  const uniqueUrls = Array.from(discoveredUrls);
+  console.log(`[VIATOR] Discovered ${uniqueUrls.length} unique article URLs.`);
   
   const results: ViatorArticle[] = [];
   
-  for (const url of VIATOR_ARTICLES) {
+  for (const url of uniqueUrls) {
     try {
       const article = await crawlViatorArticle(url);
       results.push(article);
-      
-      // Add a small delay between requests
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Add a small delay between requests to avoid being blocked
+      await new Promise(resolve => setTimeout(resolve, 1500));
     } catch (error) {
-      console.error(`[VIATOR] Failed to crawl ${url}:`, error);
+      console.error(`[VIATOR] Failed to crawl article ${url}:`, error);
     }
   }
   
-  console.log(`[VIATOR] Completed crawl of ${results.length} articles`);
+  console.log(`[VIATOR] Completed crawl of ${results.length} articles.`);
   return results;
 } 
