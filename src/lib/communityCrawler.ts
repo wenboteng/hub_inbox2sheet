@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { PrismaClient } from "@prisma/client";
+import { detectLanguage } from '../utils/languageDetection';
 
 const prisma = new PrismaClient();
 
@@ -654,6 +655,10 @@ async function parseAirHostsJson(jsonData: any, url: string, config: any): Promi
 // Store community content in database
 async function storeCommunityContent(content: CommunityContent): Promise<void> {
   try {
+    // Detect language of the content
+    const languageDetection = detectLanguage(content.content);
+    console.log(`[COMMUNITY][LANG] Detected language: ${languageDetection.language} (confidence: ${languageDetection.confidence.toFixed(2)}, reliable: ${languageDetection.isReliable})`);
+
     // Create paragraphs for embedding (similar to official content)
     const paragraphs = content.content
       .split(/\n+/)
@@ -673,6 +678,7 @@ async function storeCommunityContent(content: CommunityContent): Promise<void> {
         author: content.author,
         votes: content.votes || 0,
         isVerified: (content.votes || 0) > 10, // Auto-verify high-voted content
+        language: languageDetection.language,
         paragraphs: {
           create: paragraphs.map(text => ({
             text,
@@ -690,11 +696,12 @@ async function storeCommunityContent(content: CommunityContent): Promise<void> {
         author: content.author,
         votes: content.votes || 0,
         isVerified: (content.votes || 0) > 10,
+        language: languageDetection.language,
         lastUpdated: new Date(),
       },
     });
 
-    console.log(`[COMMUNITY] Successfully stored: ${content.url}`);
+    console.log(`[COMMUNITY] Successfully stored: ${content.url} [Language: ${languageDetection.language}]`);
   } catch (error) {
     console.error(`[COMMUNITY] Error storing content:`, error);
   }

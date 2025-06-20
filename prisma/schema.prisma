@@ -39,6 +39,9 @@ model Article {
   crawlMode     String    @default("discovery") // "discovery" | "recheck"
   crawlStatus   String    @default("active") // "active" | "archived" | "error"
 
+  // Language detection
+  language     String    @default("en") // ISO 639-1 language code (e.g., "en", "es", "it", "fr")
+
   @@index([platform])
   @@index([category])
   @@index([lastUpdated])
@@ -48,6 +51,7 @@ model Article {
   @@index([lastCheckedAt])
   @@index([crawlMode])
   @@index([crawlStatus])
+  @@index([language])
 }
 
 model Answer {

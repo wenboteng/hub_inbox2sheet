@@ -11,6 +11,7 @@ import {
   DEFAULT_DEDUP_CONFIG 
 } from '@/utils/contentDeduplication';
 import { isFeatureEnabled, getFeatureFlagsSummary } from '@/utils/featureFlags';
+import { detectLanguage } from '@/utils/languageDetection';
 
 const prisma = new PrismaClient();
 
@@ -207,6 +208,10 @@ async function main() {
           }
         }
 
+        // Detect language of the content
+        const languageDetection = detectLanguage(article.answer);
+        console.log(`[SCRAPE][LANG] Detected language: ${languageDetection.language} (confidence: ${languageDetection.confidence.toFixed(2)}, reliable: ${languageDetection.isReliable})`);
+
         // Generate embeddings for paragraphs
         let paragraphsWithEmbeddings: ParagraphWithEmbedding[] = [];
         try {
@@ -229,10 +234,11 @@ async function main() {
             source: 'help_center',
             contentHash: contentHash || null,
             isDuplicate: isDuplicate,
+            language: languageDetection.language,
           },
         });
 
-        console.log(`[SCRAPE] Article created with ID: ${created.id}${isDuplicate ? ' (marked as duplicate)' : ''}`);
+        console.log(`[SCRAPE] Article created with ID: ${created.id}${isDuplicate ? ' (marked as duplicate)' : ''} [Language: ${languageDetection.language}]`);
 
         // Create paragraphs if embeddings were generated
         if (paragraphsWithEmbeddings.length > 0) {

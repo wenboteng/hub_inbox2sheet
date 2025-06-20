@@ -1,7 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { scrapeUrls } from '@/lib/crawler';
 import { scrapeCommunityUrls } from '@/lib/communityCrawler';
-import { computeContentHash } from '@/lib/contentUtils';
 
 const prisma = new PrismaClient();
 
@@ -31,7 +30,7 @@ async function getArticlesToRecheck(): Promise<string[]> {
 
   console.log(`[RECHECK] Looking for articles not updated since ${cutoffDate.toISOString()}`);
 
-  const articles = await prisma.article.findMany({
+  const articles: { url: string; platform: string; contentType: string; etag: string | null; lastModified: string | null }[] = await prisma.article.findMany({
     where: {
       lastUpdated: {
         lt: cutoffDate
@@ -54,7 +53,7 @@ async function getArticlesToRecheck(): Promise<string[]> {
   });
 
   console.log(`[RECHECK] Found ${articles.length} articles to recheck`);
-  return articles.map(article => article.url);
+  return articles.map((article: { url: string }) => article.url);
 }
 
 async function checkIfContentChanged(url: string, existingEtag?: string, existingLastModified?: string): Promise<boolean> {
