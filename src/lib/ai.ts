@@ -52,7 +52,7 @@ export async function generateAnswer(
     Keep responses concise and to the point.`;
 
   const response = await openai.chat.completions.create({
-    model: "gpt-4-0125-preview",
+    model: "gpt-4o",
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: `Question: ${question}\n\nContext: ${context}` }
