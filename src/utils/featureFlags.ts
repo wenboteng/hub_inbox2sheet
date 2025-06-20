@@ -39,15 +39,15 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   
   // Community crawling - enabled by default
   enableCommunityCrawling: process.env.ENABLE_COMMUNITY_CRAWLING !== 'false',
-  enableNewCommunitySources: process.env.ENABLE_NEW_COMMUNITY_SOURCES === 'true',
+  enableNewCommunitySources: process.env.ENABLE_NEW_COMMUNITY_SOURCES !== 'false',
   
   // Enhanced scraping - enabled by default
   enableEnhancedLogging: process.env.ENABLE_ENHANCED_LOGGING !== 'false',
   enablePerformanceMetrics: process.env.ENABLE_PERFORMANCE_METRICS === 'true',
   
   // Future features - disabled by default
-  enableTripAdvisorScraping: process.env.ENABLE_TRIPADVISOR_SCRAPING === 'true',
-  enableViatorScraping: process.env.ENABLE_VIATOR_SCRAPING === 'true',
+  enableTripAdvisorScraping: process.env.ENABLE_TRIPADVISOR_SCRAPING !== 'false',
+  enableViatorScraping: process.env.ENABLE_VIATOR_SCRAPING !== 'false',
   enableAdvancedAnalytics: process.env.ENABLE_ADVANCED_ANALYTICS === 'true',
 };
 

@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { getContentEmbeddings } from '@/utils/openai';
 import { scrapeAirbnb } from '@/scripts/scrapers/airbnb';
-import { crawlGetYourGuideArticlesWithPagination, crawlGetYourGuideArticles } from '@/crawlers/getyourguide';
+import { crawlGetYourGuideArticles, crawlGetYourGuideArticlesWithPagination } from '@/crawlers/getyourguide';
 import { scrapeCommunityUrls, getCommunityContentUrls } from '@/lib/communityCrawler';
 import { 
   generateContentHash, 
@@ -13,6 +13,7 @@ import {
 import { isFeatureEnabled, getFeatureFlagsSummary } from '@/utils/featureFlags';
 import { detectLanguage } from '@/utils/languageDetection';
 import { slugify } from '@/utils/slugify';
+import { crawlViatorArticles } from '@/crawlers/viator';
 
 const prisma = new PrismaClient();
 
@@ -150,6 +151,32 @@ async function main() {
       // Continue with other scrapers even if GetYourGuide fails
     }
 
+    // Scrape Viator content
+    let viatorArticles: Article[] = [];
+    if (isFeatureEnabled('enableViatorScraping')) {
+      console.log('\n[SCRAPE] Starting Viator scraping...');
+      try {
+        const crawled = await crawlViatorArticles();
+        viatorArticles = crawled.map((a: { question: string; answer: string; url: string; category?: string }) => ({
+          ...a,
+          platform: 'Viator',
+          category: a.category || 'Help Center',
+        }));
+        console.log(`[SCRAPE] Viator scraping completed. Found ${viatorArticles.length} articles`);
+        const newViatorArticles = viatorArticles.filter(article => !existingUrls.has(article.url));
+        console.log(`[SCRAPE] New Viator articles: ${newViatorArticles.length} (${viatorArticles.length - newViatorArticles.length} already exist)`);
+        viatorArticles = newViatorArticles;
+      } catch (viatorError) {
+        console.error('[SCRAPE] Viator scraping failed:', viatorError);
+      }
+    }
+
+    // Scrape TripAdvisor content
+    if (isFeatureEnabled('enableTripAdvisorScraping')) {
+      console.log('\n[SCRAPE] TripAdvisor scraping is enabled, but the crawler is not yet implemented.');
+      // TODO: Implement TripAdvisor scraper
+    }
+
     // Scrape community content
     if (isFeatureEnabled('enableCommunityCrawling')) {
       console.log('\n[SCRAPE] Starting community content scraping...');
@@ -169,7 +196,7 @@ async function main() {
       console.log('\n[SCRAPE] Community crawling disabled by feature flag');
     }
 
-    const articles = [...airbnbArticles, ...gygArticles];
+    const articles = [...airbnbArticles, ...gygArticles, ...viatorArticles];
     console.log(`\n[SCRAPE] Total new official articles found: ${articles.length}`);
 
     if (articles.length === 0) {
