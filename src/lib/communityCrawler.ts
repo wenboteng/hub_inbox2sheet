@@ -2,6 +2,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { PrismaClient } from "@prisma/client";
 import { detectLanguage } from '../utils/languageDetection';
+import { slugify } from '@/utils/slugify';
 
 const prisma = new PrismaClient();
 
@@ -665,11 +666,21 @@ async function storeCommunityContent(content: CommunityContent): Promise<void> {
       .filter(p => p.trim().length > 50)
       .slice(0, 5); // Limit to 5 paragraphs
 
+    const slug = slugify(content.title);
+    // Ensure slug is unique
+    let finalSlug = slug;
+    let counter = 1;
+    while (await prisma.article.findUnique({ where: { slug: finalSlug } })) {
+      finalSlug = `${slug}-${counter}`;
+      counter++;
+    }
+
     await prisma.article.upsert({
       where: { url: content.url },
       create: {
         url: content.url,
         question: content.title,
+        slug: finalSlug,
         answer: content.content,
         category: content.category,
         platform: content.platform,
@@ -689,6 +700,7 @@ async function storeCommunityContent(content: CommunityContent): Promise<void> {
       update: {
         question: content.title,
         answer: content.content,
+        slug: finalSlug,
         category: content.category,
         platform: content.platform,
         contentType: content.contentType,

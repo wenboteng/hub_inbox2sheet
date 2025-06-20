@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { getEmbedding } from '@/utils/openai';
+import { slugify } from '@/utils/slugify';
 
 const prisma = new PrismaClient();
 
@@ -80,6 +81,7 @@ async function crawlAirbnbPayouts() {
         data: {
           url,
           question: title,
+          slug: slugify(title),
           answer: paragraphs.join('\n\n'),
           category: 'payouts',
           platform: 'Airbnb',

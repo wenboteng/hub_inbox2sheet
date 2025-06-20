@@ -12,6 +12,7 @@ import {
 } from '@/utils/contentDeduplication';
 import { isFeatureEnabled, getFeatureFlagsSummary } from '@/utils/featureFlags';
 import { detectLanguage } from '@/utils/languageDetection';
+import { slugify } from '@/utils/slugify';
 
 const prisma = new PrismaClient();
 
@@ -227,6 +228,7 @@ async function main() {
           data: {
             url: article.url,
             question: article.question,
+            slug: slugify(article.question),
             answer: article.answer,
             category: article.category,
             platform: article.platform,
