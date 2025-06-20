@@ -149,7 +149,7 @@ function extractThreadUrls(html: string, baseUrl: string, selector: string): str
 function extractNextPageUrl(html: string, currentUrl: string, selector: string): string | null {
   // Simple regex-based extraction for next page URL
   const nextPageRegex = /href=["']([^"']*page=\d+[^"']*)["']/g;
-  const matches = [...html.matchAll(nextPageRegex)];
+  const matches = Array.from(html.matchAll(nextPageRegex));
   
   if (matches.length > 0) {
     const href = matches[matches.length - 1][1]; // Get the last match (highest page number)

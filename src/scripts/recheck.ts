@@ -139,11 +139,11 @@ async function recheckArticle(url: string): Promise<{ updated: boolean; error?: 
     }
 
     // Check if content has changed using cache headers
-    const hasChanged = await checkIfContentChanged(url, article.etag, article.lastModified);
+    const hasChanged = await checkIfContentChanged(url, article.etag || undefined, article.lastModified || undefined);
 
     if (!hasChanged) {
       // Update last checked timestamp but don't re-scrape
-      await updateArticleCacheHeaders(url, article.etag, article.lastModified);
+      await updateArticleCacheHeaders(url, article.etag || undefined, article.lastModified || undefined);
       return { updated: false };
     }
 
@@ -159,7 +159,7 @@ async function recheckArticle(url: string): Promise<{ updated: boolean; error?: 
     }
 
     // Update cache headers after successful scrape
-    await updateArticleCacheHeaders(url, article.etag, article.lastModified);
+    await updateArticleCacheHeaders(url, article.etag || undefined, article.lastModified || undefined);
 
     return { updated: true };
 

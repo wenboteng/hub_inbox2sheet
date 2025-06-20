@@ -7,6 +7,7 @@ const getyourguide_1 = require("../crawlers/getyourguide");
 const communityCrawler_1 = require("../lib/communityCrawler");
 const contentDeduplication_1 = require("../utils/contentDeduplication");
 const featureFlags_1 = require("../utils/featureFlags");
+const languageDetection_1 = require("../utils/languageDetection");
 const prisma = new client_1.PrismaClient();
 // List of URLs to scrape
 const URLs = [
@@ -169,6 +170,9 @@ async function main() {
                         duplicateCount++;
                     }
                 }
+                // Detect language of the content
+                const languageDetection = (0, languageDetection_1.detectLanguage)(article.answer);
+                console.log(`[SCRAPE][LANG] Detected language: ${languageDetection.language} (confidence: ${languageDetection.confidence.toFixed(2)}, reliable: ${languageDetection.isReliable})`);
                 // Generate embeddings for paragraphs
                 let paragraphsWithEmbeddings = [];
                 try {
@@ -191,9 +195,10 @@ async function main() {
                         source: 'help_center',
                         contentHash: contentHash || null,
                         isDuplicate: isDuplicate,
+                        language: languageDetection.language,
                     },
                 });
-                console.log(`[SCRAPE] Article created with ID: ${created.id}${isDuplicate ? ' (marked as duplicate)' : ''}`);
+                console.log(`[SCRAPE] Article created with ID: ${created.id}${isDuplicate ? ' (marked as duplicate)' : ''} [Language: ${languageDetection.language}]`);
                 // Create paragraphs if embeddings were generated
                 if (paragraphsWithEmbeddings.length > 0) {
                     await prisma.articleParagraph.createMany({

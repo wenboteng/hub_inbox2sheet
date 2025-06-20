@@ -103,57 +103,6 @@ const LANGUAGE_MAPPING: Record<string, string> = {
   'mos': 'mos',
   'kab': 'kab',
   'ber': 'ber',
-  'tam': 'ta',
-  'tel': 'te',
-  'mar': 'mr',
-  'guj': 'gu',
-  'kan': 'kn',
-  'mal': 'ml',
-  'ori': 'or',
-  'pan': 'pa',
-  'sin': 'si',
-  'urd': 'ur',
-  'nep': 'ne',
-  'mya': 'my',
-  'khm': 'km',
-  'lao': 'lo',
-  'tib': 'bo',
-  'dzo': 'dz',
-  'amh': 'am',
-  'tir': 'ti',
-  'orm': 'om',
-  'som': 'so',
-  'swa': 'sw',
-  'zul': 'zu',
-  'xho': 'xh',
-  'afr': 'af',
-  'nbl': 'nr',
-  'sot': 'st',
-  'tsn': 'tn',
-  'ven': 've',
-  'tso': 'ts',
-  'ssw': 'ss',
-  'nya': 'ny',
-  'bem': 'bem',
-  'lin': 'ln',
-  'kon': 'kg',
-  'lug': 'lg',
-  'run': 'rn',
-  'kin': 'rw',
-  'ibo': 'ig',
-  'yor': 'yo',
-  'hau': 'ha',
-  'ful': 'ff',
-  'wol': 'wo',
-  'sus': 'sus',
-  'man': 'man',
-  'dyu': 'dyu',
-  'bam': 'bm',
-  'ewe': 'ee',
-  'twi': 'tw',
-  'mos': 'mos',
-  'kab': 'kab',
-  'ber': 'ber',
 };
 
 // Minimum confidence threshold for language detection
@@ -190,17 +139,18 @@ export function detectLanguage(text: string): LanguageDetectionResult {
   }
 
   try {
-    // Use franc to detect language
-    const result = franc(cleanText, { minLength: MIN_TEXT_LENGTH });
+    // Use franc to detect language - it returns a string (language code)
+    const detectedCode = franc(cleanText, { minLength: MIN_TEXT_LENGTH });
     
-    // Get confidence score (franc returns a confidence value)
-    const confidence = result.confidence || 0;
+    // Franc doesn't provide confidence scores in the basic version
+    // We'll use a simple heuristic based on text length and detection result
+    const confidence = detectedCode !== 'und' ? 0.8 : 0.1;
     
     // Map franc language code to ISO 639-1
-    const language = LANGUAGE_MAPPING[result.language] || 'en';
+    const language = LANGUAGE_MAPPING[detectedCode] || 'en';
     
     // Determine if detection is reliable
-    const isReliable = confidence >= MIN_CONFIDENCE && result.language !== 'und';
+    const isReliable = confidence >= MIN_CONFIDENCE && detectedCode !== 'und';
     
     return {
       language,

@@ -42,6 +42,7 @@ exports.verifyCommunityUrls = verifyCommunityUrls;
 const axios_1 = __importDefault(require("axios"));
 const cheerio = __importStar(require("cheerio"));
 const client_1 = require("@prisma/client");
+const languageDetection_1 = require("../utils/languageDetection");
 const prisma = new client_1.PrismaClient();
 // Browser headers to avoid being blocked
 const BROWSER_HEADERS = {
@@ -619,6 +620,9 @@ async function parseAirHostsJson(jsonData, url, config) {
 // Store community content in database
 async function storeCommunityContent(content) {
     try {
+        // Detect language of the content
+        const languageDetection = (0, languageDetection_1.detectLanguage)(content.content);
+        console.log(`[COMMUNITY][LANG] Detected language: ${languageDetection.language} (confidence: ${languageDetection.confidence.toFixed(2)}, reliable: ${languageDetection.isReliable})`);
         // Create paragraphs for embedding (similar to official content)
         const paragraphs = content.content
             .split(/\n+/)
@@ -637,6 +641,7 @@ async function storeCommunityContent(content) {
                 author: content.author,
                 votes: content.votes || 0,
                 isVerified: (content.votes || 0) > 10, // Auto-verify high-voted content
+                language: languageDetection.language,
                 paragraphs: {
                     create: paragraphs.map(text => ({
                         text,
@@ -654,10 +659,11 @@ async function storeCommunityContent(content) {
                 author: content.author,
                 votes: content.votes || 0,
                 isVerified: (content.votes || 0) > 10,
+                language: languageDetection.language,
                 lastUpdated: new Date(),
             },
         });
-        console.log(`[COMMUNITY] Successfully stored: ${content.url}`);
+        console.log(`[COMMUNITY] Successfully stored: ${content.url} [Language: ${languageDetection.language}]`);
     }
     catch (error) {
         console.error(`[COMMUNITY] Error storing content:`, error);
