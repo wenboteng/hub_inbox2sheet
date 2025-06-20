@@ -13,6 +13,7 @@ model Article {
   id          String   @id @default(cuid())
   url         String   @unique
   question    String
+  slug        String   @unique
   answer      String
   category    String
   platform    String

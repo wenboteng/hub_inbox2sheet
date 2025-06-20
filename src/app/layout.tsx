@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import Image from "next/image";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "OTA Answer Hub - Find Solutions for Tour Vendors",
+  title: "OTA Answers - Find Solutions for Tour Vendors",
   description: "Centralized knowledge base for tour vendors across platforms like Airbnb, Viator, Booking.com, and more.",
 };
 
@@ -23,8 +24,9 @@ export default function RootLayout({
             <div className="flex justify-between h-16">
               <div className="flex">
                 <div className="flex-shrink-0 flex items-center">
-                  <Link href="/" className="text-xl font-bold text-gray-900">
-                    OTA Answer Hub
+                  <Link href="/" className="flex items-center space-x-2 text-xl font-bold text-gray-900">
+                    <Image src="/logo.svg" alt="OTA Answers Logo" width={32} height={32} />
+                    <span>OTA Answers</span>
                   </Link>
                 </div>
                 <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -51,9 +53,11 @@ export default function RootLayout({
               <div className="hidden sm:ml-6 sm:flex sm:items-center">
                 <Link
                   href="https://inbox2sheet.com"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200"
                 >
-                  Try Inbox2Sheet
+                  Powered by Inbox2Sheet
                 </Link>
               </div>
             </div>

@@ -1,4 +1,4 @@
-# OTA Answer Hub
+# OTA Answers
 
 A knowledge base for tour vendors to find answers about OTA platforms like Airbnb, Viator, GetYourGuide, and more.
 
@@ -22,7 +22,7 @@ A knowledge base for tour vendors to find answers about OTA platforms like Airbn
 1. Clone the repository:
 ```bash
 git clone <your-repo-url>
-cd ota-answer-hub
+cd ota-answers
 ```
 
 2. Install dependencies:
@@ -55,14 +55,14 @@ npm run dev
    - Connect your GitHub repository
    - Select the repository
    - Use the following settings:
-     - Name: ota-answer-hub
+     - Name: ota-answers
      - Environment: Node
      - Build Command: `npm install && npx prisma generate && npm run build`
      - Start Command: `npm start`
 
 3. Add the following environment variables in Render:
    - `DATABASE_URL`: Your PostgreSQL database URL
-   - `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answer-hub.onrender.com)
+   - `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answers.onrender.com)
 
 4. Deploy!
 
@@ -91,7 +91,7 @@ To keep your knowledge base fresh and growing, set up the following **Render Cro
   ```
 - **Environment Variables:**
   - `DATABASE_URL`: Your PostgreSQL database URL
-  - `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answer-hub.onrender.com)
+  - `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answers.onrender.com)
   - `OPENAI_API_KEY`: Your OpenAI API key for embeddings
 - **Schedule:**
   - `recheck`: `0 */6 * * *` (every 6 hours)
@@ -108,7 +108,7 @@ To keep your knowledge base fresh and growing, set up the following **Render Cro
 Required environment variables:
 
 - `DATABASE_URL`: Your PostgreSQL database URL
-- `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answer-hub.onrender.com)
+- `NEXT_PUBLIC_BASE_URL`: Your Render service URL (e.g., https://ota-answers.onrender.com)
 - `OPENAI_API_KEY`: Your OpenAI API key for embeddings
 
 Optional environment variables for OTA platform access:
