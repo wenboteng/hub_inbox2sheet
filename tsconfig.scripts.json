@@ -5,7 +5,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "target": "ES2020",
-    "lib": ["ES2020"],
+    "lib": ["ES2020", "DOM"],
     "moduleResolution": "node",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -31,6 +31,7 @@
   "exclude": [
     "src/app/**/*",
     "src/components/**/*",
+    "src/utils/languageFiltering.ts",
     "node_modules",
     "dist",
     ".next"
