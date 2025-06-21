@@ -49,9 +49,9 @@ jobs:
       # Install Node.js dependencies
       npm install
       
-      # Generate Prisma client and build
+      # Generate Prisma client and build scripts
       npx prisma generate
-      npm run build
+      npm run build:scripts
       
       # Install Chrome for Puppeteer with proper error handling
       echo "Installing Chrome for Puppeteer..."
