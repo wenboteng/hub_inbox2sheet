@@ -44,7 +44,8 @@ jobs:
     env: node
     schedule: "0 2 * * *"  # Run daily at 2am UTC
     buildCommand: |
-      # Build timestamp: 2025-06-21-12:30:00 - Force rebuild for Puppeteer fixes
+      # Build timestamp: 2025-06-21-19:35:00 - Force rebuild for comprehensive Airbnb community scraper
+      # This build includes the new comprehensive Airbnb community scraper that crawls entire site
       # Install Node.js dependencies
       npm install
       
@@ -67,6 +68,9 @@ jobs:
       # Test Puppeteer setup
       echo "Testing Puppeteer setup..."
       npm run test:puppeteer-setup || echo "Puppeteer test failed, but continuing with crawl"
+      
+      # Force rebuild trigger for comprehensive Airbnb community scraper
+      echo "BUILD_TRIGGER: Comprehensive Airbnb community scraper - $(date)"
     startCommand: npm run scrape:all
     envVars:
       - key: DATABASE_URL

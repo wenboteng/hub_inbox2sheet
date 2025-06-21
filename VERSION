@@ -1,4 +1,11 @@
-1.0.1
+1.0.2
+# Comprehensive Airbnb Community Scraper
+# - Crawls entire Airbnb community site across all categories
+# - No thread limits - processes all threads found
+# - Better content extraction with improved selectors
+# - Category-specific processing and proper categorization
+# - Respectful delays between requests
+# - Disabled generic community crawler to avoid conflicts
 # Puppeteer Chrome detection fix
 # - Dynamic Chrome version detection
 # - System Chrome fallback
