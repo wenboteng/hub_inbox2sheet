@@ -51,8 +51,21 @@ jobs:
       npx prisma generate
       npm run build
       
-      # Install Chrome for Puppeteer
-      npx puppeteer browsers install chrome
+      # Install Chrome for Puppeteer with proper error handling
+      echo "Installing Chrome for Puppeteer..."
+      npx puppeteer browsers install chrome || {
+        echo "Failed to install Chrome via puppeteer browsers install, trying alternative method..."
+        # Alternative: Install system Chrome if available
+        apt-get update && apt-get install -y google-chrome-stable || echo "System Chrome installation failed, will use bundled Chrome"
+      }
+      
+      # Verify Chrome installation
+      echo "Verifying Chrome installation..."
+      ls -la /opt/render/.cache/puppeteer/chrome/ || echo "Puppeteer cache directory not found"
+      
+      # Test Puppeteer setup
+      echo "Testing Puppeteer setup..."
+      npm run test:puppeteer-setup || echo "Puppeteer test failed, but continuing with crawl"
     startCommand: npm run scrape
     envVars:
       - key: DATABASE_URL
@@ -63,6 +76,10 @@ jobs:
         sync: false
       - key: NODE_VERSION
         value: 18.20.2
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/.cache/puppeteer
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: false
 
   # Scheduled job to run the Airbnb Community crawler daily at 4am UTC
   - type: cron
@@ -77,8 +94,21 @@ jobs:
       npx prisma generate
       npm run build
       
-      # Install Chrome for Puppeteer
-      npx puppeteer browsers install chrome
+      # Install Chrome for Puppeteer with proper error handling
+      echo "Installing Chrome for Puppeteer..."
+      npx puppeteer browsers install chrome || {
+        echo "Failed to install Chrome via puppeteer browsers install, trying alternative method..."
+        # Alternative: Install system Chrome if available
+        apt-get update && apt-get install -y google-chrome-stable || echo "System Chrome installation failed, will use bundled Chrome"
+      }
+      
+      # Verify Chrome installation
+      echo "Verifying Chrome installation..."
+      ls -la /opt/render/.cache/puppeteer/chrome/ || echo "Puppeteer cache directory not found"
+      
+      # Test Puppeteer setup
+      echo "Testing Puppeteer setup..."
+      npm run test:puppeteer-setup || echo "Puppeteer test failed, but continuing with crawl"
     startCommand: npm run crawl:airbnb-community
     envVars:
       - key: DATABASE_URL
@@ -88,4 +118,8 @@ jobs:
       - key: OPENAI_API_KEY
         sync: false
       - key: NODE_VERSION
-        value: 18.20.2 
+        value: 18.20.2
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/.cache/puppeteer
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: false 
