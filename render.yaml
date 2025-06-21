@@ -50,6 +50,9 @@ jobs:
       # Generate Prisma client and build
       npx prisma generate
       npm run build
+      
+      # Install Chrome for Puppeteer
+      npx puppeteer browsers install chrome
     startCommand: npm run scrape
     envVars:
       - key: DATABASE_URL
@@ -73,6 +76,9 @@ jobs:
       # Generate Prisma client and build
       npx prisma generate
       npm run build
+      
+      # Install Chrome for Puppeteer
+      npx puppeteer browsers install chrome
     startCommand: npm run crawl:airbnb-community
     envVars:
       - key: DATABASE_URL
