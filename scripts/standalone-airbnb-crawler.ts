@@ -1,11 +1,12 @@
 #!/usr/bin/env tsx
 
-import puppeteer, { Browser, Page } from 'puppeteer';
+import { Browser, Page } from 'puppeteer';
 import * as cheerio from 'cheerio';
 import { PrismaClient } from '@prisma/client';
 import { getContentEmbeddings } from '../src/utils/openai';
 import { detectLanguage } from '../src/utils/languageDetection';
 import { slugify } from '../src/utils/slugify';
+import { createBrowser } from '../src/utils/puppeteer';
 
 const prisma = new PrismaClient();
 
@@ -99,31 +100,8 @@ class StandaloneAirbnbCommunityCrawler {
   async initialize(): Promise<void> {
     console.log('[AIRBNB-COMMUNITY] Initializing standalone crawler...');
     
-    this.browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--disable-gpu',
-        '--window-size=1280,800',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor',
-      ],
-    });
-
-    // Set up request interception for performance
-    const page = await this.browser.newPage();
-    await page.setRequestInterception(true);
-    page.on('request', (request) => {
-      if (['image', 'font', 'media', 'stylesheet'].includes(request.resourceType())) {
-        request.abort();
-      } else {
-        request.continue();
-      }
-    });
-    await page.close();
+    this.browser = await createBrowser();
+    console.log('[AIRBNB-COMMUNITY] Browser initialized successfully');
   }
 
   async cleanup(): Promise<void> {
