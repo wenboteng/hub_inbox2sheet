@@ -122,37 +122,57 @@ async function scrapeAirbnbCommunity(): Promise<Article[]> {
     try {
       const page = await browser.newPage();
       
-      // Set a reasonable timeout and user agent
-      await page.setDefaultTimeout(30000);
-      await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+      await page.setViewport({ width: 1280, height: 800 });
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+      await page.setDefaultTimeout(60000); // Increased timeout
       
       // Enable request interception to block non-essential resources
       await page.setRequestInterception(true);
       page.on('request', (request) => {
-        if (['image', 'font', 'media'].includes(request.resourceType())) {
+        if (['image', 'stylesheet', 'font', 'media'].includes(request.resourceType())) {
           request.abort();
         } else {
           request.continue();
         }
       });
       
-      // List of main community categories to scrape
+      // Auto-handle dialogs and popups
+      page.on('dialog', async dialog => {
+        console.log(`[PUPPETEER] Dismissing dialog: ${dialog.message()}`);
+        await dialog.dismiss();
+      });
+
+      // Function to dismiss cookie banners
+      const dismissCookieBanners = async () => {
+        const cookieBanners = [
+          'button[data-testid="accept-btn"]',
+          'button:contains("Accept all")',
+          'button:contains("I agree")',
+          'button#onetrust-accept-btn-handler',
+        ];
+
+        for (const selector of cookieBanners) {
+          try {
+            if (await page.$(selector)) {
+              console.log(`[PUPPETEER] Found cookie banner with selector: ${selector}. Clicking to dismiss.`);
+              await page.click(selector);
+              await new Promise(r => setTimeout(r, 1000)); // Wait for banner to disappear
+              return;
+            }
+          } catch (e) {
+            // Ignore if selector not found
+          }
+        }
+      };
+
       const communityCategories = [
         'https://community.withairbnb.com/t5/Community-Center/ct-p/community-center',
         'https://community.withairbnb.com/t5/Hosting/ct-p/hosting',
         'https://community.withairbnb.com/t5/Guests/ct-p/guests',
         'https://community.withairbnb.com/t5/Experiences/ct-p/experiences',
-        'https://community.withairbnb.com/t5/Community-Discussions/ct-p/community-discussions',
-        'https://community.withairbnb.com/t5/Technical-Support/ct-p/technical-support',
-        'https://community.withairbnb.com/t5/Announcements/ct-p/announcements',
-        'https://community.withairbnb.com/t5/Feedback/ct-p/feedback'
       ];
       
-      console.log(`[SCRAPE][AIRBNB-COMMUNITY] Will scrape ${communityCategories.length} categories:`);
-      communityCategories.forEach((url, index) => {
-        const categoryName = url.split('/t5/')[1]?.split('/')[0]?.replace(/-/g, ' ') || 'Unknown';
-        console.log(`[SCRAPE][AIRBNB-COMMUNITY] ${index + 1}. ${categoryName}: ${url}`);
-      });
+      console.log(`[SCRAPE][AIRBNB-COMMUNITY] Will scrape ${communityCategories.length} categories.`);
       
       let totalThreadsFound = 0;
       let totalThreadsProcessed = 0;
@@ -160,8 +180,10 @@ async function scrapeAirbnbCommunity(): Promise<Article[]> {
       for (const categoryUrl of communityCategories) {
         try {
           console.log(`[SCRAPE][AIRBNB-COMMUNITY] Scraping category: ${categoryUrl}`);
-          await page.goto(categoryUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+          await page.goto(categoryUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
           
+          await dismissCookieBanners();
+
           // Get category name from URL
           const urlObj = new URL(categoryUrl);
           const pathParts = urlObj.pathname.split('/');
@@ -284,8 +306,9 @@ async function main() {
     }
 
     // Scrape articles from different platforms
-    console.log('\n[SCRAPE] Starting Airbnb scraping...');
     let airbnbArticles: Article[] = [];
+    let airbnbCommunityArticles: Article[] = [];
+    console.log('\n[SCRAPE] Starting Airbnb scraping...');
     try {
       airbnbArticles = await scrapeAirbnb();
       console.log(`[SCRAPE] Airbnb scraping completed. Found ${airbnbArticles.length} articles`);
@@ -308,27 +331,23 @@ async function main() {
     }
 
     // Scrape Airbnb Community content
-    console.log('\n[SCRAPE] Starting Airbnb Community scraping...');
-    let airbnbCommunityArticles: Article[] = [];
-    try {
-      airbnbCommunityArticles = await scrapeAirbnbCommunity();
-      console.log(`[SCRAPE] Airbnb Community scraping completed. Found ${airbnbCommunityArticles.length} articles`);
-      
-      // Validate and filter articles
-      const validAirbnbCommunityArticles = airbnbCommunityArticles.filter(article => {
-        const validation = validateArticle(article, 'AIRBNB-COMMUNITY');
-        return validation.isValid;
-      });
-      
-      console.log(`[SCRAPE] Valid Airbnb Community articles: ${validAirbnbCommunityArticles.length} (${airbnbCommunityArticles.length - validAirbnbCommunityArticles.length} invalid)`);
-      
-      // Filter out already existing articles
-      const newAirbnbCommunityArticles = validAirbnbCommunityArticles.filter(article => !existingUrls.has(article.url));
-      console.log(`[SCRAPE] New Airbnb Community articles: ${newAirbnbCommunityArticles.length} (${validAirbnbCommunityArticles.length - newAirbnbCommunityArticles.length} already exist)`);
-      airbnbCommunityArticles = newAirbnbCommunityArticles;
-    } catch (airbnbCommunityError) {
-      console.error('[SCRAPE] Airbnb Community scraping failed:', airbnbCommunityError);
-      // Continue with other scrapers even if Airbnb Community fails
+    if (isFeatureEnabled('enableCommunityCrawling')) {
+      console.log('\n[SCRAPE] Starting Airbnb Community scraping (controlled by enableCommunityCrawling flag)...');
+      try {
+        airbnbCommunityArticles = await scrapeAirbnbCommunity();
+        console.log(`[SCRAPE] Airbnb Community scraping completed. Found ${airbnbCommunityArticles.length} articles`);
+        
+        const validAirbnbCommunityArticles = airbnbCommunityArticles.filter(article => validateArticle(article, 'AIRBNB-COMMUNITY').isValid);
+        console.log(`[SCRAPE] Valid Airbnb Community articles: ${validAirbnbCommunityArticles.length}`);
+        
+        const newAirbnbCommunityArticles = validAirbnbCommunityArticles.filter(article => !existingUrls.has(article.url));
+        console.log(`[SCRAPE] New Airbnb Community articles: ${newAirbnbCommunityArticles.length}`);
+        airbnbCommunityArticles = newAirbnbCommunityArticles;
+      } catch (airbnbCommunityError) {
+        console.error('[SCRAPE] Airbnb Community scraping failed:', airbnbCommunityError);
+      }
+    } else {
+      console.log('\n[SCRAPE] Airbnb Community crawling disabled by feature flag.');
     }
 
     console.log('\n[SCRAPE] Starting GetYourGuide scraping...');
