@@ -184,6 +184,25 @@ async function scrapeAirbnbCommunity(): Promise<Article[]> {
           
           await dismissCookieBanners();
 
+          const threadLinks = await page.$$eval('a[href*="/td-p/"], a[href*="/m-p/"]', links =>
+            links.map((link: Element) => ({
+              url: (link as HTMLAnchorElement).href,
+              title: link.textContent?.trim() || '',
+            }))
+          );
+
+          if (threadLinks.length === 0) {
+            console.log(`[PUPPETEER] No thread links found on ${categoryUrl}. The page might be blocked or empty.`);
+            console.log('[PUPPETEER] Dumping page HTML for debugging...');
+            try {
+              const pageContent = await page.content();
+              console.log(pageContent);
+            } catch (e) {
+              console.error('[PUPPETEER] Failed to get page content.', e);
+            }
+            console.log('[PUPPETEER] End of page HTML dump.');
+          }
+
           // Get category name from URL
           const urlObj = new URL(categoryUrl);
           const pathParts = urlObj.pathname.split('/');
@@ -195,14 +214,6 @@ async function scrapeAirbnbCommunity(): Promise<Article[]> {
             }
           }
           
-          // Get all thread links from this category
-          const threadLinks = await page.$$eval('a[href*="/td-p/"], a[href*="/m-p/"]', links =>
-            links.map((link: Element) => ({
-              url: (link as HTMLAnchorElement).href,
-              title: link.textContent?.trim() || '',
-            }))
-          );
-
           console.log(`[SCRAPE][AIRBNB-COMMUNITY] Found ${threadLinks.length} threads in ${categoryName}`);
           totalThreadsFound += threadLinks.length;
           
