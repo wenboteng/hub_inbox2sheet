@@ -71,6 +71,44 @@ async function logScrapingStats() {
   });
 }
 
+// Enhanced debug function to validate article data
+function validateArticle(article: Article, platform: string): { isValid: boolean; issues: string[] } {
+  const issues: string[] = [];
+  
+  if (!article.url || article.url.trim() === '') {
+    issues.push('Empty or missing URL');
+  }
+  
+  if (!article.question || article.question.trim() === '') {
+    issues.push('Empty or missing question/title');
+  }
+  
+  if (!article.answer || article.answer.trim() === '') {
+    issues.push('Empty or missing answer/content');
+  }
+  
+  if (article.answer && article.answer.length < 50) {
+    issues.push(`Content too short (${article.answer.length} characters, minimum 50)`);
+  }
+  
+  if (!article.platform || article.platform.trim() === '') {
+    issues.push('Empty or missing platform');
+  }
+  
+  if (!article.category || article.category.trim() === '') {
+    issues.push('Empty or missing category');
+  }
+  
+  const isValid = issues.length === 0;
+  
+  if (!isValid) {
+    console.log(`[DEBUG][${platform}] Article validation failed for ${article.url}:`);
+    issues.forEach(issue => console.log(`[DEBUG][${platform}]   - ${issue}`));
+  }
+  
+  return { isValid, issues };
+}
+
 async function main() {
   try {
     console.log('[SCRAPE] Starting scrape process...');
@@ -111,9 +149,17 @@ async function main() {
       airbnbArticles = await scrapeAirbnb();
       console.log(`[SCRAPE] Airbnb scraping completed. Found ${airbnbArticles.length} articles`);
       
+      // Validate and filter articles
+      const validAirbnbArticles = airbnbArticles.filter(article => {
+        const validation = validateArticle(article, 'AIRBNB');
+        return validation.isValid;
+      });
+      
+      console.log(`[SCRAPE] Valid Airbnb articles: ${validAirbnbArticles.length} (${airbnbArticles.length - validAirbnbArticles.length} invalid)`);
+      
       // Filter out already existing articles
-      const newAirbnbArticles = airbnbArticles.filter(article => !existingUrls.has(article.url));
-      console.log(`[SCRAPE] New Airbnb articles: ${newAirbnbArticles.length} (${airbnbArticles.length - newAirbnbArticles.length} already exist)`);
+      const newAirbnbArticles = validAirbnbArticles.filter(article => !existingUrls.has(article.url));
+      console.log(`[SCRAPE] New Airbnb articles: ${newAirbnbArticles.length} (${validAirbnbArticles.length - newAirbnbArticles.length} already exist)`);
       airbnbArticles = newAirbnbArticles;
     } catch (airbnbError) {
       console.error('[SCRAPE] Airbnb scraping failed:', airbnbError);
@@ -142,9 +188,17 @@ async function main() {
       
       console.log(`[SCRAPE] GetYourGuide crawling completed. Found ${gygArticles.length} articles`);
       
+      // Validate and filter articles
+      const validGygArticles = gygArticles.filter(article => {
+        const validation = validateArticle(article, 'GETYOURGUIDE');
+        return validation.isValid;
+      });
+      
+      console.log(`[SCRAPE] Valid GetYourGuide articles: ${validGygArticles.length} (${gygArticles.length - validGygArticles.length} invalid)`);
+      
       // Filter out already existing articles
-      const newGygArticles = gygArticles.filter(article => !existingUrls.has(article.url));
-      console.log(`[SCRAPE] New GetYourGuide articles: ${newGygArticles.length} (${gygArticles.length - newGygArticles.length} already exist)`);
+      const newGygArticles = validGygArticles.filter(article => !existingUrls.has(article.url));
+      console.log(`[SCRAPE] New GetYourGuide articles: ${newGygArticles.length} (${validGygArticles.length - newGygArticles.length} already exist)`);
       gygArticles = newGygArticles;
     } catch (gygError) {
       console.error('[SCRAPE] GetYourGuide crawling failed:', gygError);
@@ -163,8 +217,17 @@ async function main() {
           category: a.category || 'Help Center',
         }));
         console.log(`[SCRAPE] Viator scraping completed. Found ${viatorArticles.length} articles`);
-        const newViatorArticles = viatorArticles.filter(article => !existingUrls.has(article.url));
-        console.log(`[SCRAPE] New Viator articles: ${newViatorArticles.length} (${viatorArticles.length - newViatorArticles.length} already exist)`);
+        
+        // Validate and filter articles
+        const validViatorArticles = viatorArticles.filter(article => {
+          const validation = validateArticle(article, 'VIATOR');
+          return validation.isValid;
+        });
+        
+        console.log(`[SCRAPE] Valid Viator articles: ${validViatorArticles.length} (${viatorArticles.length - validViatorArticles.length} invalid)`);
+        
+        const newViatorArticles = validViatorArticles.filter(article => !existingUrls.has(article.url));
+        console.log(`[SCRAPE] New Viator articles: ${newViatorArticles.length} (${validViatorArticles.length - newViatorArticles.length} already exist)`);
         viatorArticles = newViatorArticles;
       } catch (viatorError) {
         console.error('[SCRAPE] Viator scraping failed:', viatorError);
@@ -201,12 +264,18 @@ async function main() {
 
     if (articles.length === 0) {
       console.log('[SCRAPE] No new official articles found, but community content may have been scraped.');
+      console.log('[SCRAPE] This could be due to:');
+      console.log('[SCRAPE] 1. All articles already exist in database');
+      console.log('[SCRAPE] 2. Crawlers failed to extract valid content');
+      console.log('[SCRAPE] 3. Websites changed their structure');
+      console.log('[SCRAPE] 4. Rate limiting or blocking');
     }
 
     // Process each new official article
     let processedCount = 0;
     let skippedCount = 0;
     let duplicateCount = 0;
+    let errorCount = 0;
     
     for (const article of articles) {
       try {
@@ -219,6 +288,9 @@ async function main() {
         }
         
         console.log(`[SCRAPE] Processing new article: ${article.question}`);
+        console.log(`[SCRAPE] URL: ${article.url}`);
+        console.log(`[SCRAPE] Platform: ${article.platform}`);
+        console.log(`[SCRAPE] Content length: ${article.answer.length} characters`);
 
         // Generate content hash for deduplication
         const contentHash = generateContentHash(article.answer);
@@ -250,12 +322,27 @@ async function main() {
           // Continue without embeddings
         }
 
+        // Generate slug and check for duplicates
+        const generatedSlug = slugify(article.question);
+        console.log(`[SCRAPE] Generated slug: ${generatedSlug}`);
+        
+        // Check if slug already exists
+        const existingSlug = await prisma.article.findUnique({ where: { slug: generatedSlug } });
+        if (existingSlug) {
+          console.log(`[SCRAPE] Slug conflict detected: ${generatedSlug} already exists`);
+          console.log(`[SCRAPE] Existing article: ${existingSlug.question} (${existingSlug.url})`);
+          console.log(`[SCRAPE] New article: ${article.question} (${article.url})`);
+          // Skip this article to avoid slug conflicts
+          errorCount++;
+          continue;
+        }
+
         // Create new article (no upsert needed since we checked it doesn't exist)
         const created = await prisma.article.create({
           data: {
             url: article.url,
             question: article.question,
-            slug: slugify(article.question),
+            slug: generatedSlug,
             answer: article.answer,
             category: article.category,
             platform: article.platform,
@@ -285,6 +372,7 @@ async function main() {
         console.log(`[SCRAPE] Successfully processed article: ${article.question}`);
       } catch (articleError) {
         console.error(`[SCRAPE] Error processing article ${article.url}:`, articleError);
+        errorCount++;
       }
     }
 
@@ -292,6 +380,7 @@ async function main() {
     console.log(`[SCRAPE] - New articles processed: ${processedCount}`);
     console.log(`[SCRAPE] - Articles skipped (already existed): ${skippedCount}`);
     console.log(`[SCRAPE] - Articles marked as duplicates: ${duplicateCount}`);
+    console.log(`[SCRAPE] - Articles with errors: ${errorCount}`);
     console.log(`[SCRAPE] - Total articles in this run: ${articles.length}`);
 
     // Log final stats including deduplication
