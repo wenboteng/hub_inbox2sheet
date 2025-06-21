@@ -109,9 +109,9 @@ function validateArticle(article: Article, platform: string): { isValid: boolean
   return { isValid, issues };
 }
 
-// Simple Airbnb Community scraping function
+// Comprehensive Airbnb Community scraping function
 async function scrapeAirbnbCommunity(): Promise<Article[]> {
-  console.log('[SCRAPE][AIRBNB-COMMUNITY] Starting Airbnb Community scraping...');
+  console.log('[SCRAPE][AIRBNB-COMMUNITY] Starting comprehensive Airbnb Community scraping...');
   const articles: Article[] = [];
   
   try {
@@ -136,79 +136,98 @@ async function scrapeAirbnbCommunity(): Promise<Article[]> {
         }
       });
       
-      // Start from the main community page
-      try {
-        console.log('[SCRAPE][AIRBNB-COMMUNITY] Attempting to scrape from main community page...');
-        await page.goto('https://community.withairbnb.com/t5/Community-Center/ct-p/community-center', { waitUntil: 'networkidle0', timeout: 30000 });
-        
-        // Debug: Check if we can access the page
-        const pageTitle = await page.title();
-        console.log(`[SCRAPE][AIRBNB-COMMUNITY] Page title: "${pageTitle}"`);
-        
-        // Get all thread links
-        const threadLinks = await page.$$eval('a[href*="/td-p/"], a[href*="/m-p/"]', links =>
-          links.map((link: Element) => ({
-            url: (link as HTMLAnchorElement).href,
-            title: link.textContent?.trim() || '',
-          }))
-        );
-
-        console.log(`[SCRAPE][AIRBNB-COMMUNITY] Found ${threadLinks.length} thread links from main page`);
-        
-        // Process each thread (limit for production safety)
-        for (const { url, title } of threadLinks.slice(0, 10)) { // Reduced limit for safety
-          try {
-            console.log(`[SCRAPE][AIRBNB-COMMUNITY] Scraping thread: ${title} (${url})`);
-            await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
-
-            // Extract thread content
-            const extracted = await page.evaluate(() => {
-              const titleElement = document.querySelector('.lia-message-subject, .page-title, .topic-title, h1');
-              const contentElements = Array.from(document.querySelectorAll('.lia-message-body-content, .lia-message-body'));
-              
-              const title = titleElement ? titleElement.textContent?.trim() || '' : '';
-              const content = contentElements.map(el => el.textContent?.trim() || '').join('\n');
-              
-              return { title, content };
-            });
-
-            if (extracted.title && extracted.content && extracted.content.length > 50) {
-              // Extract category from URL
-              let category = 'Airbnb Community';
-              try {
-                const urlObj = new URL(url);
-                const pathParts = urlObj.pathname.split('/');
-                for (let i = 0; i < pathParts.length; i++) {
-                  if (pathParts[i] === 't5' && pathParts[i + 1]) {
-                    category = pathParts[i + 1].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    break;
-                  }
-                }
-              } catch (error) {
-                console.log(`[SCRAPE][AIRBNB-COMMUNITY] Error extracting category from URL: ${url}`);
-              }
-
-              articles.push({
-                url,
-                question: extracted.title || title,
-                answer: extracted.content,
-                platform: 'Airbnb',
-                category: category,
-              });
-              console.log(`[SCRAPE][AIRBNB-COMMUNITY] Successfully scraped thread: ${extracted.title}`);
-            } else {
-              console.log(`[SCRAPE][AIRBNB-COMMUNITY] Skipping thread with insufficient content: ${title}`);
+      // List of main community categories to scrape
+      const communityCategories = [
+        'https://community.withairbnb.com/t5/Community-Center/ct-p/community-center',
+        'https://community.withairbnb.com/t5/Hosting/ct-p/hosting',
+        'https://community.withairbnb.com/t5/Guests/ct-p/guests',
+        'https://community.withairbnb.com/t5/Experiences/ct-p/experiences',
+        'https://community.withairbnb.com/t5/Community-Discussions/ct-p/community-discussions',
+        'https://community.withairbnb.com/t5/Technical-Support/ct-p/technical-support',
+        'https://community.withairbnb.com/t5/Announcements/ct-p/announcements',
+        'https://community.withairbnb.com/t5/Feedback/ct-p/feedback'
+      ];
+      
+      let totalThreadsFound = 0;
+      let totalThreadsProcessed = 0;
+      
+      for (const categoryUrl of communityCategories) {
+        try {
+          console.log(`[SCRAPE][AIRBNB-COMMUNITY] Scraping category: ${categoryUrl}`);
+          await page.goto(categoryUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+          
+          // Get category name from URL
+          const urlObj = new URL(categoryUrl);
+          const pathParts = urlObj.pathname.split('/');
+          let categoryName = 'Airbnb Community';
+          for (let i = 0; i < pathParts.length; i++) {
+            if (pathParts[i] === 't5' && pathParts[i + 1]) {
+              categoryName = pathParts[i + 1].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              break;
             }
-          } catch (error) {
-            console.error(`[SCRAPE][AIRBNB-COMMUNITY] Error scraping thread ${url}:`, error);
           }
           
-          // Add delay between requests
+          // Get all thread links from this category
+          const threadLinks = await page.$$eval('a[href*="/td-p/"], a[href*="/m-p/"]', links =>
+            links.map((link: Element) => ({
+              url: (link as HTMLAnchorElement).href,
+              title: link.textContent?.trim() || '',
+            }))
+          );
+
+          console.log(`[SCRAPE][AIRBNB-COMMUNITY] Found ${threadLinks.length} threads in ${categoryName}`);
+          totalThreadsFound += threadLinks.length;
+          
+          // Process each thread (no limit for comprehensive scraping)
+          for (const { url, title } of threadLinks) {
+            try {
+              console.log(`[SCRAPE][AIRBNB-COMMUNITY] Scraping thread: ${title} (${url})`);
+              await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
+
+              // Extract thread content
+              const extracted = await page.evaluate(() => {
+                const titleElement = document.querySelector('.lia-message-subject, .page-title, .topic-title, h1, .lia-message-subject-text');
+                const contentElements = Array.from(document.querySelectorAll('.lia-message-body-content, .lia-message-body, .lia-message-content'));
+                
+                const title = titleElement ? titleElement.textContent?.trim() || '' : '';
+                const content = contentElements.map(el => el.textContent?.trim() || '').join('\n');
+                
+                return { title, content };
+              });
+
+              if (extracted.title && extracted.content && extracted.content.length > 50) {
+                articles.push({
+                  url,
+                  question: extracted.title || title,
+                  answer: extracted.content,
+                  platform: 'Airbnb',
+                  category: categoryName,
+                });
+                console.log(`[SCRAPE][AIRBNB-COMMUNITY] Successfully scraped thread: ${extracted.title}`);
+                totalThreadsProcessed++;
+              } else {
+                console.log(`[SCRAPE][AIRBNB-COMMUNITY] Skipping thread with insufficient content: ${title}`);
+              }
+            } catch (error) {
+              console.error(`[SCRAPE][AIRBNB-COMMUNITY] Error scraping thread ${url}:`, error);
+            }
+            
+            // Add delay between requests to be respectful
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+          
+          // Add delay between categories
           await new Promise(resolve => setTimeout(resolve, 2000));
+          
+        } catch (error) {
+          console.error(`[SCRAPE][AIRBNB-COMMUNITY] Error accessing category ${categoryUrl}:`, error);
         }
-      } catch (error) {
-        console.error('[SCRAPE][AIRBNB-COMMUNITY] Error accessing main community page:', error);
       }
+      
+      console.log(`[SCRAPE][AIRBNB-COMMUNITY] Comprehensive scraping completed:`);
+      console.log(`[SCRAPE][AIRBNB-COMMUNITY] - Total threads found: ${totalThreadsFound}`);
+      console.log(`[SCRAPE][AIRBNB-COMMUNITY] - Total threads processed: ${totalThreadsProcessed}`);
+      console.log(`[SCRAPE][AIRBNB-COMMUNITY] - Articles collected: ${articles.length}`);
 
     } finally {
       await browser.close();
@@ -380,19 +399,10 @@ async function main() {
 
     // Scrape community content
     if (isFeatureEnabled('enableCommunityCrawling')) {
-      console.log('\n[SCRAPE] Starting community content scraping...');
-      try {
-        const communityUrls = await getCommunityContentUrls();
-        console.log(`[SCRAPE] Found ${communityUrls.length} community URLs to scrape`);
-        
-        // Note: scrapeCommunityUrls handles its own database operations
-        // so we don't need to process the results here
-        await scrapeCommunityUrls(communityUrls);
-        console.log('[SCRAPE] Community content scraping completed');
-      } catch (communityError) {
-        console.error('[SCRAPE] Community content scraping failed:', communityError);
-        // Continue even if community scraping fails
-      }
+      console.log('\n[SCRAPE] Community crawling is enabled, but skipping generic community crawler to avoid conflicts with comprehensive Airbnb community scraper');
+      console.log('[SCRAPE] Airbnb community content is being handled by the dedicated Airbnb community scraper above');
+      // Note: We're skipping the generic community crawler to avoid conflicts
+      // The comprehensive Airbnb community scraper above handles all Airbnb community content
     } else {
       console.log('\n[SCRAPE] Community crawling disabled by feature flag');
     }
