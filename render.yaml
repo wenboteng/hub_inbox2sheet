@@ -1,3 +1,6 @@
+# Render Blueprint
+# See https://render.com/docs/blueprint-spec for a detailed reference.
+
 services:
   - type: web
     name: ota-answer-hub
