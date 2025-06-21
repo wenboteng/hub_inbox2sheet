@@ -148,6 +148,12 @@ async function scrapeAirbnbCommunity(): Promise<Article[]> {
         'https://community.withairbnb.com/t5/Feedback/ct-p/feedback'
       ];
       
+      console.log(`[SCRAPE][AIRBNB-COMMUNITY] Will scrape ${communityCategories.length} categories:`);
+      communityCategories.forEach((url, index) => {
+        const categoryName = url.split('/t5/')[1]?.split('/')[0]?.replace(/-/g, ' ') || 'Unknown';
+        console.log(`[SCRAPE][AIRBNB-COMMUNITY] ${index + 1}. ${categoryName}: ${url}`);
+      });
+      
       let totalThreadsFound = 0;
       let totalThreadsProcessed = 0;
       
@@ -247,6 +253,8 @@ async function main() {
     console.log('[SCRAPE] Starting scrape process...');
     console.log('[SCRAPE] Environment:', process.env.NODE_ENV || 'development');
     console.log('[SCRAPE] Chrome executable path:', process.env.PUPPETEER_EXECUTABLE_PATH || 'not set');
+    console.log('[SCRAPE] VERSION: 1.0.2 - Comprehensive Airbnb Community Scraper');
+    console.log('[SCRAPE] Build timestamp: 2025-06-21-19:35:00');
 
     // Test database connection
     try {
