@@ -5,22 +5,22 @@ export default function Home() {
     <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center">
       <div className="text-center">
         <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
-          Find Answers for Tour Vendors
+          Get Instant Help with OTA Issues
         </h1>
         <p className="mt-6 text-lg leading-8 text-gray-600">
-          Search through verified solutions from Airbnb, Viator, Booking.com, and more.
-          Save hours of manual searching with our centralized knowledge base.
+          Search verified solutions from Airbnb, Viator, Booking.com, and other OTAs. 
+          Save time with our centralized knowledge base — built for tour vendors.
         </p>
         <div className="mt-10 flex items-center justify-center gap-x-6">
           <Link
             href="/search"
-            className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors duration-200 hover:shadow-md"
           >
             Search Answers
           </Link>
           <Link
             href="/submit"
-            className="text-sm font-semibold leading-6 text-gray-900"
+            className="text-sm font-semibold leading-6 text-gray-900 hover:text-indigo-600 transition-colors duration-200 hover:underline"
           >
             Submit a Question <span aria-hidden="true">→</span>
           </Link>
