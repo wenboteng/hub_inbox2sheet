@@ -1,0 +1,6 @@
+1.0.1
+# Puppeteer Chrome detection fix
+# - Dynamic Chrome version detection
+# - System Chrome fallback
+# - Better error handling and debugging
+# - Clear job identification for cron jobs 

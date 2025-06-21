@@ -80,6 +80,13 @@ jobs:
         value: /opt/render/.cache/puppeteer
       - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
         value: false
+    buildFilter:
+      paths:
+        - package.json
+        - scripts/**
+        - src/**
+        - prisma/**
+        - VERSION
 
   # Scheduled job to run the Airbnb Community crawler daily at 4am UTC
   - type: cron
@@ -122,4 +129,11 @@ jobs:
       - key: PUPPETEER_CACHE_DIR
         value: /opt/render/.cache/puppeteer
       - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: false 
+        value: false
+    buildFilter:
+      paths:
+        - package.json
+        - scripts/**
+        - src/**
+        - prisma/**
+        - VERSION 
