@@ -3,7 +3,7 @@
 import { Page } from 'puppeteer';
 import * as cheerio from 'cheerio';
 import { PrismaClient } from '@prisma/client';
-import { getContentEmbeddings } from '../src/utils/openai';
+import { getContentEmbeddings, getEmbedding } from '../src/utils/openai';
 import { detectLanguage } from '../src/utils/languageDetection';
 import { slugify } from '../src/utils/slugify';
 import { createBrowser } from '../src/utils/puppeteer';
@@ -165,7 +165,7 @@ async function saveToDatabase(articles: Article[]): Promise<void> {
 
       for (const paragraph of paragraphs.slice(0, 5)) { // Limit to 5 paragraphs
         try {
-          const embedding = await getContentEmbeddings(paragraph);
+          const embedding = await getEmbedding(paragraph);
           paragraphsWithEmbeddings.push({ text: paragraph, embedding });
         } catch (error) {
           console.error(`[AIRBNB-COMMUNITY] Error generating embedding for paragraph:`, error);
@@ -194,7 +194,7 @@ async function saveToDatabase(articles: Article[]): Promise<void> {
           data: paragraphsWithEmbeddings.map(p => ({
             articleId: created.id,
             text: p.text,
-            embedding: p.embedding,
+            embedding: p.embedding as any, // Store as JSON
           })),
         });
         console.log(`[AIRBNB-COMMUNITY] Created ${paragraphsWithEmbeddings.length} paragraph embeddings`);
@@ -243,8 +243,8 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
         
         // Get all thread links
         const threadLinks = await page.$$eval(AIRBNB_COMMUNITY_CONFIG.selectors.threadLinks, links =>
-          links.map(link => ({
-            url: link.href,
+          links.map((link: Element) => ({
+            url: (link as HTMLAnchorElement).href,
             title: link.textContent?.trim() || '',
           }))
         );
@@ -309,40 +309,67 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
 
 // Main execution function
 async function runStandaloneCrawl() {
-  console.log('🚀 Starting Standalone Airbnb Community Crawl');
-  console.log('==============================================');
+  console.log('🚀 Starting AIRBNB HELP CENTER CRAWLER (Cron Job #1)');
+  console.log('===================================================');
+  console.log('📋 Job Type: Airbnb Help Center Article Crawler');
+  console.log('⏰ Schedule: Daily at 2am UTC');
+  console.log('🎯 Target: airbnb.com/help');
+  console.log('📊 Content Type: Official help center articles');
+  console.log('===================================================');
   console.log(`⏰ Started at: ${new Date().toISOString()}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🖥️  Platform: ${process.platform}`);
+  console.log(`📦 Node.js version: ${process.version}`);
+  console.log(`🔧 Job ID: AIRBNB-HELP-${Date.now()}`);
   
   try {
     const startTime = Date.now();
     
     // Run the scraper using the same pattern as the working Airbnb scraper
+    console.log('\n🕷️  Starting content scraping...');
     const articles = await scrapeAirbnbCommunity();
     
     // Save to database
     if (articles.length > 0) {
+      console.log('\n💾 Saving articles to database...');
       await saveToDatabase(articles);
     }
     
     const endTime = Date.now();
     const duration = Math.round((endTime - startTime) / 1000);
     
-    console.log('\n✅ Standalone Crawl Completed!');
-    console.log('===============================');
+    console.log('\n✅ AIRBNB HELP CENTER CRAWLER Completed!');
+    console.log('==========================================');
     console.log(`⏱️  Duration: ${duration} seconds (${Math.round(duration / 60)} minutes)`);
     console.log(`📝 Articles extracted: ${articles.length}`);
+    console.log(`🎯 Job Type: Help Center Article Crawler`);
     
     // Success/failure determination
     if (articles.length > 0) {
-      console.log('\n✅ CRAWL SUCCESSFUL - Content was extracted and saved to database');
+      console.log('\n✅ CRAWL SUCCESSFUL - Help center content was extracted and saved to database');
       process.exit(0);
     } else {
-      console.log('\n⚠️  CRAWL WARNING - No content was extracted. Check site structure.');
+      console.log('\n⚠️  CRAWL WARNING - No help center content was extracted. Check site structure.');
       process.exit(1);
     }
     
-  } catch (error) {
-    console.error('❌ Standalone crawl failed:', error);
+  } catch (error: unknown) {
+    console.error('\n❌ AIRBNB HELP CENTER CRAWLER failed:', error);
+    console.error('\n🔍 Debug information:');
+    console.error(`- Job Type: Help Center Article Crawler`);
+    console.error(`- Error type: ${error instanceof Error ? error.constructor.name : typeof error}`);
+    console.error(`- Error message: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`- Error stack: ${error instanceof Error ? error.stack : 'No stack trace available'}`);
+    
+    // Check if it's a Puppeteer-related error
+    if (error instanceof Error && error.message && error.message.includes('Chrome')) {
+      console.error('\n🚨 This appears to be a Chrome/Puppeteer setup issue.');
+      console.error('Common solutions:');
+      console.error('1. Ensure Chrome is properly installed');
+      console.error('2. Check cache directory permissions');
+      console.error('3. Verify Puppeteer version compatibility');
+    }
+    
     process.exit(1);
   }
 }

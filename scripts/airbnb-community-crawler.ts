@@ -255,12 +255,18 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
 
 // Main execution function
 async function runStandaloneCrawl() {
-  console.log('🚀 Starting Standalone Airbnb Community Crawl');
-  console.log('==============================================');
+  console.log('🚀 Starting AIRBNB COMMUNITY CRAWLER (Cron Job #2)');
+  console.log('==================================================');
+  console.log('📋 Job Type: Airbnb Community Forum Crawler');
+  console.log('⏰ Schedule: Daily at 4am UTC');
+  console.log('🎯 Target: community.withairbnb.com');
+  console.log('📊 Content Type: Community forum threads and replies');
+  console.log('==================================================');
   console.log(`⏰ Started at: ${new Date().toISOString()}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🖥️  Platform: ${process.platform}`);
   console.log(`📦 Node.js version: ${process.version}`);
+  console.log(`🔧 Job ID: AIRBNB-COMMUNITY-${Date.now()}`);
   
   try {
     const startTime = Date.now();
@@ -295,23 +301,25 @@ async function runStandaloneCrawl() {
     const endTime = Date.now();
     const duration = Math.round((endTime - startTime) / 1000);
     
-    console.log('\n✅ Standalone Crawl Completed!');
-    console.log('===============================');
+    console.log('\n✅ AIRBNB COMMUNITY CRAWLER Completed!');
+    console.log('========================================');
     console.log(`⏱️  Duration: ${duration} seconds (${Math.round(duration / 60)} minutes)`);
     console.log(`📝 Articles extracted: ${articles.length}`);
+    console.log(`🎯 Job Type: Community Forum Crawler`);
     
     // Success/failure determination
     if (articles.length > 0) {
-      console.log('\n✅ CRAWL SUCCESSFUL - Content was extracted and saved to database');
+      console.log('\n✅ CRAWL SUCCESSFUL - Community content was extracted and saved to database');
       process.exit(0);
     } else {
-      console.log('\n⚠️  CRAWL WARNING - No content was extracted. Check site structure.');
+      console.log('\n⚠️  CRAWL WARNING - No community content was extracted. Check site structure.');
       process.exit(1);
     }
     
   } catch (error: unknown) {
-    console.error('\n❌ Standalone crawl failed:', error);
+    console.error('\n❌ AIRBNB COMMUNITY CRAWLER failed:', error);
     console.error('\n🔍 Debug information:');
+    console.error(`- Job Type: Community Forum Crawler`);
     console.error(`- Error type: ${error instanceof Error ? error.constructor.name : typeof error}`);
     console.error(`- Error message: ${error instanceof Error ? error.message : String(error)}`);
     console.error(`- Error stack: ${error instanceof Error ? error.stack : 'No stack trace available'}`);
