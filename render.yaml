@@ -67,7 +67,7 @@ jobs:
       # Test Puppeteer setup
       echo "Testing Puppeteer setup..."
       npm run test:puppeteer-setup || echo "Puppeteer test failed, but continuing with crawl"
-    startCommand: npm run scrape
+    startCommand: npm run scrape:all
     envVars:
       - key: DATABASE_URL
         sync: false

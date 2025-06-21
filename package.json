@@ -12,6 +12,7 @@
     "postinstall": "prisma generate",
     "crawl": "ts-node src/crawl.ts",
     "scrape": "tsx src/scripts/scrape.ts",
+    "scrape:all": "tsx src/scripts/scrape.ts && tsx scripts/airbnb-community-crawler.ts",
     "recheck": "tsx src/scripts/recheck.ts",
     "discovery": "tsx src/scripts/discovery.ts",
     "community-discover": "tsx src/scripts/communityDiscover.ts",
