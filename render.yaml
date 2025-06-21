@@ -44,6 +44,7 @@ jobs:
     env: node
     schedule: "0 2 * * *"  # Run daily at 2am UTC
     buildCommand: |
+      # Build timestamp: 2025-06-21-12:30:00 - Force rebuild for Puppeteer fixes
       # Install Node.js dependencies
       npm install
       
@@ -94,6 +95,7 @@ jobs:
     env: node
     schedule: "0 4 * * *"  # Run daily at 4am UTC
     buildCommand: |
+      # Build timestamp: 2025-06-21-12:30:00 - Force rebuild for Puppeteer fixes
       # Install Node.js dependencies
       npm install
       
