@@ -135,7 +135,7 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
           const activePage = page;
           await activePage.setViewport({ width: 1280, height: 800 });
           await activePage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-          await activePage.setDefaultTimeout(60000);
+          await activePage.setDefaultTimeout(120000);
           await activePage.setRequestInterception(true);
           activePage.on('request', (request) => {
             if (['image', 'stylesheet', 'font', 'media'].includes(request.resourceType())) request.abort();
@@ -146,7 +146,7 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
             await dialog.dismiss();
           });
           console.log(`[SCRAPE][AIRBNB-COMMUNITY] Scraping category: ${categoryUrl}`);
-          await activePage.goto(categoryUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+          await activePage.goto(categoryUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
           const threadLinks = await activePage.$$eval('a[href*="/td-p/"], a[href*="/m-p/"]', (links) =>
             links.map((link: Element) => ({ url: (link as HTMLAnchorElement).href, title: link.textContent?.trim() || '' }))
           );
@@ -165,7 +165,7 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
           console.log(`[SCRAPE][AIRBNB-COMMUNITY] Found ${threadLinks.length} threads in ${categoryName}`);
           for (const { url, title } of threadLinks) {
             try {
-              await activePage.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+              await activePage.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
               const extracted = await activePage.evaluate(() => {
                 const titleElement = document.querySelector('.lia-message-subject, .page-title, .topic-title, h1, .lia-message-subject-text');
                 const contentElements = Array.from(document.querySelectorAll('.lia-message-body-content, .lia-message-body, .lia-message-content'));
