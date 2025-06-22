@@ -103,6 +103,16 @@ To keep your knowledge base fresh and growing, set up the following **Render Cro
 - `discovery`: Starts from index/category pages, finds new articles/threads, and adds them to the crawl queue.
 - `community-discover`: Crawls community forums, paginates through threads, and adds new user-generated content.
 
+### Expanding Discovery Sources
+
+Add more URLs to the `indexUrls` arrays in `src/scripts/discovery.ts` and
+`src/scripts/communityDiscover.ts` to cover additional help center sections or
+forum categories. After editing these files, regenerate the compiled scripts:
+
+```bash
+npm run build:scripts
+```
+
 ## Environment Variables
 
 Required environment variables:
