@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "OTA Answers - Find Solutions for Tour Vendors",
   description: "Centralized knowledge base for tour vendors across platforms like Airbnb, Viator, Booking.com, and more.",
+  icons: {
+    icon: '/favicon.png',
+  },
 };
 
 export default function RootLayout({
