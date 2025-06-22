@@ -10,9 +10,6 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "OTA Answers - Find Solutions for Tour Vendors",
   description: "Centralized knowledge base for tour vendors across platforms like Airbnb, Viator, Booking.com, and more.",
-  icons: {
-    icon: '/favicon.png',
-  },
 };
 
 export default function RootLayout({
@@ -23,7 +20,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="light">
       <head>
-        <link rel="icon" href="/favicon.png" type="image/png" />
         {/* Google Analytics */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-MNLM83KNT9"></script>
         <script
