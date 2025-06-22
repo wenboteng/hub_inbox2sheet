@@ -36,6 +36,9 @@ const PLATFORM_CONFIGS = {
     indexUrls: [
       'https://www.airbnb.com/help',
       'https://www.airbnb.com/help/article',
+      // Additional entry points to widen discovery
+      'https://www.airbnb.com/help/home',
+      'https://www.airbnb.com/help/topic/hosting',
     ],
     selectors: {
       articleLinks: 'a[href*="/help/article/"]',
@@ -48,6 +51,9 @@ const PLATFORM_CONFIGS = {
     indexUrls: [
       'https://supply.getyourguide.support/hc/en-us',
       'https://supply.getyourguide.support/hc/en-us/categories',
+      // Additional sections for more comprehensive crawling
+      'https://supply.getyourguide.support/hc/en-us/sections',
+      'https://supply.getyourguide.support/hc/en-us/community/topics',
     ],
     selectors: {
       articleLinks: 'a[href*="/articles/"]',
@@ -60,6 +66,9 @@ const PLATFORM_CONFIGS = {
     indexUrls: [
       'https://community.airbnb.com',
       'https://airhostsforum.com',
+      // Specific community categories for deeper discovery
+      'https://community.airbnb.com/t5/Help/bd-p/help',
+      'https://airhostsforum.com/c/airbnb-hosts',
     ],
     selectors: {
       threadLinks: 'a[href*="/t/"]',
