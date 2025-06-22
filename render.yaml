@@ -58,6 +58,7 @@ services:
         - next.config.js
         - render.yaml
 
+jobs:
   # Daily cron job to scrape all configured data sources
   - type: cron
     name: ota-answer-hub-crawler
