@@ -43,15 +43,14 @@ export default function RootLayout({
             <div className="flex justify-between h-16">
               <div className="flex">
                 <div className="flex-shrink-0 flex items-center">
-                  <Link href="/" className="flex items-center space-x-2 text-xl font-bold text-gray-900">
+                  <Link href="/" className="flex items-center">
                     <Image 
                       src="/logo.svg" 
                       alt="OTA Answers Logo" 
-                      width={32} 
-                      height={32}
-                      className="w-8 h-8"
+                      width={40} 
+                      height={40}
+                      className="w-10 h-10"
                     />
-                    <span>OTA Answers</span>
                   </Link>
                 </div>
                 <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -74,7 +73,7 @@ export default function RootLayout({
                   href="https://inbox2sheet.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200"
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
                 >
                   Powered by Inbox2Sheet
                 </Link>
@@ -150,7 +149,7 @@ export default function RootLayout({
                   href="https://inbox2sheet.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200"
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
                 >
                   Powered by Inbox2Sheet
                 </Link>
