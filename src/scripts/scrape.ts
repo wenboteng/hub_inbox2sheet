@@ -1,14 +1,15 @@
 import { PrismaClient } from '@prisma/client';
+import type { Page } from 'puppeteer';
 import { getContentEmbeddings } from '@/utils/openai';
 import { scrapeAirbnb } from '@/scripts/scrapers/airbnb';
 import { crawlGetYourGuideArticles, crawlGetYourGuideArticlesWithPagination } from '@/crawlers/getyourguide';
 import { scrapeCommunityUrls, getCommunityContentUrls } from '@/lib/communityCrawler';
-import { 
-  generateContentHash, 
-  checkContentDuplicate, 
+import {
+  generateContentHash,
+  checkContentDuplicate,
   markArticleAsDuplicate,
   getDeduplicationStats,
-  DEFAULT_DEDUP_CONFIG 
+  DEFAULT_DEDUP_CONFIG,
 } from '@/utils/contentDeduplication';
 import { isFeatureEnabled, getFeatureFlagsSummary } from '@/utils/featureFlags';
 import { detectLanguage } from '@/utils/languageDetection';
@@ -22,7 +23,7 @@ const URLs = [
   // GetYourGuide supplier help center articles
   'https://supply.getyourguide.support/hc/en-us/articles/13980989354141-Self-canceling-bookings',
   'https://supply.getyourguide.support/hc/en-us/articles/13980989354141-How-do-I-modify-a-booking',
-  'https://supply.getyourguide.support/hc/en-us/articles/13980989354141-How-do-I-issue-a-refund'
+  'https://supply.getyourguide.support/hc/en-us/articles/13980989354141-How-do-I-issue-a-refund',
 ];
 
 interface Article {
@@ -42,7 +43,7 @@ interface ParagraphWithEmbedding {
 // Function to get existing article URLs from database
 async function getExistingArticleUrls(): Promise<Set<string>> {
   const existingArticles = await prisma.article.findMany({
-    select: { url: true }
+    select: { url: true },
   });
   return new Set(existingArticles.map((a: { url: string }) => a.url));
 }
@@ -51,17 +52,17 @@ async function getExistingArticleUrls(): Promise<Set<string>> {
 async function logScrapingStats() {
   const totalArticles = await prisma.article.count();
   const officialArticles = await prisma.article.count({
-    where: { contentType: 'official' }
+    where: { contentType: 'official' },
   });
   const communityArticles = await prisma.article.count({
-    where: { contentType: 'community' }
+    where: { contentType: 'community' },
   });
-  
+
   const platformStats = await prisma.article.groupBy({
     by: ['platform'],
-    _count: { id: true }
+    _count: { id: true },
   });
-  
+
   console.log('\n📊 DATABASE STATISTICS:');
   console.log(`Total articles: ${totalArticles}`);
   console.log(`Official articles: ${officialArticles}`);
@@ -75,38 +76,38 @@ async function logScrapingStats() {
 // Enhanced debug function to validate article data
 function validateArticle(article: Article, platform: string): { isValid: boolean; issues: string[] } {
   const issues: string[] = [];
-  
+
   if (!article.url || article.url.trim() === '') {
     issues.push('Empty or missing URL');
   }
-  
+
   if (!article.question || article.question.trim() === '') {
     issues.push('Empty or missing question/title');
   }
-  
+
   if (!article.answer || article.answer.trim() === '') {
     issues.push('Empty or missing answer/content');
   }
-  
+
   if (article.answer && article.answer.length < 50) {
     issues.push(`Content too short (${article.answer.length} characters, minimum 50)`);
   }
-  
+
   if (!article.platform || article.platform.trim() === '') {
     issues.push('Empty or missing platform');
   }
-  
+
   if (!article.category || article.category.trim() === '') {
     issues.push('Empty or missing category');
   }
-  
+
   const isValid = issues.length === 0;
-  
+
   if (!isValid) {
     console.log(`[DEBUG][${platform}] Article validation failed for ${article.url}:`);
-    issues.forEach(issue => console.log(`[DEBUG][${platform}]   - ${issue}`));
+    issues.forEach((issue) => console.log(`[DEBUG][${platform}]   - ${issue}`));
   }
-  
+
   return { isValid, issues };
 }
 
@@ -114,7 +115,7 @@ function validateArticle(article: Article, platform: string): { isValid: boolean
 export async function scrapeAirbnbCommunity(): Promise<Article[]> {
   console.log('[SCRAPE][AIRBNB-COMMUNITY] Starting comprehensive Airbnb Community scraping...');
   const articles: Article[] = [];
-  
+
   try {
     const { createBrowser } = await import('@/utils/puppeteer');
     const browser = await createBrowser();
@@ -127,51 +128,58 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
         'https://community.withairbnb.com/t5/Guests/ct-p/guests',
         'https://community.withairbnb.com/t5/Experiences/ct-p/experiences',
       ];
-      
+
       console.log(`[SCRAPE][AIRBNB-COMMUNITY] Will scrape ${communityCategories.length} categories.`);
-      
-      let totalThreadsFound = 0;
-      let totalThreadsProcessed = 0;
-      
+
       const username = process.env.AIRBNB_USERNAME;
       const password = process.env.AIRBNB_PASSWORD;
 
-      // Only attempt login if credentials are provided
+      // Login once at the beginning of the browser session for efficiency
       if (username && password) {
+        let loginPage: Page | undefined;
         try {
+          loginPage = await browser.newPage();
           console.log('[SCRAPE][AIRBNB-COMMUNITY] Navigating to Airbnb login page...');
-          await browser.goto('https://www.airbnb.com/login', { waitUntil: 'networkidle0' });
-    
+          await loginPage.goto('https://www.airbnb.com/login', { waitUntil: 'networkidle0' });
+
           console.log('[SCRAPE][AIRBNB-COMMUNITY] Entering credentials...');
-          // This selector might need to be adjusted based on the current login form.
-          await browser.type('input[name="email"]', username);
-          await browser.click('button[type="submit"]');
-          
-          await browser.waitForNavigation({ waitUntil: 'networkidle0' });
-    
+          await loginPage.type('input[name="email"]', username);
+          await loginPage.click('button[type="submit"]');
+
+          await loginPage.waitForNavigation({ waitUntil: 'networkidle0' });
+
           console.log('[SCRAPE][AIRBNB-COMMUNITY] Entering password...');
-          await browser.type('input[name="password"]', password);
-          await browser.click('button[type="submit"]');
-    
-          await browser.waitForNavigation({ waitUntil: 'networkidle0' });
+          await loginPage.type('input[name="password"]', password);
+          await loginPage.click('button[type="submit"]');
+
+          await loginPage.waitForNavigation({ waitUntil: 'networkidle0' });
           console.log('[SCRAPE][AIRBNB-COMMUNITY] Login successful!');
-    
-        } catch(e) {
+        } catch (e) {
           console.error('[SCRAPE][AIRBNB-COMMUNITY] Login failed. Continuing without authentication.', e);
+        } finally {
+          if (loginPage) {
+            await loginPage.close();
+            console.log('[SCRAPE][AIRBNB-COMMUNITY] Login page closed.');
+          }
         }
       } else {
         console.log('[SCRAPE][AIRBNB-COMMUNITY] Credentials not found, skipping login.');
       }
 
+      let totalThreadsFound = 0;
+      let totalThreadsProcessed = 0;
+
       for (const categoryUrl of communityCategories) {
-        let page;
+        let page: Page | undefined;
         try {
           page = await browser.newPage();
-          
+
           await page.setViewport({ width: 1280, height: 800 });
-          await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+          await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          );
           await page.setDefaultTimeout(60000); // Increased timeout
-          
+
           // Enable request interception to block non-essential resources
           await page.setRequestInterception(true);
           page.on('request', (request) => {
@@ -181,9 +189,9 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
               request.continue();
             }
           });
-          
+
           // Auto-handle dialogs and popups
-          page.on('dialog', async dialog => {
+          page.on('dialog', async (dialog) => {
             console.log(`[PUPPETEER] Dismissing dialog: ${dialog.message()}`);
             await dialog.dismiss();
           });
@@ -199,10 +207,10 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
 
             for (const selector of cookieBanners) {
               try {
-                if (await page.$(selector)) {
+                if (await page?.$(selector)) {
                   console.log(`[PUPPETEER] Found cookie banner with selector: ${selector}. Clicking to dismiss.`);
                   await page.click(selector);
-                  await new Promise(r => setTimeout(r, 1000)); // Wait for banner to disappear
+                  await new Promise((r) => setTimeout(r, 1000)); // Wait for banner to disappear
                   return;
                 }
               } catch (e) {
@@ -213,10 +221,10 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
 
           console.log(`[SCRAPE][AIRBNB-COMMUNITY] Scraping category: ${categoryUrl}`);
           await page.goto(categoryUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
-          
+
           await dismissCookieBanners();
 
-          const threadLinks = await page.$$eval('a[href*="/td-p/"], a[href*="/m-p/"]', links =>
+          const threadLinks = await page.$$eval('a[href*="/td-p/"], a[href*="/m-p/"]', (links) =>
             links.map((link: Element) => ({
               url: (link as HTMLAnchorElement).href,
               title: link.textContent?.trim() || '',
@@ -241,14 +249,14 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
           let categoryName = 'Airbnb Community';
           for (let i = 0; i < pathParts.length; i++) {
             if (pathParts[i] === 't5' && pathParts[i + 1]) {
-              categoryName = pathParts[i + 1].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              categoryName = pathParts[i + 1].replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
               break;
             }
           }
-          
+
           console.log(`[SCRAPE][AIRBNB-COMMUNITY] Found ${threadLinks.length} threads in ${categoryName}`);
           totalThreadsFound += threadLinks.length;
-          
+
           // Process each thread (no limit for comprehensive scraping)
           for (const { url, title } of threadLinks) {
             try {
@@ -257,12 +265,16 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
 
               // Extract thread content
               const extracted = await page.evaluate(() => {
-                const titleElement = document.querySelector('.lia-message-subject, .page-title, .topic-title, h1, .lia-message-subject-text');
-                const contentElements = Array.from(document.querySelectorAll('.lia-message-body-content, .lia-message-body, .lia-message-content'));
-                
+                const titleElement = document.querySelector(
+                  '.lia-message-subject, .page-title, .topic-title, h1, .lia-message-subject-text'
+                );
+                const contentElements = Array.from(
+                  document.querySelectorAll('.lia-message-body-content, .lia-message-body, .lia-message-content')
+                );
+
                 const title = titleElement ? titleElement.textContent?.trim() || '' : '';
-                const content = contentElements.map(el => el.textContent?.trim() || '').join('\n');
-                
+                const content = contentElements.map((el) => el.textContent?.trim() || '').join('\n');
+
                 return { title, content };
               });
 
@@ -283,14 +295,13 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
             } catch (error) {
               console.error(`[SCRAPE][AIRBNB-COMMUNITY] Error scraping thread ${url}:`, error);
             }
-            
+
             // Add delay between requests to be respectful
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 1000));
           }
-          
+
           // Add delay between categories
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         } catch (error) {
           console.error(`[SCRAPE][AIRBNB-COMMUNITY] Error accessing category ${categoryUrl}:`, error);
         } finally {
@@ -300,12 +311,11 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
           }
         }
       }
-      
+
       console.log(`[SCRAPE][AIRBNB-COMMUNITY] Comprehensive scraping completed:`);
       console.log(`[SCRAPE][AIRBNB-COMMUNITY] - Total threads found: ${totalThreadsFound}`);
       console.log(`[SCRAPE][AIRBNB-COMMUNITY] - Total threads processed: ${totalThreadsProcessed}`);
       console.log(`[SCRAPE][AIRBNB-COMMUNITY] - Articles collected: ${articles.length}`);
-
     } finally {
       await browser.close();
       console.log('[SCRAPE][AIRBNB-COMMUNITY] Browser closed');
@@ -342,10 +352,10 @@ async function main() {
 
     // Log initial stats
     await logScrapingStats();
-    
+
     // Log feature flags configuration
     console.log(`\n[FEATURE_FLAGS] Feature flags summary: ${getFeatureFlagsSummary()}`);
-    
+
     // Log deduplication configuration
     console.log(`\n[DEDUP] Content deduplication: ${DEFAULT_DEDUP_CONFIG.enabled ? 'ENABLED' : 'DISABLED'}`);
     if (DEFAULT_DEDUP_CONFIG.enabled) {
@@ -361,18 +371,26 @@ async function main() {
     try {
       airbnbArticles = await scrapeAirbnb();
       console.log(`[SCRAPE] Airbnb scraping completed. Found ${airbnbArticles.length} articles`);
-      
+
       // Validate and filter articles
-      const validAirbnbArticles = airbnbArticles.filter(article => {
+      const validAirbnbArticles = airbnbArticles.filter((article) => {
         const validation = validateArticle(article, 'AIRBNB');
         return validation.isValid;
       });
-      
-      console.log(`[SCRAPE] Valid Airbnb articles: ${validAirbnbArticles.length} (${airbnbArticles.length - validAirbnbArticles.length} invalid)`);
-      
+
+      console.log(
+        `[SCRAPE] Valid Airbnb articles: ${validAirbnbArticles.length} (${
+          airbnbArticles.length - validAirbnbArticles.length
+        } invalid)`
+      );
+
       // Filter out already existing articles
-      const newAirbnbArticles = validAirbnbArticles.filter(article => !existingUrls.has(article.url));
-      console.log(`[SCRAPE] New Airbnb articles: ${newAirbnbArticles.length} (${validAirbnbArticles.length - newAirbnbArticles.length} already exist)`);
+      const newAirbnbArticles = validAirbnbArticles.filter((article) => !existingUrls.has(article.url));
+      console.log(
+        `[SCRAPE] New Airbnb articles: ${newAirbnbArticles.length} (${
+          validAirbnbArticles.length - newAirbnbArticles.length
+        } already exist)`
+      );
       airbnbArticles = newAirbnbArticles;
     } catch (airbnbError) {
       console.error('[SCRAPE] Airbnb scraping failed:', airbnbError);
@@ -385,11 +403,15 @@ async function main() {
       try {
         airbnbCommunityArticles = await scrapeAirbnbCommunity();
         console.log(`[SCRAPE] Airbnb Community scraping completed. Found ${airbnbCommunityArticles.length} articles`);
-        
-        const validAirbnbCommunityArticles = airbnbCommunityArticles.filter(article => validateArticle(article, 'AIRBNB-COMMUNITY').isValid);
+
+        const validAirbnbCommunityArticles = airbnbCommunityArticles.filter((article) =>
+          validateArticle(article, 'AIRBNB-COMMUNITY').isValid
+        );
         console.log(`[SCRAPE] Valid Airbnb Community articles: ${validAirbnbCommunityArticles.length}`);
-        
-        const newAirbnbCommunityArticles = validAirbnbCommunityArticles.filter(article => !existingUrls.has(article.url));
+
+        const newAirbnbCommunityArticles = validAirbnbCommunityArticles.filter(
+          (article) => !existingUrls.has(article.url)
+        );
         console.log(`[SCRAPE] New Airbnb Community articles: ${newAirbnbCommunityArticles.length}`);
         airbnbCommunityArticles = newAirbnbCommunityArticles;
       } catch (airbnbCommunityError) {
@@ -406,7 +428,7 @@ async function main() {
       if (isFeatureEnabled('enableGetYourGuidePagination')) {
         console.log('[SCRAPE] Using enhanced GetYourGuide crawler with pagination');
         const crawled = await crawlGetYourGuideArticlesWithPagination();
-        gygArticles = crawled.map(a => ({
+        gygArticles = crawled.map((a) => ({
           ...a,
           category: a.category || 'Help Center',
           contentType: 'official',
@@ -414,26 +436,34 @@ async function main() {
       } else {
         console.log('[SCRAPE] Using legacy GetYourGuide crawler (no pagination)');
         const crawled = await crawlGetYourGuideArticles();
-        gygArticles = crawled.map(a => ({
+        gygArticles = crawled.map((a) => ({
           ...a,
           category: 'Help Center',
           contentType: 'official',
         }));
       }
-      
+
       console.log(`[SCRAPE] GetYourGuide crawling completed. Found ${gygArticles.length} articles`);
-      
+
       // Validate and filter articles
-      const validGygArticles = gygArticles.filter(article => {
+      const validGygArticles = gygArticles.filter((article) => {
         const validation = validateArticle(article, 'GETYOURGUIDE');
         return validation.isValid;
       });
-      
-      console.log(`[SCRAPE] Valid GetYourGuide articles: ${validGygArticles.length} (${gygArticles.length - validGygArticles.length} invalid)`);
-      
+
+      console.log(
+        `[SCRAPE] Valid GetYourGuide articles: ${validGygArticles.length} (${
+          gygArticles.length - validGygArticles.length
+        } invalid)`
+      );
+
       // Filter out already existing articles
-      const newGygArticles = validGygArticles.filter(article => !existingUrls.has(article.url));
-      console.log(`[SCRAPE] New GetYourGuide articles: ${newGygArticles.length} (${validGygArticles.length - newGygArticles.length} already exist)`);
+      const newGygArticles = validGygArticles.filter((article) => !existingUrls.has(article.url));
+      console.log(
+        `[SCRAPE] New GetYourGuide articles: ${newGygArticles.length} (${
+          validGygArticles.length - newGygArticles.length
+        } already exist)`
+      );
       gygArticles = newGygArticles;
     } catch (gygError) {
       console.error('[SCRAPE] GetYourGuide crawling failed:', gygError);
@@ -453,17 +483,25 @@ async function main() {
           contentType: 'official',
         }));
         console.log(`[SCRAPE] Viator scraping completed. Found ${viatorArticles.length} articles`);
-        
+
         // Validate and filter articles
-        const validViatorArticles = viatorArticles.filter(article => {
+        const validViatorArticles = viatorArticles.filter((article) => {
           const validation = validateArticle(article, 'VIATOR');
           return validation.isValid;
         });
-        
-        console.log(`[SCRAPE] Valid Viator articles: ${validViatorArticles.length} (${viatorArticles.length - validViatorArticles.length} invalid)`);
-        
-        const newViatorArticles = validViatorArticles.filter(article => !existingUrls.has(article.url));
-        console.log(`[SCRAPE] New Viator articles: ${newViatorArticles.length} (${validViatorArticles.length - newViatorArticles.length} already exist)`);
+
+        console.log(
+          `[SCRAPE] Valid Viator articles: ${validViatorArticles.length} (${
+            viatorArticles.length - validViatorArticles.length
+          } invalid)`
+        );
+
+        const newViatorArticles = validViatorArticles.filter((article) => !existingUrls.has(article.url));
+        console.log(
+          `[SCRAPE] New Viator articles: ${newViatorArticles.length} (${
+            validViatorArticles.length - newViatorArticles.length
+          } already exist)`
+        );
         viatorArticles = newViatorArticles;
       } catch (viatorError) {
         console.error('[SCRAPE] Viator scraping failed:', viatorError);
@@ -478,7 +516,9 @@ async function main() {
 
     // Scrape community content
     if (isFeatureEnabled('enableCommunityCrawling')) {
-      console.log('\n[SCRAPE] Community crawling is enabled, but skipping generic community crawler to avoid conflicts with comprehensive Airbnb community scraper');
+      console.log(
+        '\n[SCRAPE] Community crawling is enabled, but skipping generic community crawler to avoid conflicts with comprehensive Airbnb community scraper'
+      );
       console.log('[SCRAPE] Airbnb community content is being handled by the dedicated Airbnb community scraper above');
       // Note: We're skipping the generic community crawler to avoid conflicts
       // The comprehensive Airbnb community scraper above handles all Airbnb community content
@@ -503,7 +543,7 @@ async function main() {
     let skippedCount = 0;
     let duplicateCount = 0;
     let errorCount = 0;
-    
+
     for (const article of articles) {
       try {
         // Double-check if article exists (in case it was added during this run)
@@ -513,7 +553,7 @@ async function main() {
           skippedCount++;
           continue;
         }
-        
+
         console.log(`[SCRAPE] Processing new article: ${article.question}`);
         console.log(`[SCRAPE] URL: ${article.url}`);
         console.log(`[SCRAPE] Platform: ${article.platform}`);
@@ -522,7 +562,7 @@ async function main() {
         // Generate content hash for deduplication
         const contentHash = generateContentHash(article.answer);
         let isDuplicate = false;
-        
+
         if (contentHash) {
           // Check for content duplicates
           const duplicateCheck = await checkContentDuplicate(contentHash);
@@ -537,7 +577,11 @@ async function main() {
 
         // Detect language of the content
         const languageDetection = detectLanguage(article.answer);
-        console.log(`[SCRAPE][LANG] Detected language: ${languageDetection.language} (confidence: ${languageDetection.confidence.toFixed(2)}, reliable: ${languageDetection.isReliable})`);
+        console.log(
+          `[SCRAPE][LANG] Detected language: ${languageDetection.language} (confidence: ${languageDetection.confidence.toFixed(
+            2
+          )}, reliable: ${languageDetection.isReliable})`
+        );
 
         // Generate embeddings for paragraphs
         let paragraphsWithEmbeddings: ParagraphWithEmbedding[] = [];
@@ -552,7 +596,7 @@ async function main() {
         // Generate slug and check for duplicates
         const generatedSlug = slugify(article.question);
         console.log(`[SCRAPE] Generated slug: ${generatedSlug}`);
-        
+
         // Check if slug already exists
         const existingSlug = await prisma.article.findUnique({ where: { slug: generatedSlug } });
         if (existingSlug) {
@@ -581,12 +625,16 @@ async function main() {
           },
         });
 
-        console.log(`[SCRAPE] Article created with ID: ${created.id}${isDuplicate ? ' (marked as duplicate)' : ''} [Language: ${languageDetection.language}]`);
+        console.log(
+          `[SCRAPE] Article created with ID: ${created.id}${
+            isDuplicate ? ' (marked as duplicate)' : ''
+          } [Language: ${languageDetection.language}]`
+        );
 
         // Create paragraphs if embeddings were generated
         if (paragraphsWithEmbeddings.length > 0) {
           await prisma.articleParagraph.createMany({
-            data: paragraphsWithEmbeddings.map(p => ({
+            data: paragraphsWithEmbeddings.map((p) => ({
               articleId: created.id,
               text: p.text,
               embedding: p.embedding,
@@ -612,7 +660,7 @@ async function main() {
 
     // Log final stats including deduplication
     await logScrapingStats();
-    
+
     // Log deduplication statistics
     if (DEFAULT_DEDUP_CONFIG.enabled) {
       const dedupStats = await getDeduplicationStats();
