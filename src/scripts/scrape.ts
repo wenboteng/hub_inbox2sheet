@@ -110,7 +110,7 @@ function validateArticle(article: Article, platform: string): { isValid: boolean
 }
 
 // Comprehensive Airbnb Community scraping function
-async function scrapeAirbnbCommunity(): Promise<Article[]> {
+export async function scrapeAirbnbCommunity(): Promise<Article[]> {
   console.log('[SCRAPE][AIRBNB-COMMUNITY] Starting comprehensive Airbnb Community scraping...');
   const articles: Article[] = [];
   
