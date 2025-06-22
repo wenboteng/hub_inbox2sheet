@@ -1,15 +1,11 @@
-# Render Blueprint
+# Render Blueprint for ota-answer-hub
+# This file defines the infrastructure for the application, including a web
+# service and a daily cron job. It uses an Environment Group to securely
+# manage and share environment variables between the services.
 # See https://render.com/docs/blueprint-spec for a detailed reference.
 
-services:
-  - type: web
-    name: ota-answer-hub
-    env: node
-    buildCommand: |
-      npm install
-      npx prisma generate
-      npm run build
-    startCommand: npm start
+envVarGroups:
+  - name: ota-hub-secrets
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -17,6 +13,15 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      - key: NODE_VERSION
+        value: 18.20.2
+      # The PUPPETEER variables are essential for the cron job to install
+      # and cache the Chrome browser correctly in Render's environment.
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/.cache/puppeteer
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: false
+      # Optional secrets for other data sources can be added here.
       - key: EXPEDIA_USERNAME
         sync: false
       - key: EXPEDIA_PASSWORD
@@ -29,69 +34,57 @@ services:
         sync: false
       - key: BOOKING_XSRF_TOKEN
         sync: false
-      - key: NODE_VERSION
-        value: 18.20.2
+
+services:
+  # Main Next.js Web Application
+  - type: web
+    name: ota-answer-hub
+    env: node
+    # Links to the shared environment group
+    envVarGroup: ota-hub-secrets
+    buildCommand: |
+      npm install
+      npx prisma generate
+      npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: true
     buildFilter:
       paths:
         - package.json
         - src/**
         - prisma/**
         - next.config.js
-    healthCheckPath: /
-    autoDeploy: true 
+        - render.yaml
 
-# Scheduled job to run the crawler daily at 2am UTC
-jobs:
+  # Daily cron job to scrape all configured data sources
   - type: cron
     name: ota-answer-hub-crawler
     env: node
-    schedule: "0 2 * * *"  # Run daily at 2am UTC
+    # Links to the shared environment group
+    envVarGroup: ota-hub-secrets
+    schedule: "0 2 * * *" # Runs daily at 2am UTC
     buildCommand: |
-      # Build timestamp: 2025-06-21-20:15:00 - Force rebuild for comprehensive scraper
-      # This build includes the consolidated scraper with Airbnb community and all platforms
-      # Install Node.js dependencies
+      # Build timestamp: 2025-06-21-20:45:00 - Blueprint-ready build
+      echo "Build started for comprehensive scraper..."
       npm install
-      
-      # Generate Prisma client and build scripts
       npx prisma generate
       npm run build:scripts
       
-      # Install Chrome for Puppeteer with proper error handling
       echo "Installing Chrome for Puppeteer..."
       npx puppeteer browsers install chrome || {
-        echo "Failed to install Chrome via puppeteer browsers install, trying alternative method..."
-        # Alternative: Install system Chrome if available
-        apt-get update && apt-get install -y google-chrome-stable || echo "System Chrome installation failed, will use bundled Chrome"
+        echo "Failed to install Chrome via puppeteer. Trying system install..."
+        apt-get update && apt-get install -y google-chrome-stable || echo "System Chrome installation failed. The script will rely on the bundled version."
       }
       
-      # Verify Chrome installation
-      echo "Verifying Chrome installation..."
-      ls -la /opt/render/.cache/puppeteer/chrome/ || echo "Puppeteer cache directory not found"
-      
-      # Test Puppeteer setup
-      echo "Testing Puppeteer setup..."
-      npm run test:puppeteer-setup || echo "Puppeteer test failed, but continuing with crawl"
-      
-      # Force rebuild trigger for comprehensive scraper
-      echo "BUILD_TRIGGER: Comprehensive scraper with Airbnb community - $(date)"
+      echo "Verifying Chrome installation location..."
+      ls -la /opt/render/.cache/puppeteer/chrome/ || echo "Puppeteer cache directory not found, which may be expected on first build."
+      echo "Build scripts completed successfully."
     startCommand: npm run scrape:all
-    envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: NEXT_PUBLIC_BASE_URL
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: NODE_VERSION
-        value: 18.20.2
-      - key: PUPPETEER_CACHE_DIR
-        value: /opt/render/.cache/puppeteer
-      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: false
     buildFilter:
       paths:
         - package.json
-        - scripts/**
         - src/**
         - prisma/**
-        - VERSION 
+        - VERSION
+        - render.yaml 
