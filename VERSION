@@ -1,4 +1,5 @@
-1.0.2
+1.0.3 - Comprehensive Airbnb Community Scraper with Test Script
+Build timestamp: 2025-06-21-20:15:00
 # Comprehensive Airbnb Community Scraper
 # - Crawls entire Airbnb community site across all categories
 # - No thread limits - processes all threads found
@@ -10,4 +11,10 @@
 # - Dynamic Chrome version detection
 # - System Chrome fallback
 # - Better error handling and debugging
-# - Clear job identification for cron jobs 
+# Clear job identification for cron jobs 
+# - Consolidated Airbnb community scraping into main scrape.ts
+# - Added test script for focused Airbnb community testing
+# - Updated package.json with new test command
+# - Removed old separate cron job files
+# - Feature flags enabled for community crawling
+# - Ready for production cron job deployment 
