@@ -67,6 +67,7 @@ services:
     name: ota-answer-hub-crawler
     runtime: node
     schedule: "0 2 * * *" # Runs daily at 2am UTC
+    autoDeploy: true
     buildCommand: |
       # Build timestamp: 2025-06-21-20:45:00 - Blueprint-ready build
       echo "Build started for comprehensive scraper..."
