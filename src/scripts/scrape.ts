@@ -173,16 +173,18 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
         let page: Page | undefined;
         try {
           page = await browser.newPage();
+          // This is the page object that is guaranteed to be defined within this scope
+          const activePage = page; 
 
-          await page.setViewport({ width: 1280, height: 800 });
-          await page.setUserAgent(
+          await activePage.setViewport({ width: 1280, height: 800 });
+          await activePage.setUserAgent(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
           );
-          await page.setDefaultTimeout(60000); // Increased timeout
+          await activePage.setDefaultTimeout(60000); // Increased timeout
 
           // Enable request interception to block non-essential resources
-          await page.setRequestInterception(true);
-          page.on('request', (request) => {
+          await activePage.setRequestInterception(true);
+          activePage.on('request', (request) => {
             if (['image', 'stylesheet', 'font', 'media'].includes(request.resourceType())) {
               request.abort();
             } else {
@@ -191,7 +193,7 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
           });
 
           // Auto-handle dialogs and popups
-          page.on('dialog', async (dialog) => {
+          activePage.on('dialog', async (dialog) => {
             console.log(`[PUPPETEER] Dismissing dialog: ${dialog.message()}`);
             await dialog.dismiss();
           });
@@ -207,9 +209,9 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
 
             for (const selector of cookieBanners) {
               try {
-                if (await page?.$(selector)) {
+                if (await activePage.$(selector)) {
                   console.log(`[PUPPETEER] Found cookie banner with selector: ${selector}. Clicking to dismiss.`);
-                  await page.click(selector);
+                  await activePage.click(selector);
                   await new Promise((r) => setTimeout(r, 1000)); // Wait for banner to disappear
                   return;
                 }
@@ -220,11 +222,11 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
           };
 
           console.log(`[SCRAPE][AIRBNB-COMMUNITY] Scraping category: ${categoryUrl}`);
-          await page.goto(categoryUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+          await activePage.goto(categoryUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
           await dismissCookieBanners();
 
-          const threadLinks = await page.$$eval('a[href*="/td-p/"], a[href*="/m-p/"]', (links) =>
+          const threadLinks = await activePage.$$eval('a[href*="/td-p/"], a[href*="/m-p/"]', (links) =>
             links.map((link: Element) => ({
               url: (link as HTMLAnchorElement).href,
               title: link.textContent?.trim() || '',
@@ -235,7 +237,7 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
             console.log(`[PUPPETEER] No thread links found on ${categoryUrl}. The page might be blocked or empty.`);
             console.log('[PUPPETEER] Dumping page HTML for debugging...');
             try {
-              const pageContent = await page.content();
+              const pageContent = await activePage.content();
               console.log(pageContent);
             } catch (e) {
               console.error('[PUPPETEER] Failed to get page content.', e);
@@ -261,10 +263,10 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
           for (const { url, title } of threadLinks) {
             try {
               console.log(`[SCRAPE][AIRBNB-COMMUNITY] Scraping thread: ${title} (${url})`);
-              await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+              await activePage.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
               // Extract thread content
-              const extracted = await page.evaluate(() => {
+              const extracted = await activePage.evaluate(() => {
                 const titleElement = document.querySelector(
                   '.lia-message-subject, .page-title, .topic-title, h1, .lia-message-subject-text'
                 );
