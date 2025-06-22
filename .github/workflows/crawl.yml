@@ -2,8 +2,8 @@ name: Crawl OTA Help Centers
 
 on:
   schedule:
-    # Runs every day at 2am UTC; for testing, use '*/20 * * * *' for every 20 minutes
-    - cron: '0 2 * * *'
+    # Runs every hour
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 jobs:
