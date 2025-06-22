@@ -24,6 +24,18 @@ export default function RootLayout({
     <html lang="en" className="light">
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" />
+        {/* Google Analytics */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-MNLM83KNT9"></script>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-MNLM83KNT9');
+            `,
+          }}
+        />
       </head>
       <body className={`${inter.className} bg-white text-gray-900 flex flex-col min-h-screen`}>
         <nav className="bg-white shadow-sm">

@@ -54,8 +54,13 @@ export default function PrivacyPolicy() {
         </ul>
         <p>To exercise your rights, please contact us at <a href="mailto:info@otaanswers.com" className="text-indigo-600 hover:text-indigo-500">info@otaanswers.com</a>.</p>
 
-        <h2>6. Cookies</h2>
-        <p>We use cookies to track user interactions and improve our services. You can control or disable cookies through your browser settings.</p>
+        <h2>6. Cookies and Analytics</h2>
+        <p>We use cookies and tracking technologies to enhance user experience and monitor traffic. Specifically, we use:</p>
+        <ul>
+          <li><strong>Google Analytics:</strong> We use Google Analytics (GA4) to understand how visitors interact with our website. Google Analytics may collect information such as your IP address, browser type, pages visited, and time spent on pages. This data helps us improve our services and user experience.</li>
+          <li><strong>Essential Cookies:</strong> These are necessary for the website to function properly and cannot be disabled.</li>
+        </ul>
+        <p>You can control or disable cookies through your browser settings. To opt out of Google Analytics tracking, you can install the <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-500">Google Analytics Opt-out Browser Add-on</a>.</p>
 
         <h2>7. Updates to This Policy</h2>
         <p>This Privacy Policy may be updated from time to time. We encourage you to review it periodically. Any changes will be posted on this page with an updated effective date.</p>
