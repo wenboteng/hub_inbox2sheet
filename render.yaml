@@ -74,7 +74,7 @@ jobs:
       
       # Force rebuild trigger for comprehensive Airbnb community scraper
       echo "BUILD_TRIGGER: Comprehensive Airbnb community scraper - $(date)"
-    startCommand: npm run scrape:all
+    startCommand: npm run scrape:airbnb-community
     envVars:
       - key: DATABASE_URL
         sync: false
