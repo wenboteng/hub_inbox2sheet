@@ -66,6 +66,7 @@ services:
   - type: cron
     name: ota-answer-hub-crawler
     runtime: node
+    plan: starter
     schedule: "0 2 * * *" # Runs daily at 2am UTC
     autoDeploy: true
     buildCommand: |

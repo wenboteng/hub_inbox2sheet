@@ -121,51 +121,6 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
     console.log('[SCRAPE][AIRBNB-COMMUNITY] Browser created successfully');
 
     try {
-      const page = await browser.newPage();
-      
-      await page.setViewport({ width: 1280, height: 800 });
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-      await page.setDefaultTimeout(60000); // Increased timeout
-      
-      // Enable request interception to block non-essential resources
-      await page.setRequestInterception(true);
-      page.on('request', (request) => {
-        if (['image', 'stylesheet', 'font', 'media'].includes(request.resourceType())) {
-          request.abort();
-        } else {
-          request.continue();
-        }
-      });
-      
-      // Auto-handle dialogs and popups
-      page.on('dialog', async dialog => {
-        console.log(`[PUPPETEER] Dismissing dialog: ${dialog.message()}`);
-        await dialog.dismiss();
-      });
-
-      // Function to dismiss cookie banners
-      const dismissCookieBanners = async () => {
-        const cookieBanners = [
-          'button[data-testid="accept-btn"]',
-          'button:contains("Accept all")',
-          'button:contains("I agree")',
-          'button#onetrust-accept-btn-handler',
-        ];
-
-        for (const selector of cookieBanners) {
-          try {
-            if (await page.$(selector)) {
-              console.log(`[PUPPETEER] Found cookie banner with selector: ${selector}. Clicking to dismiss.`);
-              await page.click(selector);
-              await new Promise(r => setTimeout(r, 1000)); // Wait for banner to disappear
-              return;
-            }
-          } catch (e) {
-            // Ignore if selector not found
-          }
-        }
-      };
-
       const communityCategories = [
         'https://community.withairbnb.com/t5/Community-Center/ct-p/community-center',
         'https://community.withairbnb.com/t5/Hosting/ct-p/hosting',
@@ -185,22 +140,22 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
       if (username && password) {
         try {
           console.log('[SCRAPE][AIRBNB-COMMUNITY] Navigating to Airbnb login page...');
-          await page.goto('https://www.airbnb.com/login', { waitUntil: 'networkidle0' });
-  
+          await browser.goto('https://www.airbnb.com/login', { waitUntil: 'networkidle0' });
+    
           console.log('[SCRAPE][AIRBNB-COMMUNITY] Entering credentials...');
           // This selector might need to be adjusted based on the current login form.
-          await page.type('input[name="email"]', username);
-          await page.click('button[type="submit"]');
+          await browser.type('input[name="email"]', username);
+          await browser.click('button[type="submit"]');
           
-          await page.waitForNavigation({ waitUntil: 'networkidle0' });
-  
+          await browser.waitForNavigation({ waitUntil: 'networkidle0' });
+    
           console.log('[SCRAPE][AIRBNB-COMMUNITY] Entering password...');
-          await page.type('input[name="password"]', password);
-          await page.click('button[type="submit"]');
-  
-          await page.waitForNavigation({ waitUntil: 'networkidle0' });
+          await browser.type('input[name="password"]', password);
+          await browser.click('button[type="submit"]');
+    
+          await browser.waitForNavigation({ waitUntil: 'networkidle0' });
           console.log('[SCRAPE][AIRBNB-COMMUNITY] Login successful!');
-  
+    
         } catch(e) {
           console.error('[SCRAPE][AIRBNB-COMMUNITY] Login failed. Continuing without authentication.', e);
         }
@@ -209,7 +164,53 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
       }
 
       for (const categoryUrl of communityCategories) {
+        let page;
         try {
+          page = await browser.newPage();
+          
+          await page.setViewport({ width: 1280, height: 800 });
+          await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+          await page.setDefaultTimeout(60000); // Increased timeout
+          
+          // Enable request interception to block non-essential resources
+          await page.setRequestInterception(true);
+          page.on('request', (request) => {
+            if (['image', 'stylesheet', 'font', 'media'].includes(request.resourceType())) {
+              request.abort();
+            } else {
+              request.continue();
+            }
+          });
+          
+          // Auto-handle dialogs and popups
+          page.on('dialog', async dialog => {
+            console.log(`[PUPPETEER] Dismissing dialog: ${dialog.message()}`);
+            await dialog.dismiss();
+          });
+
+          // Function to dismiss cookie banners
+          const dismissCookieBanners = async () => {
+            const cookieBanners = [
+              'button[data-testid="accept-btn"]',
+              'button:contains("Accept all")',
+              'button:contains("I agree")',
+              'button#onetrust-accept-btn-handler',
+            ];
+
+            for (const selector of cookieBanners) {
+              try {
+                if (await page.$(selector)) {
+                  console.log(`[PUPPETEER] Found cookie banner with selector: ${selector}. Clicking to dismiss.`);
+                  await page.click(selector);
+                  await new Promise(r => setTimeout(r, 1000)); // Wait for banner to disappear
+                  return;
+                }
+              } catch (e) {
+                // Ignore if selector not found
+              }
+            }
+          };
+
           console.log(`[SCRAPE][AIRBNB-COMMUNITY] Scraping category: ${categoryUrl}`);
           await page.goto(categoryUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
           
@@ -292,6 +293,11 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
           
         } catch (error) {
           console.error(`[SCRAPE][AIRBNB-COMMUNITY] Error accessing category ${categoryUrl}:`, error);
+        } finally {
+          if (page) {
+            await page.close();
+            console.log(`[SCRAPE][AIRBNB-COMMUNITY] Page closed for category: ${categoryUrl}`);
+          }
         }
       }
       
