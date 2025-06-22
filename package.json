@@ -33,6 +33,7 @@
     "@heroicons/react": "^2.1.1",
     "@meilisearch/instant-meilisearch": "^0.12.0",
     "@prisma/client": "^5.22.0",
+    "@tailwindcss/typography": "^0.5.16",
     "@types/react": "^18.2.61",
     "@types/react-dom": "^18.2.19",
     "autoprefixer": "^10.4.21",
