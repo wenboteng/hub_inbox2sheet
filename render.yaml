@@ -34,6 +34,10 @@ envVarGroups:
         sync: false
       - key: BOOKING_XSRF_TOKEN
         sync: false
+      - key: AIRBNB_USERNAME
+        sync: false
+      - key: AIRBNB_PASSWORD
+        sync: false
 
 services:
   # Main Next.js Web Application

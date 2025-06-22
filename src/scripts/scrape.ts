@@ -178,6 +178,38 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
       let totalThreadsFound = 0;
       let totalThreadsProcessed = 0;
       
+      // Login to Airbnb
+      try {
+        console.log('[SCRAPE][AIRBNB-COMMUNITY] Navigating to Airbnb login page...');
+        await page.goto('https://www.airbnb.com/login', { waitUntil: 'networkidle0' });
+
+        const username = process.env.AIRBNB_USERNAME;
+        const password = process.env.AIRBNB_PASSWORD;
+
+        if (!username || !password) {
+          throw new Error('AIRBNB_USERNAME and AIRBNB_PASSWORD must be set in environment variables.');
+        }
+
+        console.log('[SCRAPE][AIRBNB-COMMUNITY] Entering credentials...');
+        // This selector might need to be adjusted based on the current login form.
+        await page.type('input[name="email"]', username);
+        await page.click('button[type="submit"]');
+        
+        await page.waitForNavigation({ waitUntil: 'networkidle0' });
+
+        console.log('[SCRAPE][AIRBNB-COMMUNITY] Entering password...');
+        await page.type('input[name="password"]', password);
+        await page.click('button[type="submit"]');
+
+        await page.waitForNavigation({ waitUntil: 'networkidle0' });
+        console.log('[SCRAPE][AIRBNB-COMMUNITY] Login successful!');
+
+      } catch(e) {
+        console.error('[SCRAPE][AIRBNB-COMMUNITY] Login failed. The community scraper will likely fail.', e);
+        // We can choose to throw the error or continue and let it fail on scraping.
+        // Continuing allows other parts of the scrape to run if this part is broken.
+      }
+
       for (const categoryUrl of communityCategories) {
         try {
           console.log(`[SCRAPE][AIRBNB-COMMUNITY] Scraping category: ${categoryUrl}`);
