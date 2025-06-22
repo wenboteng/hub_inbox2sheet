@@ -93,4 +93,6 @@ services:
         - src/**
         - prisma/**
         - VERSION
-        - render.yaml 
+        - render.yaml
+        - tsconfig.json
+        - tsconfig.scripts.json 
