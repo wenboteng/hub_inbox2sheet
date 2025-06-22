@@ -31,6 +31,7 @@ interface Article {
   answer: string;
   platform: string;
   category: string;
+  contentType: 'official' | 'community';
 }
 
 interface ParagraphWithEmbedding {
@@ -241,6 +242,7 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
                   answer: extracted.content,
                   platform: 'Airbnb',
                   category: categoryName,
+                  contentType: 'community',
                 });
                 console.log(`[SCRAPE][AIRBNB-COMMUNITY] Successfully scraped thread: ${extracted.title}`);
                 totalThreadsProcessed++;
@@ -371,6 +373,7 @@ async function main() {
         gygArticles = crawled.map(a => ({
           ...a,
           category: a.category || 'Help Center',
+          contentType: 'official',
         }));
       } else {
         console.log('[SCRAPE] Using legacy GetYourGuide crawler (no pagination)');
@@ -378,6 +381,7 @@ async function main() {
         gygArticles = crawled.map(a => ({
           ...a,
           category: 'Help Center',
+          contentType: 'official',
         }));
       }
       
@@ -410,6 +414,7 @@ async function main() {
           ...a,
           platform: 'Viator',
           category: a.category || 'Help Center',
+          contentType: 'official',
         }));
         console.log(`[SCRAPE] Viator scraping completed. Found ${viatorArticles.length} articles`);
         
@@ -532,7 +537,7 @@ async function main() {
             answer: article.answer,
             category: article.category,
             platform: article.platform,
-            contentType: 'official',
+            contentType: article.contentType,
             source: 'help_center',
             contentHash: contentHash || null,
             isDuplicate: isDuplicate,

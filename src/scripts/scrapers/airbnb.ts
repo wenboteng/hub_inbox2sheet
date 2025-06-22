@@ -8,6 +8,7 @@ interface Article {
   answer: string;
   platform: string;
   category: string;
+  contentType: 'official' | 'community';
 }
 
 // List of known Airbnb help articles to scrape
@@ -173,6 +174,7 @@ export async function scrapeAirbnb(): Promise<Article[]> {
                 answer: extracted.content,
                 platform: 'Airbnb',
                 category: extracted.category,
+                contentType: 'official',
               });
               console.log(`[AIRBNB] Successfully scraped article: ${extracted.title}`);
             } else {
@@ -206,6 +208,7 @@ export async function scrapeAirbnb(): Promise<Article[]> {
                 answer: extracted.content,
                 platform: 'Airbnb',
                 category: extracted.category,
+                contentType: 'official',
               });
               console.log(`[AIRBNB] Successfully scraped known article: ${extracted.title}`);
             } else {
@@ -248,6 +251,7 @@ export async function scrapeAirbnb(): Promise<Article[]> {
                   answer: extracted.content,
                   platform: 'Airbnb',
                   category: extracted.category,
+                  contentType: 'official',
                 });
                 console.log(`[AIRBNB] Successfully scraped search result: ${extracted.title}`);
               }
