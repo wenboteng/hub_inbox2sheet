@@ -14,13 +14,13 @@ envVarGroups:
       - key: OPENAI_API_KEY
         sync: false
       - key: NODE_VERSION
-        value: 18.20.2
+        value: "18.20.2"
       # The PUPPETEER variables are essential for the cron job to install
       # and cache the Chrome browser correctly in Render's environment.
       - key: PUPPETEER_CACHE_DIR
         value: /opt/render/.cache/puppeteer
       - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: false
+        value: "false"
       # Optional secrets for other data sources can be added here.
       - key: EXPEDIA_USERNAME
         sync: false
@@ -39,10 +39,7 @@ services:
   # Main Next.js Web Application
   - type: web
     name: ota-answer-hub
-    env: node
-    # Links to the shared environment group
-    envFrom:
-      - envGroup: ota-hub-secrets
+    runtime: node
     buildCommand: |
       npm install
       npx prisma generate
@@ -52,20 +49,19 @@ services:
     autoDeploy: true
     buildFilter:
       paths:
-        - package.json
-        - src/**
-        - prisma/**
-        - next.config.js
-        - render.yaml
+        - "src/**"
+        - "prisma/**"
+        - "public/**"
+        - "package.json"
+        - "next.config.js"
+        - "render.yaml"
+    envVars:
+      - fromGroup: ota-hub-secrets
 
-jobs:
   # Daily cron job to scrape all configured data sources
   - type: cron
     name: ota-answer-hub-crawler
-    env: node
-    # Links to the shared environment group
-    envFrom:
-      - envGroup: ota-hub-secrets
+    runtime: node
     schedule: "0 2 * * *" # Runs daily at 2am UTC
     buildCommand: |
       # Build timestamp: 2025-06-21-20:45:00 - Blueprint-ready build
@@ -84,6 +80,8 @@ jobs:
       ls -la /opt/render/.cache/puppeteer/chrome/ || echo "Puppeteer cache directory not found, which may be expected on first build."
       echo "Build scripts completed successfully."
     startCommand: npm run scrape:all
+    envVars:
+      - fromGroup: ota-hub-secrets
     buildFilter:
       paths:
         - package.json
