@@ -30,6 +30,8 @@ const COMMUNITY_CONFIGS = {
             'https://community.airbnb.com/c/hosting/',
             'https://community.airbnb.com/c/experiences/',
             'https://community.airbnb.com/c/guest/',
+            // Additional boards for broader coverage
+            'https://community.airbnb.com/t5/Help/bd-p/help',
         ],
         selectors: {
             threadLinks: 'a[href*="/t/"]',
@@ -45,6 +47,8 @@ const COMMUNITY_CONFIGS = {
         indexUrls: [
             'https://airhostsforum.com/categories',
             'https://airhostsforum.com/latest',
+            // Dive directly into the Airbnb hosts category
+            'https://airhostsforum.com/c/airbnb-hosts',
         ],
         selectors: {
             threadLinks: 'a[href*="/t/"]',
