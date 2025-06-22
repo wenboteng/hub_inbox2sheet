@@ -33,6 +33,28 @@ interface ParagraphWithEmbedding {
   embedding: number[];
 }
 
+// Helper function to setup a page
+async function setupPage(page: Page) {
+  await page.setViewport({
+    width: 1280,
+    height: 800
+  });
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+  await page.setDefaultTimeout(120000);
+  await page.setRequestInterception(true);
+  page.on('request', (request) => {
+    if (['image', 'stylesheet', 'font', 'media'].includes(request.resourceType())) {
+      request.abort();
+    } else {
+      request.continue();
+    }
+  });
+  page.on('dialog', async (dialog) => {
+    console.log(`[PUPPETEER] Dismissing dialog: ${dialog.message()}`);
+    await dialog.dismiss();
+  });
+}
+
 // Function to get existing article URLs from database
 async function getExistingArticleUrls(): Promise<Set<string>> {
   const existingArticles = await prisma.article.findMany({
@@ -129,68 +151,72 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
         console.log('[SCRAPE][AIRBNB-COMMUNITY] Credentials not found, skipping login.');
       }
       for (const categoryUrl of communityCategories) {
-        let page: Page | undefined;
+        let threadLinks: { url: string; title: string }[] = [];
+        let categoryName = 'Airbnb Community';
+        let categoryPage: Page | undefined;
+
         try {
-          page = await browser.newPage();
-          const activePage = page;
-          await activePage.setViewport({ width: 1280, height: 800 });
-          await activePage.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-          await activePage.setDefaultTimeout(120000);
-          await activePage.setRequestInterception(true);
-          activePage.on('request', (request) => {
-            if (['image', 'stylesheet', 'font', 'media'].includes(request.resourceType())) request.abort();
-            else request.continue();
-          });
-          activePage.on('dialog', async (dialog) => {
-            console.log(`[PUPPETEER] Dismissing dialog: ${dialog.message()}`);
-            await dialog.dismiss();
-          });
+          categoryPage = await browser.newPage();
+          await setupPage(categoryPage);
+
           console.log(`[SCRAPE][AIRBNB-COMMUNITY] Scraping category: ${categoryUrl}`);
-          await activePage.goto(categoryUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
-          const threadLinks = await activePage.$$eval('a[href*="/td-p/"], a[href*="/m-p/"]', (links) =>
-            links.map((link: Element) => ({ url: (link as HTMLAnchorElement).href, title: link.textContent?.trim() || '' }))
+          await categoryPage.goto(categoryUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
+
+          threadLinks = await categoryPage.$$eval('a[href*="/td-p/"], a[href*="/m-p/"]', (links) =>
+            links.map((link: Element) => ({
+              url: (link as HTMLAnchorElement).href,
+              title: link.textContent?.trim() || ''
+            }))
           );
           if (threadLinks.length === 0) {
             console.log(`[PUPPETEER] No thread links found on ${categoryUrl}. Page might be blocked or empty.`);
           }
           const urlObj = new URL(categoryUrl);
           const pathParts = urlObj.pathname.split('/');
-          let categoryName = 'Airbnb Community';
           for (let i = 0; i < pathParts.length; i++) {
             if (pathParts[i] === 't5' && pathParts[i + 1]) {
               categoryName = pathParts[i + 1].replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
               break;
             }
           }
-          console.log(`[SCRAPE][AIRBNB-COMMUNITY] Found ${threadLinks.length} threads in ${categoryName}`);
-          for (const { url, title } of threadLinks) {
-            try {
-              await activePage.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
-              const extracted = await activePage.evaluate(() => {
-                const titleElement = document.querySelector('.lia-message-subject, .page-title, .topic-title, h1, .lia-message-subject-text');
-                const contentElements = Array.from(document.querySelectorAll('.lia-message-body-content, .lia-message-body, .lia-message-content'));
-                const title = titleElement ? titleElement.textContent?.trim() || '' : '';
-                const content = contentElements.map((el) => el.textContent?.trim() || '').join('\n');
-                return { title, content };
-              });
-              if (extracted.title && extracted.content && extracted.content.length > 50) {
-                articles.push({ url, question: extracted.title || title, answer: extracted.content, platform: 'Airbnb', category: categoryName, contentType: 'community' });
-                console.log(`[SCRAPE][AIRBNB-COMMUNITY] Successfully scraped thread: ${extracted.title}`);
-              }
-            } catch (error) {
-              console.error(`[SCRAPE][AIRBNB-COMMUNITY] Error scraping thread ${url}:`, error);
-            }
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-          }
-          await new Promise((resolve) => setTimeout(resolve, 2000));
         } catch (error) {
           console.error(`[SCRAPE][AIRBNB-COMMUNITY] Error accessing category ${categoryUrl}:`, error);
         } finally {
-          if (page) {
-            await page.close();
+          if (categoryPage) {
+            await categoryPage.close();
             console.log(`[SCRAPE][AIRBNB-COMMUNITY] Page closed for category: ${categoryUrl}`);
           }
         }
+
+        console.log(`[SCRAPE][AIRBNB-COMMUNITY] Found ${threadLinks.length} threads in ${categoryName}`);
+        for (const { url, title } of threadLinks) {
+          let page: Page | undefined;
+          try {
+            page = await browser.newPage();
+            await setupPage(page);
+
+            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+            const extracted = await page.evaluate(() => {
+              const titleElement = document.querySelector('.lia-message-subject, .page-title, .topic-title, h1, .lia-message-subject-text');
+              const contentElements = Array.from(document.querySelectorAll('.lia-message-body-content, .lia-message-body, .lia-message-content'));
+              const title = titleElement ? titleElement.textContent?.trim() || '' : '';
+              const content = contentElements.map((el) => el.textContent?.trim() || '').join('\n');
+              return { title, content };
+            });
+            if (extracted.title && extracted.content && extracted.content.length > 50) {
+              articles.push({ url, question: extracted.title || title, answer: extracted.content, platform: 'Airbnb', category: categoryName, contentType: 'community' });
+              console.log(`[SCRAPE][AIRBNB-COMMUNITY] Successfully scraped thread: ${extracted.title}`);
+            }
+          } catch (error) {
+            console.error(`[SCRAPE][AIRBNB-COMMUNITY] Error scraping thread ${url}:`, error);
+          } finally {
+            if (page) {
+              await page.close();
+            }
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     } finally {
       await browser.close();
