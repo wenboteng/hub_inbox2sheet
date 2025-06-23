@@ -16,6 +16,7 @@ import { isFeatureEnabled, getFeatureFlagsSummary } from '@/utils/featureFlags';
 import { detectLanguage } from '@/utils/languageDetection';
 import { slugify } from '@/utils/slugify';
 import { crawlViatorArticles } from '@/crawlers/viator';
+import { crawlExpediaArticles } from '@/crawlers/expedia';
 
 const prisma = new PrismaClient();
 
@@ -104,6 +105,57 @@ function validateArticle(article: Article, platform: string): { isValid: boolean
     issues.forEach((issue) => console.log(`[DEBUG][${platform}]   - ${issue}`));
   }
   return { isValid, issues };
+}
+
+// Dynamic URL discovery function
+async function discoverNewUrls(): Promise<string[]> {
+  console.log('[DISCOVERY] Starting dynamic URL discovery...');
+  const discoveredUrls = new Set<string>();
+  
+  // Add more sources to discover URLs from
+  const discoverySources = [
+    'https://www.airbnb.com/help',
+    'https://supply.getyourguide.support/hc/en-us',
+    'https://www.viator.com/help/',
+    'https://help.expedia.com/hc/en-us',
+    'https://www.booking.com/content/help.html',
+    'https://community.withairbnb.com',
+    'https://www.reddit.com/r/AirBnB/',
+    'https://www.reddit.com/r/travel/',
+    'https://www.quora.com/topic/Airbnb',
+    'https://www.quora.com/topic/Travel',
+  ];
+  
+  for (const source of discoverySources) {
+    try {
+      console.log(`[DISCOVERY] Exploring ${source}...`);
+      const response = await fetch(source, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        },
+        signal: AbortSignal.timeout(10000)
+      });
+      
+      if (response.ok) {
+        const html = await response.text();
+        const urlRegex = /href=["']([^"']+)["']/g;
+        let match;
+        
+        while ((match = urlRegex.exec(html)) !== null) {
+          const href = match[1];
+          if (href && href.includes('help') && href.includes('article')) {
+            const fullUrl = href.startsWith('http') ? href : new URL(href, source).toString();
+            discoveredUrls.add(fullUrl);
+          }
+        }
+      }
+    } catch (error) {
+      console.log(`[DISCOVERY] Error exploring ${source}:`, error);
+    }
+  }
+  
+  console.log(`[DISCOVERY] Discovered ${discoveredUrls.size} potential URLs`);
+  return Array.from(discoveredUrls);
 }
 
 // Comprehensive Airbnb Community scraping function
@@ -257,7 +309,7 @@ async function generateUniqueSlug(title: string): Promise<string> {
 
 async function main() {
   try {
-    console.log('[SCRAPE] Starting scrape process...');
+    console.log('[SCRAPE] Starting enhanced scrape process...');
     await prisma.$connect();
     console.log('[SCRAPE] Database connection successful');
     const existingUrls = await getExistingArticleUrls();
@@ -265,6 +317,15 @@ async function main() {
     await logScrapingStats();
     
     let allArticles: Article[] = [];
+    
+    // Dynamic URL discovery
+    try {
+      const discoveredUrls = await discoverNewUrls();
+      console.log(`[SCRAPE] Discovered ${discoveredUrls.length} potential new URLs`);
+    } catch (e) {
+      console.error('[SCRAPE] URL discovery failed:', e);
+    }
+    
     if (isFeatureEnabled('enableCommunityCrawling')) {
       try {
         const communityArticles = await scrapeAirbnbCommunity();
@@ -280,6 +341,7 @@ async function main() {
       { name: 'Airbnb', scraper: scrapeAirbnb, enabled: true },
       { name: 'GetYourGuide', scraper: crawlGetYourGuideArticlesWithPagination, enabled: isFeatureEnabled('enableGetYourGuidePagination') },
       { name: 'Viator', scraper: crawlViatorArticles, enabled: isFeatureEnabled('enableViatorScraping') },
+      { name: 'Expedia', scraper: crawlExpediaArticles, enabled: isFeatureEnabled('enableExpediaScraping') },
     ];
 
     for (const scraper of officialScrapers) {
@@ -375,7 +437,7 @@ async function main() {
     console.log(`[SCRAPE] - Total new articles attempted: ${newArticles.length}`);
 
     await logScrapingStats();
-    console.log('\n[SCRAPE] Scrape process completed successfully');
+    console.log('\n[SCRAPE] Enhanced scrape process completed successfully');
   } catch (error) {
     console.error('[SCRAPE] Error during scrape:', error);
     process.exit(1);

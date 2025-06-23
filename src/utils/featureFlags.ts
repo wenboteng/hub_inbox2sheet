@@ -22,10 +22,16 @@ export interface FeatureFlags {
   enableEnhancedLogging: boolean;
   enablePerformanceMetrics: boolean;
   
-  // Future features
+  // New sources
   enableTripAdvisorScraping: boolean;
   enableViatorScraping: boolean;
+  enableExpediaScraping: boolean;
+  enableBookingScraping: boolean;
+  
+  // Advanced features
   enableAdvancedAnalytics: boolean;
+  enableDynamicUrlDiscovery: boolean;
+  enableContentRechecking: boolean;
 }
 
 // Default feature flags configuration
@@ -45,10 +51,16 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   enableEnhancedLogging: process.env.ENABLE_ENHANCED_LOGGING !== 'false',
   enablePerformanceMetrics: process.env.ENABLE_PERFORMANCE_METRICS === 'true',
   
-  // Future features - disabled by default
+  // New sources - enabled by default to increase content
   enableTripAdvisorScraping: process.env.ENABLE_TRIPADVISOR_SCRAPING !== 'false',
   enableViatorScraping: process.env.ENABLE_VIATOR_SCRAPING !== 'false',
+  enableExpediaScraping: process.env.ENABLE_EXPEDIA_SCRAPING !== 'false',
+  enableBookingScraping: process.env.ENABLE_BOOKING_SCRAPING !== 'false',
+  
+  // Advanced features - enabled by default for better content discovery
   enableAdvancedAnalytics: process.env.ENABLE_ADVANCED_ANALYTICS === 'true',
+  enableDynamicUrlDiscovery: process.env.ENABLE_DYNAMIC_URL_DISCOVERY !== 'false',
+  enableContentRechecking: process.env.ENABLE_CONTENT_RECHECKING === 'true',
 };
 
 // Global feature flags instance
