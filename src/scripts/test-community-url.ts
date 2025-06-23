@@ -121,7 +121,7 @@ async function testCommunityUrl() {
         ];
         
         let allContent = '';
-        let foundSelectors = [];
+        const foundSelectors: string[] = [];
         
         for (const selector of selectors) {
           const elements = document.querySelectorAll(selector);
