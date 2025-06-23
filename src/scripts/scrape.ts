@@ -248,16 +248,52 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
             await setupPage(page);
 
             await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+            
+            // Wait longer for dynamic content to load (improved from our test)
+            console.log(`[SCRAPE][AIRBNB-COMMUNITY] Waiting for dynamic content on ${url}...`);
+            await new Promise((resolve) => setTimeout(resolve, 10000));
+            
+            // Scroll to trigger lazy loading
+            await page.evaluate(() => {
+              window.scrollTo(0, document.body.scrollHeight);
+            });
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+            
             const extracted = await page.evaluate(() => {
               const titleElement = document.querySelector('.lia-message-subject, .page-title, .topic-title, h1, .lia-message-subject-text');
-              const contentElements = Array.from(document.querySelectorAll('.lia-message-body-content, .lia-message-body, .lia-message-content'));
               const title = titleElement ? titleElement.textContent?.trim() || '' : '';
-              const content = contentElements.map((el) => el.textContent?.trim() || '').join('\n');
-              return { title, content };
+              
+              // Extract ALL messages with improved selectors (from our test)
+              const messageSelectors = [
+                '.lia-message-body-content',
+                '.lia-message-body',
+                '.lia-message-content',
+                '.message-content'
+              ];
+              
+              let allContent = '';
+              for (const selector of messageSelectors) {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach((element) => {
+                  if (element && element.textContent?.trim()) {
+                    allContent += element.textContent.trim() + '\n\n';
+                  }
+                });
+              }
+              
+              return { title, content: allContent.trim() };
             });
-            if (extracted.title && extracted.content && extracted.content.length > 50) {
-              articles.push({ url, question: extracted.title || title, answer: extracted.content, platform: 'Airbnb', category: categoryName, contentType: 'community' });
-              console.log(`[SCRAPE][AIRBNB-COMMUNITY] Successfully scraped thread: ${extracted.title}`);
+            
+            if (extracted.title && extracted.content && extracted.content.length > 100) {
+              articles.push({ 
+                url, 
+                question: extracted.title || title, 
+                answer: extracted.content, 
+                platform: 'Airbnb', 
+                category: categoryName, 
+                contentType: 'community' 
+              });
+              console.log(`[SCRAPE][AIRBNB-COMMUNITY] Successfully scraped thread: ${extracted.title} (${extracted.content.length} chars)`);
             }
           } catch (error) {
             console.error(`[SCRAPE][AIRBNB-COMMUNITY] Error scraping thread ${url}:`, error);
