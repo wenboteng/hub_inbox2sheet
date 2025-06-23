@@ -1,7 +1,7 @@
 import { scrapeAirbnbCommunity } from './scrape';
 
-async function testAirbnbCommunityOnly() {
-  console.log('🧪 Testing Airbnb Community scraper only...');
+async function testAirbnbCommunityFixed() {
+  console.log('🧪 Testing fixed Airbnb Community scraper...');
   
   try {
     const articles = await scrapeAirbnbCommunity();
@@ -45,7 +45,7 @@ async function testAirbnbCommunityOnly() {
     
     // Show sample articles
     console.log('\n📝 Sample articles:');
-    articles.slice(0, 5).forEach((article, index) => {
+    articles.slice(0, 3).forEach((article, index) => {
       console.log(`\n${index + 1}. ${article.question}`);
       console.log(`   Category: ${article.category}`);
       console.log(`   URL: ${article.url}`);
@@ -57,4 +57,4 @@ async function testAirbnbCommunityOnly() {
   }
 }
 
-testAirbnbCommunityOnly(); 
+testAirbnbCommunityFixed(); 
