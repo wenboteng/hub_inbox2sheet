@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDebounce } from "use-debounce";
 import { generateRelatedSearches } from "@/utils/relatedSearches";
 
@@ -72,128 +72,141 @@ export default function SearchPage() {
   const [relatedSearches, setRelatedSearches] = useState<string[]>([]);
   const [faqFallback, setFaqFallback] = useState<SearchResponse['faqFallback']>(undefined);
   const [noPlatformMatch, setNoPlatformMatch] = useState(false);
-  const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 600);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    async function performSearch() {
-      if (!debouncedSearchQuery) {
-        setResults([]);
-        setGptFallbackAnswer(null);
-        setSearchSummary(null);
-        setAnswerSummary(null);
-        setGptResponseLayerAnswer(null);
-        setRelatedSearches([]);
-        setPlatformMismatch(false);
-        setPlatformWarning(null);
-        setContentTypes([]);
-        setFaqFallback(undefined);
-        setNoPlatformMatch(false);
-        return;
-      }
+  // Add explicit search trigger
+  const [manualSearch, setManualSearch] = useState(false);
 
-      setIsLoading(true);
-      try {
-        const params = new URLSearchParams({
-          q: debouncedSearchQuery,
-          ...(selectedPlatform !== "all" && { platform: selectedPlatform }),
-          ...(selectedContentType !== "all" && { contentType: selectedContentType }),
-          showAll: showAllResults.toString(),
-        });
+  // Move performSearch to top-level function
+  async function performSearch() {
+    if (!debouncedSearchQuery) {
+      setResults([]);
+      setGptFallbackAnswer(null);
+      setSearchSummary(null);
+      setAnswerSummary(null);
+      setGptResponseLayerAnswer(null);
+      setRelatedSearches([]);
+      setPlatformMismatch(false);
+      setPlatformWarning(null);
+      setContentTypes([]);
+      setFaqFallback(undefined);
+      setNoPlatformMatch(false);
+      return;
+    }
 
-        const response = await fetch(`/api/search?${params}`);
-        const data: SearchResponse = await response.json();
-        
-        setResults(data.articles || []);
-        setSearchType(data.searchType);
-        setTotalResults(data.totalResults);
-        setHasMore(data.hasMore);
-        setPlatformMismatch(data.platformMismatch || false);
-        setPlatformWarning(data.platformWarning || null);
-        setContentTypes(data.contentTypes || []);
-        setFaqFallback(data.faqFallback || undefined);
-        setNoPlatformMatch(data.noPlatformMatch || false);
-        
-        // Generate related searches
-        setRelatedSearches(generateRelatedSearches(debouncedSearchQuery));
-        
-        // Try to get GPT summary for intent-based queries
-        if (data.articles.length > 0) {
-          try {
-            const summaryResponse = await fetch('/api/search-summary', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                query: debouncedSearchQuery,
-                matchedArticles: data.articles 
-              })
-            });
-            const summaryData = await summaryResponse.json();
-            setSearchSummary(summaryData);
-          } catch (error) {
-            console.error("Failed to get search summary:", error);
-          }
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        q: debouncedSearchQuery,
+        ...(selectedPlatform !== "all" && { platform: selectedPlatform }),
+        ...(selectedContentType !== "all" && { contentType: selectedContentType }),
+        showAll: showAllResults.toString(),
+      });
 
-          // Generate answer summary for top result
-          const topResult = data.articles.find(article => article.isTopMatch);
-          if (topResult) {
-            try {
-              const answerResponse = await fetch('/api/answer-summary', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  query: debouncedSearchQuery,
-                  topResult 
-                })
-              });
-              const answerData = await answerResponse.json();
-              setAnswerSummary(answerData.summary);
-            } catch (error) {
-              console.error("Failed to get answer summary:", error);
-            }
-
-            // Generate GPT Response Layer answer
-            try {
-              const gptResponse = await fetch('/api/gpt-response-layer', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  query: debouncedSearchQuery,
-                  topResult 
-                })
-              });
-              const gptData = await gptResponse.json();
-              setGptResponseLayerAnswer(gptData.aiAnswer);
-            } catch (error) {
-              console.error("Failed to get GPT response layer answer:", error);
-            }
-          }
-        }
-        
-        // If no good matches found, try GPT fallback
-        if (data.searchType === 'none' || (data.articles.length === 0 && debouncedSearchQuery.length > 0)) {
-          const gptResponse = await fetch('/api/gpt-search', {
+      const response = await fetch(`/api/search?${params}`);
+      const data: SearchResponse = await response.json();
+      
+      setResults(data.articles || []);
+      setSearchType(data.searchType);
+      setTotalResults(data.totalResults);
+      setHasMore(data.hasMore);
+      setPlatformMismatch(data.platformMismatch || false);
+      setPlatformWarning(data.platformWarning || null);
+      setContentTypes(data.contentTypes || []);
+      setFaqFallback(data.faqFallback || undefined);
+      setNoPlatformMatch(data.noPlatformMatch || false);
+      
+      // Generate related searches
+      setRelatedSearches(generateRelatedSearches(debouncedSearchQuery));
+      
+      // Try to get GPT summary for intent-based queries
+      if (data.articles.length > 0) {
+        try {
+          const summaryResponse = await fetch('/api/search-summary', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               query: debouncedSearchQuery,
-              availableArticles: data.articles,
-              platform: selectedPlatform !== 'all' ? selectedPlatform : undefined
+              matchedArticles: data.articles 
             })
           });
-          const gptData = await gptResponse.json();
-          setGptFallbackAnswer(gptData.answer);
-        } else {
-          setGptFallbackAnswer(null);
+          const summaryData = await summaryResponse.json();
+          setSearchSummary(summaryData);
+        } catch (error) {
+          console.error("Failed to get search summary:", error);
         }
-      } catch (error) {
-        console.error("Search failed:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
 
+        // Generate answer summary for top result
+        const topResult = data.articles.find(article => article.isTopMatch);
+        if (topResult) {
+          try {
+            const answerResponse = await fetch('/api/answer-summary', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                query: debouncedSearchQuery,
+                topResult 
+              })
+            });
+            const answerData = await answerResponse.json();
+            setAnswerSummary(answerData.summary);
+          } catch (error) {
+            console.error("Failed to get answer summary:", error);
+          }
+
+          // Generate GPT Response Layer answer
+          try {
+            const gptResponse = await fetch('/api/gpt-response-layer', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                query: debouncedSearchQuery,
+                topResult 
+              })
+            });
+            const gptData = await gptResponse.json();
+            setGptResponseLayerAnswer(gptData.aiAnswer);
+          } catch (error) {
+            console.error("Failed to get GPT response layer answer:", error);
+          }
+        }
+      }
+      
+      // If no good matches found, try GPT fallback
+      if (data.searchType === 'none' || (data.articles.length === 0 && debouncedSearchQuery.length > 0)) {
+        const gptResponse = await fetch('/api/gpt-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            query: debouncedSearchQuery,
+            availableArticles: data.articles,
+            platform: selectedPlatform !== 'all' ? selectedPlatform : undefined
+          })
+        });
+        const gptData = await gptResponse.json();
+        setGptFallbackAnswer(gptData.answer);
+      } else {
+        setGptFallbackAnswer(null);
+      }
+    } catch (error) {
+      console.error("Search failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
     performSearch();
   }, [debouncedSearchQuery, selectedPlatform, selectedContentType, showAllResults]);
+
+  useEffect(() => {
+    if (manualSearch) {
+      performSearch();
+      setManualSearch(false);
+    }
+    // eslint-disable-next-line
+  }, [manualSearch]);
 
   const toggleArticle = async (articleId: string) => {
     if (expandedArticles[articleId]) {
@@ -237,38 +250,55 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Search Knowledge Base</h1>
-
-      <div className="mb-6 flex flex-wrap gap-4">
-        <input
-          type="text"
-          placeholder="E.g. 'How to update a tour on Viator'"
-          className="px-6 py-4 border border-gray-300 rounded-lg flex-grow text-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-
-        <select
-          className="px-4 py-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
-          value={selectedPlatform}
-          onChange={(e) => setSelectedPlatform(e.target.value)}
-        >
-          <option value="all">All Platforms</option>
-          <option value="Airbnb">Airbnb</option>
-          <option value="GetYourGuide">GetYourGuide</option>
-        </select>
-
-        <select
-          className="px-4 py-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
-          value={selectedContentType}
-          onChange={(e) => setSelectedContentType(e.target.value)}
-        >
-          <option value="all">All Content Types</option>
-          <option value="official">Official Help Center</option>
-          <option value="community">Community Content</option>
-        </select>
-      </div>
+    <div className="container mx-auto px-4 py-8 flex flex-col items-center">
+      <h1 className="text-4xl font-bold mb-10 text-center">Search Knowledge Base</h1>
+      <form
+        className="w-full flex flex-col items-center"
+        onSubmit={e => {
+          e.preventDefault();
+          setManualSearch(true);
+        }}
+      >
+        <div className="w-full flex flex-col items-center mb-8">
+          <div className="flex flex-col md:flex-row items-center w-full max-w-2xl gap-4">
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="E.g. 'How to update a tour on Viator'"
+              className="w-full md:w-[600px] px-8 py-5 border border-gray-300 rounded-full text-2xl shadow focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="mt-4 md:mt-0 px-8 py-4 bg-blue-600 text-white text-xl rounded-full shadow hover:bg-blue-700 transition-all"
+            >
+              Search
+            </button>
+          </div>
+          <div className="flex gap-4 mt-6 w-full max-w-2xl">
+            <select
+              className="flex-1 px-4 py-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg transition-colors duration-200"
+              value={selectedPlatform}
+              onChange={e => setSelectedPlatform(e.target.value)}
+            >
+              <option value="all">All Platforms</option>
+              <option value="Airbnb">Airbnb</option>
+              <option value="GetYourGuide">GetYourGuide</option>
+            </select>
+            <select
+              className="flex-1 px-4 py-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg transition-colors duration-200"
+              value={selectedContentType}
+              onChange={e => setSelectedContentType(e.target.value)}
+            >
+              <option value="all">All Content Types</option>
+              <option value="official">Official Help Center</option>
+              <option value="community">Community Content</option>
+            </select>
+          </div>
+        </div>
+      </form>
 
       {isLoading ? (
         <div className="text-center py-8">
