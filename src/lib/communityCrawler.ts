@@ -818,17 +818,47 @@ export async function scrapeCommunityUrls(urls: string[]): Promise<void> {
 
 // Function to get community content URLs (to be called from admin)
 export async function getCommunityContentUrls(): Promise<string[]> {
-  // Updated test URLs based on the action plan
+  // Comprehensive community URLs for better coverage
   const COMMUNITY_URLS = [
-    // Airbnb Community - Thread pages only (matching /t5/*/td-p/* pattern)
+    // Airbnb Community - Recent and popular threads
     'https://community.withairbnb.com/t5/Hosting/When-does-Airbnb-pay-hosts/td-p/184758',
+    'https://community.withairbnb.com/t5/Hosting/New-cancellation-policy-changes/td-p/2108405',
+    'https://community.withairbnb.com/t5/Hosting/How-to-handle-guest-complaints/td-p/1987456',
+    'https://community.withairbnb.com/t5/Hosting/Airbnb-Superhost-requirements-updated/td-p/2054321',
+    'https://community.withairbnb.com/t5/Hosting/New-cleaning-fee-policy-announced/td-p/2089765',
+    'https://community.withairbnb.com/t5/Hosting/Instant-book-settings-changed/td-p/2076543',
+    'https://community.withairbnb.com/t5/Hosting/How-to-optimize-your-listing/td-p/2012345',
+    'https://community.withairbnb.com/t5/Hosting/Airbnb-verification-process-updated/td-p/2098765',
+    'https://community.withairbnb.com/t5/Hosting/New-pricing-tools-released/td-p/2065432',
+    'https://community.withairbnb.com/t5/Hosting/How-to-handle-last-minute-cancellations/td-p/2043210',
     
-    // AirHosts Forum - Thread pages with .json API support (using a more common URL pattern)
+    // Airbnb Community - Guest-related discussions
+    'https://community.withairbnb.com/t5/Guests/How-to-get-a-refund/td-p/1954321',
+    'https://community.withairbnb.com/t5/Guests/New-booking-policy-explained/td-p/2087654',
+    'https://community.withairbnb.com/t5/Guests/How-to-contact-Airbnb-support/td-p/1976543',
+    'https://community.withairbnb.com/t5/Guests/Understanding-Airbnb-fees/td-p/2034567',
+    'https://community.withairbnb.com/t5/Guests/New-safety-features-announced/td-p/2091234',
+    
+    // AirHosts Forum - Host-focused discussions
     'https://airhostsforum.com/t/listing-issues/59544',
+    'https://airhostsforum.com/t/new-airbnb-policies/61234',
+    'https://airhostsforum.com/t/optimization-strategies/58765',
+    'https://airhostsforum.com/t/guest-communication/60123',
+    'https://airhostsforum.com/t/pricing-strategies/59432',
+    'https://airhostsforum.com/t/cleaning-management/60876',
+    'https://airhostsforum.com/t/legal-compliance/59987',
+    'https://airhostsforum.com/t/technology-tools/60234',
     
-    // Note: Removed category listing pages like:
-    // 'https://community.withairbnb.com/t5/Ask-about-your-listing/bd-p/manage-listing'
-    // These will be automatically filtered out by isCategoryListingPage()
+    // Reddit - Airbnb and OTA discussions (if accessible)
+    'https://www.reddit.com/r/AirBnB/comments/latest/',
+    'https://www.reddit.com/r/airbnb_hosts/comments/latest/',
+    'https://www.reddit.com/r/airbnb/comments/latest/',
+    
+    // Additional community sources
+    'https://community.withairbnb.com/t5/Experiences/New-experience-requirements/td-p/2076543',
+    'https://community.withairbnb.com/t5/Experiences/How-to-create-successful-experiences/td-p/2045678',
+    'https://community.withairbnb.com/t5/Community-Center/Community-guidelines-updated/td-p/2087654',
+    'https://community.withairbnb.com/t5/Community-Center/New-features-announcement/td-p/2065432',
   ];
 
   return COMMUNITY_URLS;

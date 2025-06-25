@@ -5,6 +5,7 @@ import { getContentEmbeddings } from '@/utils/openai';
 import { scrapeAirbnb } from '@/scripts/scrapers/airbnb';
 import { crawlGetYourGuideArticles, crawlGetYourGuideArticlesWithPagination } from '@/crawlers/getyourguide';
 import { scrapeCommunityUrls, getCommunityContentUrls } from '@/lib/communityCrawler';
+import { crawlNewsAndPolicies } from '@/crawlers/news-policy';
 import {
   generateContentHash,
   checkContentDuplicate,
@@ -524,6 +525,33 @@ async function main() {
 
     await logScrapingStats();
     console.log('\n[SCRAPE] Enhanced scrape process completed successfully');
+
+    // 5. Community Content Crawling
+    console.log('\n[SCRAPE] ===== COMMUNITY CONTENT CRAWLING =====');
+    try {
+      const communityUrls = await getCommunityContentUrls();
+      console.log(`[SCRAPE] Found ${communityUrls.length} community URLs to crawl`);
+      
+      if (communityUrls.length > 0) {
+        await scrapeCommunityUrls(communityUrls);
+        console.log('[SCRAPE] Community content crawling completed');
+      }
+    } catch (error) {
+      console.error('[SCRAPE] Error in community content crawling:', error);
+    }
+
+    // 6. News and Policy Crawling
+    console.log('\n[SCRAPE] ===== NEWS AND POLICY CRAWLING =====');
+    try {
+      const newsArticles = await crawlNewsAndPolicies();
+      console.log(`[SCRAPE] Found ${newsArticles.length} news/policy articles`);
+      
+      if (newsArticles.length > 0) {
+        console.log('[SCRAPE] News and policy crawling completed');
+      }
+    } catch (error) {
+      console.error('[SCRAPE] Error in news and policy crawling:', error);
+    }
   } catch (error) {
     console.error('[SCRAPE] Error during scrape:', error);
     process.exit(1);

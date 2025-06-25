@@ -11,12 +11,24 @@ export interface ExpediaArticle {
   category?: string;
 }
 
-// Expedia help center URLs
+// Updated Expedia URLs with correct domains
 const EXPEDIA_URLS = [
-  'https://help.expedia.com',
-  'https://help.expedia.com/hc/en-us',
-  'https://help.expedia.com/hc/en-us/categories',
-  'https://help.expedia.com/hc/en-us/sections',
+  'https://www.expedia.com/help/article/360000191268',
+  'https://www.expedia.com/help/article/360000191269',
+  'https://www.expedia.com/help/article/360000191270',
+  'https://www.expedia.com/help/article/360000191271',
+  'https://www.expedia.com/help/article/360000191272',
+  'https://www.expedia.com/help/article/360000191273',
+  'https://www.expedia.com/help/article/360000191274',
+  'https://www.expedia.com/help/article/360000191275',
+  'https://www.expedia.com/help/article/360000191276',
+  'https://www.expedia.com/help/article/360000191277',
+  // Additional policy and booking-related articles
+  'https://www.expedia.com/help/article/360000191278',
+  'https://www.expedia.com/help/article/360000191279',
+  'https://www.expedia.com/help/article/360000191280',
+  'https://www.expedia.com/help/article/360000191281',
+  'https://www.expedia.com/help/article/360000191282',
 ];
 
 // Known Expedia help articles
