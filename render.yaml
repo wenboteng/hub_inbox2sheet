@@ -70,7 +70,7 @@ services:
     schedule: "0 2 * * *" # Runs daily at 2am UTC
     autoDeploy: true
     buildCommand: |
-      # Build timestamp: 2025-06-26-09:00:00 - Enhanced with database retry logic
+      # Build timestamp: 2025-06-26-10:20:00 - Enhanced with database retry logic
       echo "Build started for enhanced scraper with database retry logic..."
       npm install
       npx prisma generate
