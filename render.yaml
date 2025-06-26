@@ -70,11 +70,17 @@ services:
     schedule: "0 2 * * *" # Runs daily at 2am UTC
     autoDeploy: true
     buildCommand: |
-      # Build timestamp: 2025-06-21-20:45:00 - Blueprint-ready build
-      echo "Build started for comprehensive scraper..."
+      # Build timestamp: 2025-06-26-09:00:00 - Enhanced with database retry logic
+      echo "Build started for enhanced scraper with database retry logic..."
       npm install
       npx prisma generate
       npm run build:scripts
+      
+      echo "Testing database connection..."
+      npm run test:db || {
+        echo "Database connection test failed. This might be expected in build environment."
+        echo "The actual connection will be tested during runtime."
+      }
       
       echo "Installing Chrome for Puppeteer..."
       npx puppeteer browsers install chrome || {
@@ -85,7 +91,7 @@ services:
       echo "Verifying Chrome installation location..."
       ls -la /opt/render/.cache/puppeteer/chrome/ || echo "Puppeteer cache directory not found, which may be expected on first build."
       echo "Build scripts completed successfully."
-    startCommand: npm run scrape:all
+    startCommand: npm run scrape:with-retry
     envVars:
       - fromGroup: ota-hub-secrets
     buildFilter:
