@@ -41,32 +41,103 @@ const puppeteer_1 = __importDefault(require("puppeteer"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const child_process_1 = require("child_process");
+async function findSystemChrome() {
+    const possibleChromePaths = [
+        '/usr/bin/google-chrome',
+        '/usr/bin/google-chrome-stable',
+        '/usr/bin/chromium-browser',
+        '/usr/bin/chromium',
+        '/opt/google/chrome/chrome',
+        '/usr/bin/chrome',
+        '/snap/bin/chromium',
+    ];
+    for (const chromePath of possibleChromePaths) {
+        try {
+            if (fs.existsSync(chromePath)) {
+                // Check if it's executable
+                try {
+                    fs.accessSync(chromePath, fs.constants.X_OK);
+                    console.log(`[PUPPETEER] Found executable system Chrome at: ${chromePath}`);
+                    return chromePath;
+                }
+                catch (error) {
+                    console.log(`[PUPPETEER] Chrome found but not executable at: ${chromePath}`);
+                }
+            }
+        }
+        catch (error) {
+            console.log(`[PUPPETEER] Error checking ${chromePath}: ${error}`);
+        }
+    }
+    return null;
+}
+async function findChromeExecutable(cacheDir, platform) {
+    try {
+        if (!fs.existsSync(cacheDir)) {
+            return null;
+        }
+        const chromeDir = path.join(cacheDir, 'chrome');
+        if (!fs.existsSync(chromeDir)) {
+            return null;
+        }
+        // List all installed Chrome versions
+        const versions = fs.readdirSync(chromeDir);
+        console.log(`[PUPPETEER] Found Chrome versions: ${versions.join(', ')}`);
+        // Find the latest version (sort by version number)
+        const sortedVersions = versions
+            .filter(v => v.startsWith(platform === 'darwin' ? 'mac-' : 'linux-'))
+            .sort((a, b) => {
+            const versionA = a.replace(platform === 'darwin' ? 'mac-' : 'linux-', '');
+            const versionB = b.replace(platform === 'darwin' ? 'mac-' : 'linux-', '');
+            return versionB.localeCompare(versionA, undefined, { numeric: true });
+        });
+        if (sortedVersions.length === 0) {
+            return null;
+        }
+        const latestVersion = sortedVersions[0];
+        console.log(`[PUPPETEER] Using Chrome version: ${latestVersion}`);
+        if (platform === 'darwin') {
+            // macOS path
+            const chromePath = path.join(chromeDir, latestVersion, 'chrome-mac-x64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing');
+            return fs.existsSync(chromePath) ? chromePath : null;
+        }
+        else {
+            // Linux path
+            const chromePath = path.join(chromeDir, latestVersion, 'chrome-linux64', 'chrome');
+            return fs.existsSync(chromePath) ? chromePath : null;
+        }
+    }
+    catch (error) {
+        console.error(`[PUPPETEER] Error finding Chrome executable:`, error);
+        return null;
+    }
+}
 async function ensureChromeInstalled() {
     // Determine the appropriate cache directory based on environment
     const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
     const isLinux = process.platform === 'linux';
     const isMac = process.platform === 'darwin';
     let cacheDir;
-    let chromePath;
     if (isRender && isLinux) {
         // Render production environment
         cacheDir = '/opt/render/.cache/puppeteer';
-        chromePath = '/opt/render/.cache/puppeteer/chrome/linux-137.0.7151.119/chrome-linux64/chrome';
-    }
-    else if (isMac) {
-        // macOS development environment
-        cacheDir = path.join(process.env.HOME || '', '.cache', 'puppeteer');
-        chromePath = path.join(cacheDir, 'chrome', 'mac-137.0.7151.119', 'chrome-mac-x64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing');
     }
     else {
-        // Linux development or other environments
+        // Development environment
         cacheDir = path.join(process.env.HOME || '', '.cache', 'puppeteer');
-        chromePath = path.join(cacheDir, 'chrome', 'linux-137.0.7151.119', 'chrome-linux64', 'chrome');
     }
-    console.log(`[PUPPETEER] Checking if Chrome is installed at: ${chromePath}`);
-    if (fs.existsSync(chromePath)) {
-        console.log(`[PUPPETEER] Chrome already installed at: ${chromePath}`);
-        return;
+    console.log(`[PUPPETEER] Cache directory: ${cacheDir}`);
+    // First, try to find existing Chrome installation
+    const existingChrome = await findChromeExecutable(cacheDir, process.platform);
+    if (existingChrome) {
+        console.log(`[PUPPETEER] Found existing Chrome at: ${existingChrome}`);
+        return existingChrome;
+    }
+    // Try to find system Chrome as fallback
+    const systemChrome = await findSystemChrome();
+    if (systemChrome) {
+        console.log(`[PUPPETEER] Using system Chrome at: ${systemChrome}`);
+        return systemChrome;
     }
     console.log(`[PUPPETEER] Chrome not found, installing...`);
     try {
@@ -81,25 +152,22 @@ async function ensureChromeInstalled() {
             stdio: 'inherit',
             cwd: process.cwd()
         });
-        // Verify installation - check if the file exists or if it's a symlink
-        if (fs.existsSync(chromePath) || fs.lstatSync(chromePath).isSymbolicLink()) {
-            console.log(`[PUPPETEER] Chrome successfully installed at: ${chromePath}`);
+        // Try to find the newly installed Chrome
+        const newChrome = await findChromeExecutable(cacheDir, process.platform);
+        if (newChrome) {
+            console.log(`[PUPPETEER] Chrome successfully installed at: ${newChrome}`);
+            return newChrome;
         }
-        else {
-            // For macOS, the actual path might be different, let's check the cache directory
-            const chromeDir = path.dirname(chromePath);
-            if (fs.existsSync(chromeDir)) {
-                const files = fs.readdirSync(chromeDir);
-                console.log(`[PUPPETEER] Chrome directory contents: ${files.join(', ')}`);
-                // If we can't find the exact path but the directory exists, assume it's installed
-                console.log(`[PUPPETEER] Chrome appears to be installed in: ${chromeDir}`);
-                return;
-            }
-            throw new Error('Chrome installation failed - file not found after installation');
-        }
+        throw new Error('Chrome installation failed - executable not found after installation');
     }
     catch (error) {
         console.error(`[PUPPETEER] Failed to install Chrome:`, error);
+        // Last resort: try to find system Chrome again
+        const fallbackChrome = await findSystemChrome();
+        if (fallbackChrome) {
+            console.log(`[PUPPETEER] Using fallback system Chrome at: ${fallbackChrome}`);
+            return fallbackChrome;
+        }
         throw error;
     }
 }
@@ -177,19 +245,8 @@ async function createBrowser() {
     catch (error) {
         console.log(`[PUPPETEER] Could not get Puppeteer executable path: ${error}`);
     }
-    // Ensure Chrome is installed
-    await ensureChromeInstalled();
-    // Determine executable path based on environment
-    let executablePath;
-    if (isRender && isLinux) {
-        executablePath = '/opt/render/.cache/puppeteer/chrome/linux-137.0.7151.119/chrome-linux64/chrome';
-    }
-    else if (isMac) {
-        executablePath = path.join(process.env.HOME || '', '.cache', 'puppeteer', 'chrome', 'mac-137.0.7151.119', 'chrome-mac-x64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing');
-    }
-    else {
-        executablePath = path.join(process.env.HOME || '', '.cache', 'puppeteer', 'chrome', 'linux-137.0.7151.119', 'chrome-linux64', 'chrome');
-    }
+    // Ensure Chrome is installed and get the executable path
+    const executablePath = await ensureChromeInstalled();
     // Use Puppeteer's bundled Chrome with server-optimized settings
     const launchOptions = {
         headless: true,
@@ -279,3 +336,4 @@ async function createBrowser() {
         }
     }
 }
+//# sourceMappingURL=puppeteer.js.map

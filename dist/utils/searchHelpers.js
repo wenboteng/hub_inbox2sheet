@@ -83,3 +83,4 @@ function rankArticlesByRelevance(articles, query) {
         .sort((a, b) => b.relevanceScore - a.relevanceScore)
         .slice(0, 3); // Return top 3 results
 }
+//# sourceMappingURL=searchHelpers.js.map

@@ -71,3 +71,4 @@ function buildExpandedSearchQuery(query) {
 function getRelatedTerms(query) {
     return expandSearchTerms(query);
 }
+//# sourceMappingURL=searchExpansion.js.map

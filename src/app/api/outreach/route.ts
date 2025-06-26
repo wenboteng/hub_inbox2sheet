@@ -151,7 +151,7 @@ function extractTags(content: string): string[] {
   if (text.includes('verification') || text.includes('identity')) tags.push('verification');
   if (text.includes('legal') || text.includes('compliance')) tags.push('legal');
   
-  return [...new Set(tags)]; // Remove duplicates
+  return Array.from(new Set(tags)); // Remove duplicates
 }
 
 function generateOutreachContent(articles: any[], template?: string): string {
@@ -208,7 +208,7 @@ Your Partner Success Team`;
 }
 
 function extractKeyPoints(articles: any[]): string {
-  const points = [];
+  const points: string[] = [];
   
   articles.forEach(article => {
     const text = article.content.toLowerCase();

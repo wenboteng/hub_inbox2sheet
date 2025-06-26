@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import type { Page } from 'puppeteer';
 import { randomBytes } from 'crypto';
-import { getContentEmbeddings } from '@/utils/openai';
+import { getContentEmbeddings, getEmbedding } from '@/utils/openai';
 import { scrapeAirbnb } from '@/scripts/scrapers/airbnb';
 import { crawlGetYourGuideArticles, crawlGetYourGuideArticlesWithPagination } from '@/crawlers/getyourguide';
 import { scrapeCommunityUrls, getCommunityContentUrls } from '@/lib/communityCrawler';
@@ -17,7 +17,7 @@ import { isFeatureEnabled, getFeatureFlagsSummary } from '@/utils/featureFlags';
 import { detectLanguage } from '@/utils/languageDetection';
 import { slugify } from '@/utils/slugify';
 import { crawlViatorArticles } from '@/crawlers/viator';
-import { crawlExpediaArticles } from '@/crawlers/expedia';
+import { crawlExpedia } from '@/crawlers/expedia';
 
 const prisma = new PrismaClient();
 
@@ -389,4 +389,103 @@ async function generateUniqueSlug(title: string): Promise<string> {
     // Final fallback to a completely random slug
     const finalSuffix = randomBytes(6).toString('hex');
     slug = `article-${finalSuffix}`;
-    console.log(`
+    console.log(`[SLUG] Using fallback slug: ${slug}`);
+  }
+  return slug;
+}
+
+// Main scraping function
+async function main() {
+  console.log('[SCRAPE] Starting comprehensive scraping...');
+  
+  try {
+    // Get existing URLs to avoid duplicates
+    const existingUrls = await getExistingArticleUrls();
+    console.log(`[SCRAPE] Found ${existingUrls.size} existing articles`);
+    
+    // Scrape Airbnb Community
+    console.log('[SCRAPE] ===== AIRBNB COMMUNITY SCRAPING =====');
+    const communityArticles = await scrapeAirbnbCommunity();
+    console.log(`[SCRAPE] Found ${communityArticles.length} community articles`);
+    
+    // Filter out existing articles
+    const newCommunityArticles = communityArticles.filter(article => !existingUrls.has(article.url));
+    console.log(`[SCRAPE] ${newCommunityArticles.length} new community articles`);
+    
+    // Save new articles to database
+    for (const article of newCommunityArticles) {
+      try {
+        // Generate unique slug
+        const slug = await generateUniqueSlug(article.question);
+        
+        // Detect language
+        const languageDetection = detectLanguage(article.answer);
+        
+        // Generate embeddings for content
+        const paragraphs = article.answer.split('\n\n').filter(p => p.trim().length > 50);
+        const paragraphsWithEmbeddings: ParagraphWithEmbedding[] = [];
+        
+        for (const paragraph of paragraphs.slice(0, 5)) {
+          try {
+            const embedding = await getEmbedding(paragraph);
+            paragraphsWithEmbeddings.push({ text: paragraph, embedding });
+          } catch (error) {
+            console.error(`[SCRAPE] Error generating embedding for paragraph:`, error);
+          }
+        }
+        
+        // Create article
+        const created = await prisma.article.create({
+          data: {
+            url: article.url,
+            question: article.question,
+            answer: article.answer,
+            slug,
+            category: article.category,
+            platform: article.platform,
+            contentType: article.contentType,
+            source: 'community',
+            language: languageDetection.language,
+            crawlStatus: 'active',
+          }
+        });
+        
+        // Create paragraphs if embeddings were generated
+        if (paragraphsWithEmbeddings.length > 0) {
+          await prisma.articleParagraph.createMany({
+            data: paragraphsWithEmbeddings.map(p => ({
+              articleId: created.id,
+              text: p.text,
+              embedding: p.embedding as any,
+            })),
+          });
+          console.log(`[SCRAPE] Created ${paragraphsWithEmbeddings.length} paragraph embeddings`);
+        }
+        
+        console.log(`[SCRAPE] Saved article: ${article.question}`);
+      } catch (error) {
+        console.error(`[SCRAPE] Error saving article ${article.url}:`, error);
+      }
+    }
+    
+    // Log final statistics
+    await logScrapingStats();
+    
+  } catch (error) {
+    console.error('[SCRAPE] Error in main scraping function:', error);
+    throw error;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// Run the main function if this file is executed directly
+if (require.main === module) {
+  main().then(() => {
+    console.log('[SCRAPE] Scraping completed successfully');
+    process.exit(0);
+  }).catch((error) => {
+    console.error('[SCRAPE] Scraping failed:', error);
+    process.exit(1);
+  });
+}

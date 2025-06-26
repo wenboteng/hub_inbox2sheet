@@ -1,25 +1,71 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.scrapeAirbnbCommunity = scrapeAirbnbCommunity;
 const client_1 = require("@prisma/client");
+const crypto_1 = require("crypto");
 const openai_1 = require("../utils/openai");
-const airbnb_1 = require("../scripts/scrapers/airbnb");
-const getyourguide_1 = require("../crawlers/getyourguide");
-const communityCrawler_1 = require("../lib/communityCrawler");
-const contentDeduplication_1 = require("../utils/contentDeduplication");
-const featureFlags_1 = require("../utils/featureFlags");
 const languageDetection_1 = require("../utils/languageDetection");
+const slugify_1 = require("../utils/slugify");
 const prisma = new client_1.PrismaClient();
-// List of URLs to scrape
-const URLs = [
-    // GetYourGuide supplier help center articles
-    'https://supply.getyourguide.support/hc/en-us/articles/13980989354141-Self-canceling-bookings',
-    'https://supply.getyourguide.support/hc/en-us/articles/13980989354141-How-do-I-modify-a-booking',
-    'https://supply.getyourguide.support/hc/en-us/articles/13980989354141-How-do-I-issue-a-refund'
-];
+// Helper function to setup a page
+async function setupPage(page) {
+    await page.setViewport({
+        width: 1280,
+        height: 800
+    });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+    await page.setDefaultTimeout(120000);
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+        if (['image', 'stylesheet', 'font', 'media'].includes(request.resourceType())) {
+            request.abort();
+        }
+        else {
+            request.continue();
+        }
+    });
+    page.on('dialog', async (dialog) => {
+        console.log(`[PUPPETEER] Dismissing dialog: ${dialog.message()}`);
+        await dialog.dismiss();
+    });
+}
 // Function to get existing article URLs from database
 async function getExistingArticleUrls() {
     const existingArticles = await prisma.article.findMany({
-        select: { url: true }
+        select: { url: true },
     });
     return new Set(existingArticles.map((a) => a.url));
 }
@@ -27,14 +73,14 @@ async function getExistingArticleUrls() {
 async function logScrapingStats() {
     const totalArticles = await prisma.article.count();
     const officialArticles = await prisma.article.count({
-        where: { contentType: 'official' }
+        where: { contentType: 'official' },
     });
     const communityArticles = await prisma.article.count({
-        where: { contentType: 'community' }
+        where: { contentType: 'community' },
     });
     const platformStats = await prisma.article.groupBy({
         by: ['platform'],
-        _count: { id: true }
+        _count: { id: true },
     });
     console.log('\n📊 DATABASE STATISTICS:');
     console.log(`Total articles: ${totalArticles}`);
@@ -45,160 +91,336 @@ async function logScrapingStats() {
         console.log(`  ${stat.platform}: ${stat._count.id} articles`);
     });
 }
-async function main() {
-    try {
-        console.log('[SCRAPE] Starting scrape process...');
-        console.log('[SCRAPE] Environment:', process.env.NODE_ENV || 'development');
-        console.log('[SCRAPE] Chrome executable path:', process.env.PUPPETEER_EXECUTABLE_PATH || 'not set');
-        // Test database connection
+// Enhanced debug function to validate article data
+function validateArticle(article, platform) {
+    const issues = [];
+    if (!article.url || article.url.trim() === '')
+        issues.push('Empty or missing URL');
+    if (!article.question || article.question.trim() === '')
+        issues.push('Empty or missing question/title');
+    if (!article.answer || article.answer.trim() === '')
+        issues.push('Empty or missing answer/content');
+    if (article.answer && article.answer.length < 50)
+        issues.push(`Content too short (${article.answer.length} characters)`);
+    if (!article.platform || article.platform.trim() === '')
+        issues.push('Empty or missing platform');
+    if (!article.category || article.category.trim() === '')
+        issues.push('Empty or missing category');
+    const isValid = issues.length === 0;
+    if (!isValid) {
+        console.log(`[DEBUG][${platform}] Article validation failed for ${article.url}:`);
+        issues.forEach((issue) => console.log(`[DEBUG][${platform}]   - ${issue}`));
+    }
+    return { isValid, issues };
+}
+// Dynamic URL discovery function
+async function discoverNewUrls() {
+    console.log('[DISCOVERY] Starting dynamic URL discovery...');
+    const discoveredUrls = new Set();
+    // Add more sources to discover URLs from
+    const discoverySources = [
+        'https://www.airbnb.com/help',
+        'https://supply.getyourguide.support/hc/en-us',
+        'https://www.viator.com/help/',
+        'https://www.expedia.com/help',
+        'https://www.booking.com/content/help.html',
+        'https://community.withairbnb.com',
+        'https://www.reddit.com/r/AirBnB/',
+        'https://www.reddit.com/r/travel/',
+        'https://www.quora.com/topic/Airbnb',
+        'https://www.quora.com/topic/Travel',
+    ];
+    for (const source of discoverySources) {
         try {
-            await prisma.$connect();
-            console.log('[SCRAPE] Database connection successful');
-        }
-        catch (dbError) {
-            console.error('[SCRAPE] Database connection failed:', dbError);
-            throw dbError;
-        }
-        // Get existing URLs to avoid duplicates
-        const existingUrls = await getExistingArticleUrls();
-        console.log(`[SCRAPE] Found ${existingUrls.size} existing articles in database`);
-        // Log initial stats
-        await logScrapingStats();
-        // Log feature flags configuration
-        console.log(`\n[FEATURE_FLAGS] Feature flags summary: ${(0, featureFlags_1.getFeatureFlagsSummary)()}`);
-        // Log deduplication configuration
-        console.log(`\n[DEDUP] Content deduplication: ${contentDeduplication_1.DEFAULT_DEDUP_CONFIG.enabled ? 'ENABLED' : 'DISABLED'}`);
-        if (contentDeduplication_1.DEFAULT_DEDUP_CONFIG.enabled) {
-            console.log(`[DEDUP] Hash algorithm: ${contentDeduplication_1.DEFAULT_DEDUP_CONFIG.hashAlgorithm}`);
-            console.log(`[DEDUP] Similarity threshold: ${contentDeduplication_1.DEFAULT_DEDUP_CONFIG.similarityThreshold}`);
-            console.log(`[DEDUP] Min content length: ${contentDeduplication_1.DEFAULT_DEDUP_CONFIG.minContentLength}`);
-        }
-        // Scrape articles from different platforms
-        console.log('\n[SCRAPE] Starting Airbnb scraping...');
-        let airbnbArticles = [];
-        try {
-            airbnbArticles = await (0, airbnb_1.scrapeAirbnb)();
-            console.log(`[SCRAPE] Airbnb scraping completed. Found ${airbnbArticles.length} articles`);
-            // Filter out already existing articles
-            const newAirbnbArticles = airbnbArticles.filter(article => !existingUrls.has(article.url));
-            console.log(`[SCRAPE] New Airbnb articles: ${newAirbnbArticles.length} (${airbnbArticles.length - newAirbnbArticles.length} already exist)`);
-            airbnbArticles = newAirbnbArticles;
-        }
-        catch (airbnbError) {
-            console.error('[SCRAPE] Airbnb scraping failed:', airbnbError);
-            // Continue with other scrapers even if Airbnb fails
-        }
-        console.log('\n[SCRAPE] Starting GetYourGuide scraping...');
-        let gygArticles = [];
-        try {
-            // Use feature flags to determine which crawler to use
-            if ((0, featureFlags_1.isFeatureEnabled)('enableGetYourGuidePagination')) {
-                console.log('[SCRAPE] Using enhanced GetYourGuide crawler with pagination');
-                const crawled = await (0, getyourguide_1.crawlGetYourGuideArticlesWithPagination)();
-                gygArticles = crawled.map(a => ({
-                    ...a,
-                    category: a.category || 'Help Center',
-                }));
-            }
-            else {
-                console.log('[SCRAPE] Using legacy GetYourGuide crawler (no pagination)');
-                const crawled = await (0, getyourguide_1.crawlGetYourGuideArticles)();
-                gygArticles = crawled.map(a => ({
-                    ...a,
-                    category: 'Help Center',
-                }));
-            }
-            console.log(`[SCRAPE] GetYourGuide crawling completed. Found ${gygArticles.length} articles`);
-            // Filter out already existing articles
-            const newGygArticles = gygArticles.filter(article => !existingUrls.has(article.url));
-            console.log(`[SCRAPE] New GetYourGuide articles: ${newGygArticles.length} (${gygArticles.length - newGygArticles.length} already exist)`);
-            gygArticles = newGygArticles;
-        }
-        catch (gygError) {
-            console.error('[SCRAPE] GetYourGuide crawling failed:', gygError);
-            // Continue with other scrapers even if GetYourGuide fails
-        }
-        // Scrape community content
-        if ((0, featureFlags_1.isFeatureEnabled)('enableCommunityCrawling')) {
-            console.log('\n[SCRAPE] Starting community content scraping...');
-            try {
-                const communityUrls = await (0, communityCrawler_1.getCommunityContentUrls)();
-                console.log(`[SCRAPE] Found ${communityUrls.length} community URLs to scrape`);
-                // Note: scrapeCommunityUrls handles its own database operations
-                // so we don't need to process the results here
-                await (0, communityCrawler_1.scrapeCommunityUrls)(communityUrls);
-                console.log('[SCRAPE] Community content scraping completed');
-            }
-            catch (communityError) {
-                console.error('[SCRAPE] Community content scraping failed:', communityError);
-                // Continue even if community scraping fails
-            }
-        }
-        else {
-            console.log('\n[SCRAPE] Community crawling disabled by feature flag');
-        }
-        const articles = [...airbnbArticles, ...gygArticles];
-        console.log(`\n[SCRAPE] Total new official articles found: ${articles.length}`);
-        if (articles.length === 0) {
-            console.log('[SCRAPE] No new official articles found, but community content may have been scraped.');
-        }
-        // Process each new official article
-        let processedCount = 0;
-        let skippedCount = 0;
-        let duplicateCount = 0;
-        for (const article of articles) {
-            try {
-                // Double-check if article exists (in case it was added during this run)
-                const existing = await prisma.article.findUnique({ where: { url: article.url } });
-                if (existing) {
-                    console.log(`[SCRAPE] Skipping already processed article: ${article.question}`);
-                    skippedCount++;
-                    continue;
-                }
-                console.log(`[SCRAPE] Processing new article: ${article.question}`);
-                // Generate content hash for deduplication
-                const contentHash = (0, contentDeduplication_1.generateContentHash)(article.answer);
-                let isDuplicate = false;
-                if (contentHash) {
-                    // Check for content duplicates
-                    const duplicateCheck = await (0, contentDeduplication_1.checkContentDuplicate)(contentHash);
-                    if (duplicateCheck.isDuplicate) {
-                        console.log(`[SCRAPE][DEDUP] Found content duplicate: ${duplicateCheck.existingArticle?.url}`);
-                        console.log(`[SCRAPE][DEDUP] Original: ${duplicateCheck.existingArticle?.question}`);
-                        console.log(`[SCRAPE][DEDUP] Duplicate: ${article.question}`);
-                        isDuplicate = true;
-                        duplicateCount++;
+            console.log(`[DISCOVERY] Exploring ${source}...`);
+            const response = await fetch(source, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                },
+                signal: AbortSignal.timeout(10000)
+            });
+            if (response.ok) {
+                const html = await response.text();
+                const urlRegex = /href=["']([^"']+)["']/g;
+                let match;
+                while ((match = urlRegex.exec(html)) !== null) {
+                    const href = match[1];
+                    if (href && href.includes('help') && href.includes('article')) {
+                        const fullUrl = href.startsWith('http') ? href : new URL(href, source).toString();
+                        discoveredUrls.add(fullUrl);
                     }
                 }
-                // Detect language of the content
-                const languageDetection = (0, languageDetection_1.detectLanguage)(article.answer);
-                console.log(`[SCRAPE][LANG] Detected language: ${languageDetection.language} (confidence: ${languageDetection.confidence.toFixed(2)}, reliable: ${languageDetection.isReliable})`);
-                // Generate embeddings for paragraphs
-                let paragraphsWithEmbeddings = [];
+            }
+        }
+        catch (error) {
+            console.log(`[DISCOVERY] Error exploring ${source}:`, error);
+        }
+    }
+    console.log(`[DISCOVERY] Discovered ${discoveredUrls.size} potential URLs`);
+    return Array.from(discoveredUrls);
+}
+// Comprehensive Airbnb Community scraping function
+async function scrapeAirbnbCommunity() {
+    console.log('[SCRAPE][AIRBNB-COMMUNITY] Starting comprehensive Airbnb Community scraping...');
+    const articles = [];
+    const processedUrls = new Set(); // Track processed URLs to avoid duplicates
+    try {
+        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../utils/puppeteer')));
+        const browser = await createBrowser();
+        console.log('[SCRAPE][AIRBNB-COMMUNITY] Browser created successfully');
+        try {
+            const communityCategories = [
+                'https://community.withairbnb.com/t5/Community-Center/ct-p/community-center',
+                'https://community.withairbnb.com/t5/Hosting/ct-p/hosting',
+                'https://community.withairbnb.com/t5/Guests/ct-p/guests',
+                'https://community.withairbnb.com/t5/Experiences/ct-p/experiences',
+            ];
+            console.log(`[SCRAPE][AIRBNB-COMMUNITY] Will scrape ${communityCategories.length} categories.`);
+            // Login if credentials are available
+            const username = process.env.AIRBNB_USERNAME;
+            const password = process.env.AIRBNB_PASSWORD;
+            if (username && password) {
+                let loginPage;
                 try {
-                    paragraphsWithEmbeddings = await (0, openai_1.getContentEmbeddings)(article.answer);
-                    console.log(`[SCRAPE] Generated embeddings for ${paragraphsWithEmbeddings.length} paragraphs`);
+                    loginPage = await browser.newPage();
+                    console.log('[SCRAPE][AIRBNB-COMMUNITY] Navigating to Airbnb login page...');
+                    await loginPage.goto('https://www.airbnb.com/login', { waitUntil: 'networkidle0' });
+                    console.log('[SCRAPE][AIRBNB-COMMUNITY] Entering credentials...');
+                    await loginPage.type('input[name="email"]', username);
+                    await loginPage.click('button[type="submit"]');
+                    await loginPage.waitForNavigation({ waitUntil: 'networkidle0' });
+                    console.log('[SCRAPE][AIRBNB-COMMUNITY] Entering password...');
+                    await loginPage.type('input[name="password"]', password);
+                    await loginPage.click('button[type="submit"]');
+                    await loginPage.waitForNavigation({ waitUntil: 'networkidle0' });
+                    console.log('[SCRAPE][AIRBNB-COMMUNITY] Login successful!');
                 }
-                catch (embeddingError) {
-                    console.error('[SCRAPE] Failed to generate embeddings:', embeddingError);
-                    // Continue without embeddings
+                catch (e) {
+                    console.error('[SCRAPE][AIRBNB-COMMUNITY] Login failed. Continuing without authentication.', e);
                 }
-                // Create new article (no upsert needed since we checked it doesn't exist)
+                finally {
+                    if (loginPage) {
+                        await loginPage.close();
+                        console.log('[SCRAPE][AIRBNB-COMMUNITY] Login page closed.');
+                    }
+                }
+            }
+            else {
+                console.log('[SCRAPE][AIRBNB-COMMUNITY] Credentials not found, skipping login.');
+            }
+            for (const categoryUrl of communityCategories) {
+                let threadLinks = [];
+                let categoryName = 'Airbnb Community';
+                let categoryPage;
+                try {
+                    categoryPage = await browser.newPage();
+                    await setupPage(categoryPage);
+                    console.log(`[SCRAPE][AIRBNB-COMMUNITY] Scraping category: ${categoryUrl}`);
+                    await categoryPage.goto(categoryUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
+                    // Wait for content to load
+                    await new Promise((resolve) => setTimeout(resolve, 5000));
+                    // Extract category name from URL
+                    const urlObj = new URL(categoryUrl);
+                    const pathParts = urlObj.pathname.split('/');
+                    for (let i = 0; i < pathParts.length; i++) {
+                        if (pathParts[i] === 't5' && pathParts[i + 1]) {
+                            categoryName = pathParts[i + 1].replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+                            break;
+                        }
+                    }
+                    // Improved thread link extraction - look for actual discussion threads
+                    threadLinks = await categoryPage.$$eval(
+                    // More specific selectors to find actual discussion threads
+                    '.lia-message-subject a[href*="/td-p/"], .lia-message-subject a[href*="/m-p/"], .message-subject a[href*="/td-p/"], .message-subject a[href*="/m-p/"]', (links) => links.map((link) => ({
+                        url: link.href,
+                        title: link.textContent?.trim() || ''
+                    })));
+                    // If no threads found with specific selectors, try a broader approach
+                    if (threadLinks.length === 0) {
+                        console.log(`[SCRAPE][AIRBNB-COMMUNITY] No threads found with specific selectors, trying broader approach...`);
+                        threadLinks = await categoryPage.$$eval('a[href*="/td-p/"], a[href*="/m-p/"]', (links) => {
+                            const threadLinks = [];
+                            links.forEach((link) => {
+                                const href = link.href;
+                                const title = link.textContent?.trim() || '';
+                                // Filter out navigation links and only include actual discussion threads
+                                if (title &&
+                                    title.length > 5 &&
+                                    !title.includes('Community Center') &&
+                                    !title.includes('Guidelines') &&
+                                    !href.includes('/ct-p/') &&
+                                    !href.includes('/browse/')) {
+                                    threadLinks.push({ url: href, title });
+                                }
+                            });
+                            return threadLinks;
+                        });
+                    }
+                    if (threadLinks.length === 0) {
+                        console.log(`[SCRAPE][AIRBNB-COMMUNITY] No thread links found on ${categoryUrl}. Page might be blocked or empty.`);
+                    }
+                }
+                catch (error) {
+                    console.error(`[SCRAPE][AIRBNB-COMMUNITY] Error accessing category ${categoryUrl}:`, error);
+                }
+                finally {
+                    if (categoryPage) {
+                        await categoryPage.close();
+                        console.log(`[SCRAPE][AIRBNB-COMMUNITY] Page closed for category: ${categoryUrl}`);
+                    }
+                }
+                console.log(`[SCRAPE][AIRBNB-COMMUNITY] Found ${threadLinks.length} threads in ${categoryName}`);
+                for (const { url, title } of threadLinks) {
+                    // Skip if we've already processed this URL
+                    if (processedUrls.has(url)) {
+                        console.log(`[SCRAPE][AIRBNB-COMMUNITY] Skipping already processed URL: ${url}`);
+                        continue;
+                    }
+                    let page;
+                    try {
+                        page = await browser.newPage();
+                        await setupPage(page);
+                        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+                        // Wait longer for dynamic content to load
+                        console.log(`[SCRAPE][AIRBNB-COMMUNITY] Waiting for dynamic content on ${url}...`);
+                        await new Promise((resolve) => setTimeout(resolve, 10000));
+                        // Scroll to trigger lazy loading
+                        await page.evaluate(() => {
+                            window.scrollTo(0, document.body.scrollHeight);
+                        });
+                        await new Promise((resolve) => setTimeout(resolve, 3000));
+                        const extracted = await page.evaluate(() => {
+                            const titleElement = document.querySelector('.lia-message-subject, .page-title, .topic-title, h1, .lia-message-subject-text');
+                            const title = titleElement ? titleElement.textContent?.trim() || '' : '';
+                            // Extract ALL messages with improved selectors
+                            const messageSelectors = [
+                                '.lia-message-body-content',
+                                '.lia-message-body',
+                                '.lia-message-content',
+                                '.message-content'
+                            ];
+                            let allContent = '';
+                            for (const selector of messageSelectors) {
+                                const elements = document.querySelectorAll(selector);
+                                elements.forEach((element) => {
+                                    if (element && element.textContent?.trim()) {
+                                        allContent += element.textContent.trim() + '\n\n';
+                                    }
+                                });
+                            }
+                            return { title, content: allContent.trim() };
+                        });
+                        if (extracted.title && extracted.content && extracted.content.length > 100) {
+                            articles.push({
+                                url,
+                                question: extracted.title || title,
+                                answer: extracted.content,
+                                platform: 'Airbnb',
+                                category: categoryName,
+                                contentType: 'community'
+                            });
+                            processedUrls.add(url); // Mark as processed
+                            console.log(`[SCRAPE][AIRBNB-COMMUNITY] Successfully scraped thread: ${extracted.title} (${extracted.content.length} chars)`);
+                        }
+                    }
+                    catch (error) {
+                        console.error(`[SCRAPE][AIRBNB-COMMUNITY] Error scraping thread ${url}:`, error);
+                    }
+                    finally {
+                        if (page) {
+                            await page.close();
+                        }
+                    }
+                    await new Promise((resolve) => setTimeout(resolve, 1000));
+                }
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+            }
+        }
+        finally {
+            await browser.close();
+            console.log('[SCRAPE][AIRBNB-COMMUNITY] Browser closed');
+        }
+    }
+    catch (error) {
+        console.error('[SCRAPE][AIRBNB-COMMUNITY] Failed to create browser:', error);
+        throw error;
+    }
+    console.log(`[SCRAPE][AIRBNB-COMMUNITY] Scraping completed. Found ${articles.length} unique articles`);
+    return articles;
+}
+// Generates a unique slug, handling potential collisions.
+async function generateUniqueSlug(title) {
+    let slug = (0, slugify_1.slugify)(title);
+    let isUnique = false;
+    let attempts = 0;
+    while (!isUnique && attempts < 5) {
+        const existingSlug = await prisma.article.findUnique({ where: { slug } });
+        if (existingSlug) {
+            console.log(`[SLUG] Slug conflict detected for "${slug}". Generating a new one.`);
+            const randomSuffix = (0, crypto_1.randomBytes)(3).toString('hex'); // e.g., 'a1b2c3'
+            slug = `${(0, slugify_1.slugify)(title)}-${randomSuffix}`;
+            attempts++;
+        }
+        else {
+            isUnique = true;
+        }
+    }
+    if (!isUnique) {
+        // Final fallback to a completely random slug
+        const finalSuffix = (0, crypto_1.randomBytes)(6).toString('hex');
+        slug = `article-${finalSuffix}`;
+        console.log(`[SLUG] Using fallback slug: ${slug}`);
+    }
+    return slug;
+}
+// Main scraping function
+async function main() {
+    console.log('[SCRAPE] Starting comprehensive scraping...');
+    try {
+        // Get existing URLs to avoid duplicates
+        const existingUrls = await getExistingArticleUrls();
+        console.log(`[SCRAPE] Found ${existingUrls.size} existing articles`);
+        // Scrape Airbnb Community
+        console.log('[SCRAPE] ===== AIRBNB COMMUNITY SCRAPING =====');
+        const communityArticles = await scrapeAirbnbCommunity();
+        console.log(`[SCRAPE] Found ${communityArticles.length} community articles`);
+        // Filter out existing articles
+        const newCommunityArticles = communityArticles.filter(article => !existingUrls.has(article.url));
+        console.log(`[SCRAPE] ${newCommunityArticles.length} new community articles`);
+        // Save new articles to database
+        for (const article of newCommunityArticles) {
+            try {
+                // Generate unique slug
+                const slug = await generateUniqueSlug(article.question);
+                // Detect language
+                const languageDetection = (0, languageDetection_1.detectLanguage)(article.answer);
+                // Generate embeddings for content
+                const paragraphs = article.answer.split('\n\n').filter(p => p.trim().length > 50);
+                const paragraphsWithEmbeddings = [];
+                for (const paragraph of paragraphs.slice(0, 5)) {
+                    try {
+                        const embedding = await (0, openai_1.getEmbedding)(paragraph);
+                        paragraphsWithEmbeddings.push({ text: paragraph, embedding });
+                    }
+                    catch (error) {
+                        console.error(`[SCRAPE] Error generating embedding for paragraph:`, error);
+                    }
+                }
+                // Create article
                 const created = await prisma.article.create({
                     data: {
                         url: article.url,
                         question: article.question,
                         answer: article.answer,
+                        slug,
                         category: article.category,
                         platform: article.platform,
-                        contentType: 'official',
-                        source: 'help_center',
-                        contentHash: contentHash || null,
-                        isDuplicate: isDuplicate,
+                        contentType: article.contentType,
+                        source: 'community',
                         language: languageDetection.language,
-                    },
+                        crawlStatus: 'active',
+                    }
                 });
-                console.log(`[SCRAPE] Article created with ID: ${created.id}${isDuplicate ? ' (marked as duplicate)' : ''} [Language: ${languageDetection.language}]`);
                 // Create paragraphs if embeddings were generated
                 if (paragraphsWithEmbeddings.length > 0) {
                     await prisma.articleParagraph.createMany({
@@ -210,43 +432,31 @@ async function main() {
                     });
                     console.log(`[SCRAPE] Created ${paragraphsWithEmbeddings.length} paragraph embeddings`);
                 }
-                processedCount++;
-                console.log(`[SCRAPE] Successfully processed article: ${article.question}`);
+                console.log(`[SCRAPE] Saved article: ${article.question}`);
             }
-            catch (articleError) {
-                console.error(`[SCRAPE] Error processing article ${article.url}:`, articleError);
+            catch (error) {
+                console.error(`[SCRAPE] Error saving article ${article.url}:`, error);
             }
         }
-        console.log(`\n[SCRAPE] Processing summary:`);
-        console.log(`[SCRAPE] - New articles processed: ${processedCount}`);
-        console.log(`[SCRAPE] - Articles skipped (already existed): ${skippedCount}`);
-        console.log(`[SCRAPE] - Articles marked as duplicates: ${duplicateCount}`);
-        console.log(`[SCRAPE] - Total articles in this run: ${articles.length}`);
-        // Log final stats including deduplication
+        // Log final statistics
         await logScrapingStats();
-        // Log deduplication statistics
-        if (contentDeduplication_1.DEFAULT_DEDUP_CONFIG.enabled) {
-            const dedupStats = await (0, contentDeduplication_1.getDeduplicationStats)();
-            console.log(`\n[DEDUP] Deduplication Statistics:`);
-            console.log(`[DEDUP] - Total articles: ${dedupStats.totalArticles}`);
-            console.log(`[DEDUP] - Duplicate articles: ${dedupStats.duplicateArticles}`);
-            console.log(`[DEDUP] - Unique articles: ${dedupStats.uniqueArticles}`);
-            console.log(`[DEDUP] - Duplicate percentage: ${dedupStats.duplicatePercentage.toFixed(2)}%`);
-        }
-        console.log('\n[SCRAPE] Scrape process completed successfully');
     }
     catch (error) {
-        console.error('[SCRAPE] Error during scrape:', error);
-        process.exit(1);
+        console.error('[SCRAPE] Error in main scraping function:', error);
+        throw error;
     }
     finally {
-        try {
-            await prisma.$disconnect();
-            console.log('[SCRAPE] Database connection closed');
-        }
-        catch (disconnectError) {
-            console.error('[SCRAPE] Error disconnecting from database:', disconnectError);
-        }
+        await prisma.$disconnect();
     }
 }
-main();
+// Run the main function if this file is executed directly
+if (require.main === module) {
+    main().then(() => {
+        console.log('[SCRAPE] Scraping completed successfully');
+        process.exit(0);
+    }).catch((error) => {
+        console.error('[SCRAPE] Scraping failed:', error);
+        process.exit(1);
+    });
+}
+//# sourceMappingURL=scrape.js.map

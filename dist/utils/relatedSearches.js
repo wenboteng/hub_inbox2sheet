@@ -120,3 +120,4 @@ function getContextualSuggestions(query, results) {
     // For now, return the base suggestions
     return baseSuggestions;
 }
+//# sourceMappingURL=relatedSearches.js.map

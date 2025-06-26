@@ -312,3 +312,4 @@ function getLanguageFlag(code) {
 function isLanguageDetectionReliable(result) {
     return result.isReliable && result.confidence >= 0.3;
 }
+//# sourceMappingURL=languageDetection.js.map

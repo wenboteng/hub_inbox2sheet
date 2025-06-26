@@ -88,3 +88,4 @@ testLanguageDetection()
     console.error('❌ Language detection test failed:', error);
     process.exit(1);
 });
+//# sourceMappingURL=test-language-detection.js.map

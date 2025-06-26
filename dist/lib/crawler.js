@@ -191,3 +191,4 @@ async function scrapeUrls(urls) {
     }
     console.log('[SCRAPER] Scrape process completed');
 }
+//# sourceMappingURL=crawler.js.map

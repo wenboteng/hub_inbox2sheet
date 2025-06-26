@@ -1,0 +1,1 @@
+{"version":3,"file":"tripadvisor.d.ts","sourceRoot":"","sources":["../../src/crawlers/tripadvisor.ts"],"names":[],"mappings":"AAKA,MAAM,WAAW,kBAAkB;IACjC,QAAQ,EAAE,aAAa,CAAC;IACxB,GAAG,EAAE,MAAM,CAAC;IACZ,QAAQ,EAAE,MAAM,CAAC;IACjB,MAAM,EAAE,MAAM,CAAC;IACf,QAAQ,CAAC,EAAE,MAAM,CAAC;CACnB;AAoID,wBAAsB,wBAAwB,IAAI,OAAO,CAAC,kBAAkB,EAAE,CAAC,CAgC9E"}

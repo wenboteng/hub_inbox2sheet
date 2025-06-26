@@ -128,7 +128,7 @@ async function discoverContentSources(): Promise<ContentSource[]> {
           console.log(`    ✅ Found ${links.length} potential content links`);
         }
         
-      } catch (error) {
+      } catch (error: any) {
         console.log(`    ❌ Error checking ${url}: ${error.message}`);
       }
       
@@ -175,7 +175,7 @@ async function testContentSources(sources: ContentSource[]): Promise<ContentSour
         console.log(`    ❌ Error ${response.status}: ${source.title}`);
       }
       
-    } catch (error) {
+    } catch (error: any) {
       source.status = 'error';
       console.log(`    ❌ Failed: ${source.title} - ${error.message}`);
     }

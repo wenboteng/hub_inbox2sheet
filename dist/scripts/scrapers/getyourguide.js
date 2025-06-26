@@ -95,3 +95,4 @@ async function scrapeGetYourGuide() {
     }
     return articles;
 }
+//# sourceMappingURL=getyourguide.js.map

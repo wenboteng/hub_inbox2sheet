@@ -29,3 +29,4 @@ async function main() {
     }
 }
 main();
+//# sourceMappingURL=view-articles.js.map

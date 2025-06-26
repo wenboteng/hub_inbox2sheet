@@ -112,3 +112,4 @@ function getFallbackForPlatform(platform, category) {
     }
     return fallbacks;
 }
+//# sourceMappingURL=faqFallbacks.js.map

@@ -48,7 +48,7 @@ async function generateAnswer(question, context, tone = 'professional') {
     Format the response in a clear, structured way.
     Keep responses concise and to the point.`;
     const response = await openai.chat.completions.create({
-        model: "gpt-4-0125-preview",
+        model: "gpt-4o",
         messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: `Question: ${question}\n\nContext: ${context}` }
@@ -88,3 +88,4 @@ async function processSubmittedQuestion(questionId) {
     });
     return answer;
 }
+//# sourceMappingURL=ai.js.map

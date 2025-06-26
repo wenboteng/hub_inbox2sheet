@@ -22,14 +22,19 @@ const DEFAULT_FEATURE_FLAGS = {
     enableGetYourGuideAdditionalCategories: process.env.ENABLE_GETYOURGUIDE_ADDITIONAL_CATEGORIES !== 'false',
     // Community crawling - enabled by default
     enableCommunityCrawling: process.env.ENABLE_COMMUNITY_CRAWLING !== 'false',
-    enableNewCommunitySources: process.env.ENABLE_NEW_COMMUNITY_SOURCES === 'true',
+    enableNewCommunitySources: process.env.ENABLE_NEW_COMMUNITY_SOURCES !== 'false',
     // Enhanced scraping - enabled by default
     enableEnhancedLogging: process.env.ENABLE_ENHANCED_LOGGING !== 'false',
     enablePerformanceMetrics: process.env.ENABLE_PERFORMANCE_METRICS === 'true',
-    // Future features - disabled by default
-    enableTripAdvisorScraping: process.env.ENABLE_TRIPADVISOR_SCRAPING === 'true',
-    enableViatorScraping: process.env.ENABLE_VIATOR_SCRAPING === 'true',
+    // New sources - enabled by default to increase content
+    enableTripAdvisorScraping: process.env.ENABLE_TRIPADVISOR_SCRAPING !== 'false',
+    enableViatorScraping: process.env.ENABLE_VIATOR_SCRAPING !== 'false',
+    enableExpediaScraping: process.env.ENABLE_EXPEDIA_SCRAPING !== 'false',
+    enableBookingScraping: process.env.ENABLE_BOOKING_SCRAPING !== 'false',
+    // Advanced features - enabled by default for better content discovery
     enableAdvancedAnalytics: process.env.ENABLE_ADVANCED_ANALYTICS === 'true',
+    enableDynamicUrlDiscovery: process.env.ENABLE_DYNAMIC_URL_DISCOVERY !== 'false',
+    enableContentRechecking: process.env.ENABLE_CONTENT_RECHECKING === 'true',
 };
 // Global feature flags instance
 let featureFlags = { ...DEFAULT_FEATURE_FLAGS };
@@ -87,3 +92,4 @@ function getFeatureFlagsSummary() {
 }
 // Initialize feature flags on module load
 initializeFeatureFlags();
+//# sourceMappingURL=featureFlags.js.map

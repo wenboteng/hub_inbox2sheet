@@ -323,3 +323,4 @@ async function crawlGetYourGuideArticles(urls = VERIFIED_URLS) {
     console.log('[GETYOURGUIDE] Starting legacy crawl (no pagination)');
     return crawlGetYourGuideArticlesWithPagination(urls);
 }
+//# sourceMappingURL=getyourguide.js.map

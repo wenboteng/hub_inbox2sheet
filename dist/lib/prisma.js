@@ -9,3 +9,4 @@ if (process.env.NODE_ENV !== 'production') {
     globalThis.prisma = prisma;
 }
 exports.default = prisma;
+//# sourceMappingURL=prisma.js.map

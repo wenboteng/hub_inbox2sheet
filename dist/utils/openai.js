@@ -63,3 +63,4 @@ async function findRelevantParagraphs(query, paragraphs, topK = 3) {
         .sort((a, b) => b.similarity - a.similarity)
         .slice(0, topK);
 }
+//# sourceMappingURL=openai.js.map

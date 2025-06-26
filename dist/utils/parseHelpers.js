@@ -52,3 +52,4 @@ function cleanText(text) {
         .replace(/\n+/g, '\n') // Replace multiple newlines with single newline
         .trim();
 }
+//# sourceMappingURL=parseHelpers.js.map
