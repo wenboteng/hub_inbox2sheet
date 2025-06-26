@@ -19,6 +19,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   });
 
+  // Get unique platforms for platform pages
+  const platforms = await prisma.article.groupBy({
+    by: ['platform'],
+    _count: {
+      id: true
+    },
+    where: {
+      crawlStatus: 'active'
+    }
+  });
+
   // Create URLs for each article
   const articleUrls = articles
     .filter((article) => article.slug)
@@ -28,6 +39,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }));
+
+  // Create URLs for platform pages
+  const platformUrls = platforms.map((platform) => ({
+    url: `${baseUrl}/platform/${encodeURIComponent(platform.platform)}`,
+    lastModified: new Date(),
+    changeFrequency: "daily" as const,
+    priority: 0.9,
+  }));
 
   // Add static pages
   const staticPages = [
@@ -63,5 +82,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   ];
 
-  return [...staticPages, ...articleUrls];
+  return [...staticPages, ...platformUrls, ...articleUrls];
 } 

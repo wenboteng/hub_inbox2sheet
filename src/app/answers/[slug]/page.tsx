@@ -17,18 +17,63 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!article) {
     return {
-      title: 'Answer not found',
+      title: 'Answer not found - OTA Answers',
+      description: 'The requested answer could not be found.',
     };
   }
 
+  // Extract platform and category for better SEO
+  const platform = article.platform;
+  const category = article.category.replace(/\[.*?\]/g, '').trim(); // Remove priority tags
+  const question = article.question;
+  const description = article.answer.substring(0, 150) + '...';
+  
+  // Generate SEO-friendly keywords
+  const keywords = [
+    platform,
+    category,
+    'help',
+    'solutions',
+    'tour vendor',
+    'OTA',
+    'booking',
+    'cancellation',
+    'policy'
+  ].filter(Boolean).join(', ');
+
   return {
-    title: `${article.question} - OTA Answers`,
-    description: article.answer.substring(0, 160),
+    title: `${question} | ${platform} Help & Solutions | OTA Answers`,
+    description: `${description} Get expert help with ${platform} issues. Find solutions for tour vendors and hosts.`,
+    keywords: keywords,
     openGraph: {
-      title: `${article.question} - OTA Answers`,
-      description: article.answer.substring(0, 160),
+      title: `${question} - ${platform} Help`,
+      description: description,
       type: 'article',
-      url: `https://ota-answers.com/answers/${article.slug}`, // Replace with actual domain
+      url: `https://ota-answers.com/answers/${article.slug}`,
+      siteName: 'OTA Answers',
+      locale: 'en_US',
+      publishedTime: article.createdAt.toISOString(),
+      modifiedTime: article.updatedAt.toISOString(),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${question} - ${platform} Help`,
+      description: description,
+      site: '@otaanswers', // Replace with actual Twitter handle
+    },
+    alternates: {
+      canonical: `https://ota-answers.com/answers/${article.slug}`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
   };
 }
@@ -41,6 +86,20 @@ export default async function AnswerPage({ params }: Props) {
   if (!article) {
     notFound();
   }
+
+  // Get related articles for better internal linking
+  const relatedArticles = await prisma.article.findMany({
+    where: {
+      OR: [
+        { platform: article.platform },
+        { category: { contains: article.category.split(' ')[0] } }, // Match first word of category
+      ],
+      id: { not: article.id },
+      crawlStatus: 'active',
+    },
+    take: 3,
+    orderBy: { createdAt: 'desc' },
+  });
 
   const faqSchema = {
     "@context": "https://schema.org",
@@ -55,6 +114,32 @@ export default async function AnswerPage({ params }: Props) {
     }]
   };
 
+  // Add breadcrumb structured data
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://ota-answers.com"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": article.platform,
+        "item": `https://ota-answers.com/platform/${encodeURIComponent(article.platform)}`
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": article.question.length > 50 ? article.question.substring(0, 50) + '...' : article.question,
+        "item": `https://ota-answers.com/answers/${article.slug}`
+      }
+    ]
+  };
+
   return (
     <div className="bg-white px-6 py-12 lg:px-8">
       <div className="mx-auto max-w-3xl text-base leading-7 text-gray-700">
@@ -62,6 +147,36 @@ export default async function AnswerPage({ params }: Props) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
+        
+        {/* Breadcrumb Navigation */}
+        <nav className="mb-8" aria-label="Breadcrumb">
+          <ol className="flex items-center space-x-2 text-sm text-gray-500">
+            <li>
+              <Link href="/" className="hover:text-indigo-600 transition-colors">
+                Home
+              </Link>
+            </li>
+            <li>
+              <span className="mx-2">/</span>
+            </li>
+            <li>
+              <Link href={`/platform/${encodeURIComponent(article.platform)}`} className="hover:text-indigo-600 transition-colors">
+                {article.platform}
+              </Link>
+            </li>
+            <li>
+              <span className="mx-2">/</span>
+            </li>
+            <li className="text-gray-900 font-medium">
+              {article.question.length > 50 ? article.question.substring(0, 50) + '...' : article.question}
+            </li>
+          </ol>
+        </nav>
+        
         <p className="text-base font-semibold leading-7 text-indigo-600">{article.platform} - {article.category}</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
           {article.question}
@@ -79,6 +194,30 @@ export default async function AnswerPage({ params }: Props) {
             </button>
           </div>
         </div>
+
+        {/* Related Articles Section */}
+        {relatedArticles.length > 0 && (
+          <div className="mt-10 border-t border-gray-200 pt-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Related Articles</h2>
+            <div className="space-y-4">
+              {relatedArticles.map((relatedArticle) => (
+                <div key={relatedArticle.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+                  <Link href={`/answers/${relatedArticle.slug}`} className="block">
+                    <h3 className="text-lg font-medium text-gray-900 hover:text-indigo-600 transition-colors">
+                      {relatedArticle.question}
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {relatedArticle.platform} • {relatedArticle.category}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      {relatedArticle.answer.substring(0, 120)}...
+                    </p>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-8">
             <p className="text-sm text-gray-600 mb-2">Share this answer:</p>
@@ -103,7 +242,6 @@ export default async function AnswerPage({ params }: Props) {
         </div>
 
         <EmailSignup />
-
       </div>
     </div>
   );
