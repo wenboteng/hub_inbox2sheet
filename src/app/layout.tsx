@@ -46,9 +46,9 @@ export default function RootLayout({
                     <Image 
                       src="/logo.svg" 
                       alt="OTA Answers Logo" 
-                      width={48} 
-                      height={48}
-                      className="w-12 h-12"
+                      width={96} 
+                      height={96}
+                      className="w-24 h-24"
                     />
                   </Link>
                 </div>
