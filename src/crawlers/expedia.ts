@@ -1,186 +1,282 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { fetchHtml } from '../utils/fetchHtml';
-import { cleanText } from '../utils/parseHelpers';
+import { PrismaClient } from '@prisma/client';
+import { detectLanguage } from '../utils/languageDetection';
+import { slugify } from '../utils/slugify';
+import { getEmbedding } from '../utils/openai';
 
-export interface ExpediaArticle {
-  platform: 'Expedia';
+const prisma = new PrismaClient();
+
+interface Article {
   url: string;
   question: string;
   answer: string;
-  category?: string;
+  category: string;
+  platform: string;
 }
 
-// Updated Expedia URLs with correct domains
-const EXPEDIA_URLS = [
-  'https://www.expedia.com/help/article/360000191268',
-  'https://www.expedia.com/help/article/360000191269',
-  'https://www.expedia.com/help/article/360000191270',
-  'https://www.expedia.com/help/article/360000191271',
-  'https://www.expedia.com/help/article/360000191272',
-  'https://www.expedia.com/help/article/360000191273',
-  'https://www.expedia.com/help/article/360000191274',
-  'https://www.expedia.com/help/article/360000191275',
-  'https://www.expedia.com/help/article/360000191276',
-  'https://www.expedia.com/help/article/360000191277',
-  // Additional policy and booking-related articles
-  'https://www.expedia.com/help/article/360000191278',
-  'https://www.expedia.com/help/article/360000191279',
-  'https://www.expedia.com/help/article/360000191280',
-  'https://www.expedia.com/help/article/360000191281',
-  'https://www.expedia.com/help/article/360000191282',
+// Updated Expedia help URLs - using correct domain
+const EXPEDIA_HELP_URLS = [
+  'https://www.expedia.com/help/article/booking',
+  'https://www.expedia.com/help/article/cancellation',
+  'https://www.expedia.com/help/article/refund',
+  'https://www.expedia.com/help/article/payment',
+  'https://www.expedia.com/help/article/account',
+  'https://www.expedia.com/help/article/safety',
+  'https://www.expedia.com/help/article/contact',
+  'https://www.expedia.com/help/article/terms',
+  'https://www.expedia.com/help/article/privacy',
+  'https://www.expedia.com/help/article/accessibility',
 ];
 
-// Known Expedia help articles
-const KNOWN_ARTICLES = [
-  'https://help.expedia.com/hc/en-us/articles/360000191263',
-  'https://help.expedia.com/hc/en-us/articles/360000191264',
-  'https://help.expedia.com/hc/en-us/articles/360000191265',
-  'https://help.expedia.com/hc/en-us/articles/360000191266',
-  'https://help.expedia.com/hc/en-us/articles/360000191267',
-  'https://help.expedia.com/hc/en-us/articles/360000191268',
-  'https://help.expedia.com/hc/en-us/articles/360000191269',
-  'https://help.expedia.com/hc/en-us/articles/360000191270',
-  'https://help.expedia.com/hc/en-us/articles/360000191271',
-  'https://help.expedia.com/hc/en-us/articles/360000191272',
+// Alternative Expedia help pages that are more likely to work
+const EXPEDIA_ALTERNATIVE_URLS = [
+  'https://www.expedia.com/help/booking',
+  'https://www.expedia.com/help/cancellation',
+  'https://www.expedia.com/help/refund',
+  'https://www.expedia.com/help/payment',
+  'https://www.expedia.com/help/account',
+  'https://www.expedia.com/help/safety',
+  'https://www.expedia.com/help/contact',
+  'https://www.expedia.com/help/terms',
+  'https://www.expedia.com/help/privacy',
+  'https://www.expedia.com/help/accessibility',
 ];
 
-// Browser headers to avoid being blocked
-const BROWSER_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.5',
-  'Accept-Encoding': 'gzip, deflate, br',
-  'Connection': 'keep-alive',
-  'Upgrade-Insecure-Requests': '1',
-};
-
-async function crawlExpediaArticle(url: string): Promise<ExpediaArticle | null> {
-  console.log(`[EXPEDIA] Crawling ${url}`);
-  
+async function fetchHtml(url: string): Promise<string> {
   try {
-    const html = await fetchHtml(url);
+    console.log(`[EXPEDIA] Fetching: ${url}`);
+    
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+      },
+      timeout: 30000,
+    });
+
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 429) {
+      console.log(`[EXPEDIA] Rate limited for ${url}, waiting 5 seconds...`);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      return ''; // Return empty to skip this URL
+    }
+    console.error(`[EXPEDIA] Error fetching ${url}:`, error.message);
+    return '';
+  }
+}
+
+async function crawlExpediaHelp(): Promise<Article[]> {
+  console.log('[EXPEDIA] Starting Expedia help crawling...');
+  
+  const articles: Article[] = [];
+  
+  // Try the main help page first
+  const mainHtml = await fetchHtml('https://www.expedia.com/help');
+  
+  if (mainHtml) {
+    const $ = cheerio.load(mainHtml);
+    
+    // Look for help article links
+    const helpLinks: string[] = [];
+    $('a[href*="/help/"], a[href*="/article/"]').each((_, element) => {
+      const href = $(element).attr('href');
+      if (href && helpLinks.length < 10) {
+        const fullUrl = href.startsWith('http') ? href : new URL(href, 'https://www.expedia.com').toString();
+        helpLinks.push(fullUrl);
+      }
+    });
+    
+    for (const url of helpLinks) {
+      try {
+        const articleHtml = await fetchHtml(url);
+        if (articleHtml) {
+          const article = await extractArticleFromPage(articleHtml, url);
+          if (article) {
+            articles.push(article);
+          }
+        }
+        
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (error) {
+        console.error(`[EXPEDIA] Error processing ${url}:`, error);
+      }
+    }
+  }
+  
+  // If we didn't get enough articles, try alternative URLs
+  if (articles.length < 5) {
+    console.log('[EXPEDIA] Trying alternative URLs...');
+    
+    for (const url of EXPEDIA_ALTERNATIVE_URLS.slice(0, 5)) {
+      try {
+        const html = await fetchHtml(url);
+        if (html) {
+          const article = await extractArticleFromPage(html, url);
+          if (article) {
+            articles.push(article);
+          }
+        }
+        
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      } catch (error) {
+        console.error(`[EXPEDIA] Error processing alternative URL ${url}:`, error);
+      }
+    }
+  }
+  
+  console.log(`[EXPEDIA] Found ${articles.length} articles`);
+  return articles;
+}
+
+async function extractArticleFromPage(html: string, url: string): Promise<Article | null> {
+  try {
     const $ = cheerio.load(html);
     
-    // Try multiple selectors for title and content
-    const title = $('h1, .article-title, .title, .page-title, [data-testid="article-title"]').first().text().trim();
-    const content = $('.article-content, .article-body, .content, .help-content, main, [data-testid="article-content"]').first().text().trim();
+    // Try multiple selectors for title
+    const titleSelectors = [
+      'h1',
+      '.help-article-title',
+      '.article-title',
+      '.page-title',
+      '.title',
+      'title'
+    ];
     
-    // If no content found, try alternative selectors
-    let finalTitle = title;
-    let finalContent = content;
+    let title = '';
+    for (const selector of titleSelectors) {
+      title = $(selector).first().text().trim();
+      if (title) break;
+    }
     
-    if (!finalTitle) {
-      const alternativeTitles = [
-        $('title').text().trim(),
-        $('meta[property="og:title"]').attr('content') || '',
-        $('meta[name="title"]').attr('content') || '',
-        $('.breadcrumb').last().text().trim(),
-      ].filter(t => t && t.length > 0);
-      
-      if (alternativeTitles.length > 0) {
-        finalTitle = alternativeTitles[0];
-      } else {
-        // Generate title from URL
-        const urlParts = url.split('/');
-        const articleId = urlParts[urlParts.length - 1] || 'unknown';
-        finalTitle = `Expedia Help Article ${articleId}`;
+    if (!title) {
+      console.log(`[EXPEDIA] No title found for ${url}`);
+      return null;
+    }
+    
+    // Try multiple selectors for content
+    const contentSelectors = [
+      '.help-article-content',
+      '.article-content',
+      '.content',
+      '.main-content',
+      '.post-content',
+      'main',
+      'article'
+    ];
+    
+    let content = '';
+    for (const selector of contentSelectors) {
+      const element = $(selector).first();
+      if (element.length) {
+        content = element.text().trim();
+        if (content.length > 100) break;
       }
     }
     
-    if (!finalContent || finalContent.length < 50) {
-      const alternativeContent = [
-        $('main').text().trim(),
-        $('article').text().trim(),
-        $('.main-content').text().trim(),
-        $('body').text().trim(),
-      ].filter(c => c && c.length > 100);
-      
-      if (alternativeContent.length > 0) {
-        finalContent = alternativeContent[0];
-      } else {
-        finalContent = 'Content not available';
-      }
+    if (!content || content.length < 50) {
+      console.log(`[EXPEDIA] Insufficient content for ${url}`);
+      return null;
     }
     
-    const cleanedContent = cleanText(finalContent);
-    
-    console.log(`[EXPEDIA] Success: "${finalTitle}" (${cleanedContent.length} chars)`);
+    // Determine category based on URL or content
+    let category = 'Help Center';
+    if (url.includes('cancellation')) category = 'Cancellation Policy';
+    else if (url.includes('refund')) category = 'Refund Policy';
+    else if (url.includes('payment')) category = 'Payment';
+    else if (url.includes('booking')) category = 'Booking';
+    else if (url.includes('safety')) category = 'Safety';
+    else if (url.includes('terms')) category = 'Terms of Service';
+    else if (url.includes('privacy')) category = 'Privacy Policy';
     
     return {
-      platform: 'Expedia',
       url,
-      question: finalTitle,
-      answer: cleanedContent,
-      category: 'Help Center',
+      question: title,
+      answer: content,
+      category,
+      platform: 'Expedia'
     };
+    
   } catch (error) {
-    console.error(`[EXPEDIA] Error crawling ${url}:`, error);
+    console.error(`[EXPEDIA] Error extracting article from ${url}:`, error);
     return null;
   }
 }
 
-async function discoverExpediaUrls(): Promise<string[]> {
-  console.log('[EXPEDIA] Discovering URLs...');
-  const discoveredUrls = new Set<string>();
+async function saveToDatabase(articles: Article[]): Promise<void> {
+  console.log(`[EXPEDIA] Saving ${articles.length} articles to database...`);
   
-  try {
-    // Try to discover URLs from main help page
-    const mainHtml = await fetchHtml('https://help.expedia.com/hc/en-us');
-    const $ = cheerio.load(mainHtml);
-    
-    // Find article links
-    $('a[href*="/articles/"], a[href*="help"]').each((_, element) => {
-      const href = $(element).attr('href');
-      if (href) {
-        const fullUrl = href.startsWith('http') ? href : new URL(href, 'https://help.expedia.com').toString();
-        if (fullUrl.includes('expedia.com') && fullUrl.includes('articles')) {
-          discoveredUrls.add(fullUrl);
-        }
+  for (const article of articles) {
+    try {
+      // Check if article already exists
+      const existing = await prisma.article.findUnique({ where: { url: article.url } });
+      if (existing) {
+        console.log(`[EXPEDIA] Article already exists: ${article.url}`);
+        continue;
       }
-    });
-    
-    console.log(`[EXPEDIA] Discovered ${discoveredUrls.size} URLs from main page`);
-  } catch (error) {
-    console.error('[EXPEDIA] Error discovering URLs:', error);
+
+      // Generate unique slug
+      let uniqueSlug = slugify(article.question);
+      let counter = 1;
+      while (await prisma.article.findUnique({ where: { slug: uniqueSlug } })) {
+        uniqueSlug = `${slugify(article.question)}-${counter}`;
+        counter++;
+      }
+
+      // Detect language
+      const languageDetection = detectLanguage(article.answer);
+
+      // Create article
+      await prisma.article.create({
+        data: {
+          url: article.url,
+          question: article.question,
+          answer: article.answer,
+          slug: uniqueSlug,
+          category: article.category,
+          platform: article.platform,
+          contentType: 'official',
+          source: 'help_center',
+          language: languageDetection.language,
+          crawlStatus: 'active',
+        }
+      });
+
+      console.log(`[EXPEDIA] Saved article: ${article.question}`);
+    } catch (error) {
+      console.error(`[EXPEDIA] Error saving article ${article.url}:`, error);
+    }
   }
-  
-  // Add known articles as fallback
-  KNOWN_ARTICLES.forEach(url => discoveredUrls.add(url));
-  
-  return Array.from(discoveredUrls);
 }
 
-export async function crawlExpediaArticles(): Promise<ExpediaArticle[]> {
-  console.log('[EXPEDIA] Starting Expedia scraping...');
-  
-  const urls = await discoverExpediaUrls();
-  console.log(`[EXPEDIA] Processing ${urls.length} URLs`);
-  
-  const articles: ExpediaArticle[] = [];
-  let successCount = 0;
-  let errorCount = 0;
-  
-  for (const url of urls) {
-    try {
-      const article = await crawlExpediaArticle(url);
-      if (article) {
-        articles.push(article);
-        successCount++;
-      } else {
-        errorCount++;
-      }
-    } catch (error) {
-      console.error(`[EXPEDIA] Error processing ${url}:`, error);
-      errorCount++;
-    }
-    
-    // Add delay between requests
-    await new Promise(resolve => setTimeout(resolve, 2000));
+export async function crawlExpedia(): Promise<Article[]> {
+  try {
+    const articles = await crawlExpediaHelp();
+    await saveToDatabase(articles);
+    return articles;
+  } catch (error) {
+    console.error('[EXPEDIA] Error in Expedia crawler:', error);
+    return [];
+  } finally {
+    await prisma.$disconnect();
   }
-  
-  console.log(`[EXPEDIA] Crawl completed: ${successCount} successful, ${errorCount} failed`);
-  console.log(`[EXPEDIA] Total valid articles: ${articles.length}`);
-  
-  return articles;
+}
+
+// For standalone testing
+if (require.main === module) {
+  crawlExpedia().then(articles => {
+    console.log(`[EXPEDIA] Crawling completed. Found ${articles.length} articles.`);
+    process.exit(0);
+  }).catch(error => {
+    console.error('[EXPEDIA] Crawling failed:', error);
+    process.exit(1);
+  });
 } 

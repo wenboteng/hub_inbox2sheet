@@ -8,6 +8,57 @@ const VIATOR_SELECTORS = {
   content: '.article-content, .help-center-content, .article-body, .content, .article-text, [data-testid="article-content"]',
 };
 
+// Comprehensive list of discovered Viator article URLs
+const VIATOR_ARTICLE_URLS = [
+  // From main help page discovery
+  'https://www.viator.com/help/articles/35',
+  'https://www.viator.com/help/articles/33',
+  'https://www.viator.com/help/articles/24',
+  'https://www.viator.com/help/articles/81',
+  
+  // From systematic testing
+  'https://www.viator.com/help/articles/5',
+  'https://www.viator.com/help/articles/6',
+  'https://www.viator.com/help/articles/7',
+  'https://www.viator.com/help/articles/11',
+  'https://www.viator.com/help/articles/12',
+  'https://www.viator.com/help/articles/14',
+  'https://www.viator.com/help/articles/15',
+  'https://www.viator.com/help/articles/16',
+  'https://www.viator.com/help/articles/17',
+  'https://www.viator.com/help/articles/18',
+  'https://www.viator.com/help/articles/19',
+  'https://www.viator.com/help/articles/23',
+  'https://www.viator.com/help/articles/25',
+  'https://www.viator.com/help/articles/26',
+  'https://www.viator.com/help/articles/27',
+  'https://www.viator.com/help/articles/28',
+  'https://www.viator.com/help/articles/29',
+  'https://www.viator.com/help/articles/30',
+  'https://www.viator.com/help/articles/31',
+  'https://www.viator.com/help/articles/34',
+  'https://www.viator.com/help/articles/36',
+  'https://www.viator.com/help/articles/37',
+  'https://www.viator.com/help/articles/39',
+  'https://www.viator.com/help/articles/40',
+  'https://www.viator.com/help/articles/42',
+  'https://www.viator.com/help/articles/45',
+  'https://www.viator.com/help/articles/46',
+  'https://www.viator.com/help/articles/47',
+  'https://www.viator.com/help/articles/48',
+  'https://www.viator.com/help/articles/49',
+  'https://www.viator.com/help/articles/50',
+  'https://www.viator.com/help/articles/51',
+  'https://www.viator.com/help/articles/52',
+  'https://www.viator.com/help/articles/53',
+  'https://www.viator.com/help/articles/54',
+  'https://www.viator.com/help/articles/55',
+  'https://www.viator.com/help/articles/56',
+  'https://www.viator.com/help/articles/58',
+  'https://www.viator.com/help/articles/59',
+  'https://www.viator.com/help/articles/60',
+];
+
 export interface ViatorArticle {
   platform: 'Viator';
   url: string;
@@ -183,45 +234,16 @@ export async function crawlViatorArticles(): Promise<ViatorArticle[]> {
     console.log(`[VIATOR] Total links found: ${totalLinksFound}`);
     console.log(`[VIATOR] Unique article URLs discovered: ${discoveredUrls.size}`);
     
-    // If we didn't find many articles, try some known URLs
-    if (discoveredUrls.size < 5) {
-      console.log(`[VIATOR] Few articles found, trying known URLs...`);
-      const knownUrls = [
-        'https://www.viator.com/help/articles/51',
-        'https://www.viator.com/help/articles/15',
-        'https://www.viator.com/help/articles/11',
-        'https://www.viator.com/help/articles/5',
-        'https://www.viator.com/help/articles/14',
-        'https://www.viator.com/help/articles/46',
-        'https://www.viator.com/help/articles/47',
-        'https://www.viator.com/help/articles/54',
-        'https://www.viator.com/help/articles/50',
-        'https://www.viator.com/help/articles/58',
-      ];
-      
-      knownUrls.forEach(url => discoveredUrls.add(url));
-      console.log(`[VIATOR] Added ${knownUrls.length} known URLs`);
-    }
+    // Add all known URLs from our comprehensive list
+    VIATOR_ARTICLE_URLS.forEach(url => discoveredUrls.add(url));
+    console.log(`[VIATOR] Added ${VIATOR_ARTICLE_URLS.length} known URLs from comprehensive list`);
     
   } catch (error) {
     console.error(`[VIATOR] Failed to crawl main help page ${helpCenterUrl}:`, error);
     
-    // Fallback to known URLs if main page fails
-    console.log(`[VIATOR] Using fallback known URLs...`);
-    const fallbackUrls = [
-      'https://www.viator.com/help/articles/51',
-      'https://www.viator.com/help/articles/15',
-      'https://www.viator.com/help/articles/11',
-      'https://www.viator.com/help/articles/5',
-      'https://www.viator.com/help/articles/14',
-      'https://www.viator.com/help/articles/46',
-      'https://www.viator.com/help/articles/47',
-      'https://www.viator.com/help/articles/54',
-      'https://www.viator.com/help/articles/50',
-      'https://www.viator.com/help/articles/58',
-    ];
-    
-    fallbackUrls.forEach(url => discoveredUrls.add(url));
+    // Fallback to comprehensive known URLs if main page fails
+    console.log(`[VIATOR] Using fallback comprehensive known URLs...`);
+    VIATOR_ARTICLE_URLS.forEach(url => discoveredUrls.add(url));
   }
 
   const uniqueUrls = Array.from(discoveredUrls);

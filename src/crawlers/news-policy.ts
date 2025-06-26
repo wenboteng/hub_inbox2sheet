@@ -425,66 +425,234 @@ export async function crawlNewsAndPolicies(): Promise<NewsArticle[]> {
   
   const articles: NewsArticle[] = [];
   
-  // Instead of trying to crawl blocked news sites, let's focus on what works:
-  // 1. Use existing help center content as policy updates
-  // 2. Focus on community content (which we know works)
-  // 3. Use industry news sources that are more accessible
+  // Try to crawl actual news sources with better error handling
+  console.log('[NEWS] Attempting to crawl news sources...');
   
-  console.log('[NEWS] Focusing on accessible content sources...');
-  
-  // Get existing help center articles and mark policy-related ones as news
+  // Try Airbnb news/press
   try {
-    const existingArticles = await prisma.article.findMany({
-      where: {
-        contentType: 'official',
-        OR: [
-          { category: { contains: 'policy' } },
-          { category: { contains: 'terms' } },
-          { category: { contains: 'cancellation' } },
-          { category: { contains: 'refund' } },
-          { category: { contains: 'booking' } },
-          { category: { contains: 'pricing' } },
-        ]
-      },
-      take: 10
-    });
-
-    console.log(`[NEWS] Found ${existingArticles.length} existing policy-related articles`);
-
-    for (const article of existingArticles) {
-      // Check if it's already been processed as news
-      const existingNews = await prisma.article.findFirst({
-        where: {
-          url: article.url,
-          contentType: 'news'
-        }
-      });
-
-      if (!existingNews) {
-        // Create a news version of this policy article
-        const newsArticle: NewsArticle = {
-          url: article.url,
-          title: article.question,
-          content: article.answer,
-          platform: article.platform,
-          category: 'policy',
-          contentType: 'policy',
-          priority: determinePriority(article.question, article.answer),
-        };
-
-        articles.push(newsArticle);
-        console.log(`[NEWS] Added existing policy article: ${article.question}`);
-      }
+    console.log('[NEWS] Trying Airbnb press/news...');
+    const airbnbNews = await crawlNewsSource(NEWS_SOURCES.airbnb, NEWS_SOURCES.airbnb.blogUrl);
+    if (airbnbNews) {
+      articles.push(airbnbNews);
+      console.log(`[NEWS] Found Airbnb news: ${airbnbNews.title}`);
     }
-  } catch (error) {
-    console.error('[NEWS] Error processing existing articles:', error);
+  } catch (error: any) {
+    console.log('[NEWS] Airbnb news crawling failed:', error.message);
   }
   
-  console.log(`[NEWS] Processed ${articles.length} policy-related articles from existing content`);
+  // Try Booking.com policies
+  try {
+    console.log('[NEWS] Trying Booking.com policies...');
+    const bookingNews = await crawlNewsSource(NEWS_SOURCES.booking, NEWS_SOURCES.booking.policyUrl);
+    if (bookingNews) {
+      articles.push(bookingNews);
+      console.log(`[NEWS] Found Booking.com news: ${bookingNews.title}`);
+    }
+  } catch (error: any) {
+    console.log('[NEWS] Booking.com news crawling failed:', error.message);
+  }
+  
+  // Try alternative sources that are more accessible
+  console.log('[NEWS] Trying alternative accessible sources...');
+  
+  // Try Reddit for community discussions about policy changes
+  try {
+    console.log('[NEWS] Trying Reddit for policy discussions...');
+    const redditArticles = await crawlRedditPolicyDiscussions();
+    articles.push(...redditArticles);
+    console.log(`[NEWS] Found ${redditArticles.length} Reddit policy discussions`);
+  } catch (error: any) {
+    console.log('[NEWS] Reddit crawling failed:', error.message);
+  }
+  
+  // Try industry blogs
+  try {
+    console.log('[NEWS] Trying industry blogs...');
+    const blogArticles = await crawlIndustryBlogs();
+    articles.push(...blogArticles);
+    console.log(`[NEWS] Found ${blogArticles.length} industry blog articles`);
+  } catch (error: any) {
+    console.log('[NEWS] Industry blog crawling failed:', error.message);
+  }
+  
+  // If we still don't have enough content, process existing help center articles as policy updates
+  if (articles.length < 5) {
+    console.log('[NEWS] Processing existing help center articles as policy updates...');
+    
+    try {
+      const existingArticles = await prisma.article.findMany({
+        where: {
+          contentType: 'official',
+          OR: [
+            { category: { contains: 'policy' } },
+            { category: { contains: 'terms' } },
+            { category: { contains: 'cancellation' } },
+            { category: { contains: 'refund' } },
+            { category: { contains: 'booking' } },
+            { category: { contains: 'pricing' } },
+          ]
+        },
+        take: 10
+      });
+
+      console.log(`[NEWS] Found ${existingArticles.length} existing policy-related articles`);
+
+      for (const article of existingArticles) {
+        // Check if it's already been processed as news
+        const existingNews = await prisma.article.findFirst({
+          where: {
+            url: article.url,
+            contentType: 'news'
+          }
+        });
+
+        if (!existingNews) {
+          // Create a news version of this policy article
+          const newsArticle: NewsArticle = {
+            url: article.url,
+            title: article.question,
+            content: article.answer,
+            platform: article.platform,
+            category: 'policy',
+            contentType: 'policy',
+            priority: determinePriority(article.question, article.answer),
+          };
+
+          articles.push(newsArticle);
+          console.log(`[NEWS] Added existing policy article: ${article.question}`);
+        }
+      }
+    } catch (error) {
+      console.error('[NEWS] Error processing existing articles:', error);
+    }
+  }
+  
+  console.log(`[NEWS] Found ${articles.length} news/policy articles`);
   
   // Save articles to database
   for (const article of articles) {
     await saveNewsArticle(article);
+  }
+  
+  console.log('[NEWS] News and policy crawling completed');
+  return articles;
+}
+
+// Helper function to crawl Reddit for policy discussions
+async function crawlRedditPolicyDiscussions(): Promise<NewsArticle[]> {
+  const articles: NewsArticle[] = [];
+  
+  try {
+    // Try to get Reddit posts about policy changes
+    const redditUrls = [
+      'https://www.reddit.com/r/AirBnB/search.json?q=policy+change&restrict_sr=on&sort=hot&t=month',
+      'https://www.reddit.com/r/airbnb_hosts/search.json?q=policy+update&restrict_sr=on&sort=hot&t=month',
+    ];
+    
+    for (const url of redditUrls) {
+      try {
+        const response = await axios.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          },
+          timeout: 10000,
+        });
+        
+        if (response.data?.data?.children) {
+          const posts = response.data.data.children.slice(0, 3);
+          
+          for (const post of posts) {
+            const postData = post.data;
+            if (postData.title && postData.selftext && postData.selftext.length > 100) {
+              const article: NewsArticle = {
+                url: `https://www.reddit.com${postData.permalink}`,
+                title: postData.title,
+                content: postData.selftext,
+                platform: 'Reddit',
+                category: 'community_policy_discussion',
+                contentType: 'policy',
+                priority: determinePriority(postData.title, postData.selftext),
+                author: postData.author,
+                publishDate: new Date(postData.created_utc * 1000).toISOString(),
+              };
+              
+              articles.push(article);
+            }
+          }
+        }
+        
+        // Add delay between requests
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (error: any) {
+        console.log(`[NEWS] Reddit URL ${url} failed:`, error.message);
+      }
+    }
+  } catch (error: any) {
+    console.log('[NEWS] Reddit crawling failed:', error.message);
+  }
+  
+  return articles;
+}
+
+// Helper function to crawl industry blogs
+async function crawlIndustryBlogs(): Promise<NewsArticle[]> {
+  const articles: NewsArticle[] = [];
+  
+  try {
+    // Try accessible industry news sources
+    const blogUrls = [
+      'https://skift.com/tag/airbnb/',
+      'https://www.phocuswire.com/airbnb',
+    ];
+    
+    for (const url of blogUrls) {
+      try {
+        const response = await axios.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          },
+          timeout: 15000,
+        });
+        
+        if (response.data) {
+          const $ = cheerio.load(response.data);
+          
+          // Look for recent articles
+          const articleElements: string[] = [];
+          $('article, .post, .entry').each((index: number, element: any) => {
+            if (index < 3) {
+              const title = $(element).find('h1, h2, h3, .title, .headline').first().text().trim();
+              const content = $(element).find('.excerpt, .summary, .content').first().text().trim();
+              const link = $(element).find('a').first().attr('href');
+              
+              if (title && content && content.length > 100) {
+                const fullUrl = link?.startsWith('http') ? link : new URL(link || '', url).toString();
+                
+                const article: NewsArticle = {
+                  url: fullUrl,
+                  title,
+                  content,
+                  platform: 'Industry Blog',
+                  category: 'industry_news',
+                  contentType: 'news',
+                  priority: determinePriority(title, content),
+                };
+                
+                articles.push(article);
+              }
+            }
+          });
+        }
+        
+        // Add delay between requests
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      } catch (error: any) {
+        console.log(`[NEWS] Blog URL ${url} failed:`, error.message);
+      }
+    }
+  } catch (error: any) {
+    console.log('[NEWS] Industry blog crawling failed:', error.message);
   }
   
   return articles;
