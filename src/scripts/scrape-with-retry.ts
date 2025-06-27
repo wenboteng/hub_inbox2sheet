@@ -224,9 +224,73 @@ async function main() {
     const existingUrls = await getExistingArticleUrls();
     console.log(`[SCRAPE] Found ${existingUrls.size} existing articles`);
     
-    // For now, let's just test the database connection and skip actual scraping
-    // to avoid overwhelming the system while we debug the connection issue
-    console.log('[SCRAPE] Database connection test successful - skipping actual scraping for now');
+    // Import scraping functions
+    const { scrapeAirbnbCommunity } = await import('./scrape');
+    
+    // Scrape Airbnb Community
+    console.log('[SCRAPE] ===== AIRBNB COMMUNITY SCRAPING =====');
+    const communityArticles = await scrapeAirbnbCommunity();
+    console.log(`[SCRAPE] Found ${communityArticles.length} community articles`);
+    
+    // Filter out existing articles
+    const newCommunityArticles = communityArticles.filter(article => !existingUrls.has(article.url));
+    console.log(`[SCRAPE] ${newCommunityArticles.length} new community articles`);
+    
+    // Save new articles to database
+    for (const article of newCommunityArticles) {
+      try {
+        // Generate unique slug
+        const slug = await generateUniqueSlug(article.question);
+        
+        // Detect language
+        const languageDetection = detectLanguage(article.answer);
+        
+        // Generate embeddings for content
+        const paragraphs = article.answer.split('\n\n').filter(p => p.trim().length > 50);
+        const paragraphsWithEmbeddings: ParagraphWithEmbedding[] = [];
+        
+        for (const paragraph of paragraphs.slice(0, 5)) {
+          try {
+            const embedding = await getEmbedding(paragraph);
+            paragraphsWithEmbeddings.push({ text: paragraph, embedding });
+          } catch (error) {
+            console.error(`[SCRAPE] Error generating embedding for paragraph:`, error);
+          }
+        }
+        
+        // Create article
+        const created = await prisma.article.create({
+          data: {
+            url: article.url,
+            question: article.question,
+            answer: article.answer,
+            slug,
+            category: article.category,
+            platform: article.platform,
+            contentType: article.contentType,
+            source: 'community',
+            language: languageDetection.language,
+            crawlStatus: 'active',
+          }
+        });
+        
+        // Create paragraphs if embeddings were generated
+        if (paragraphsWithEmbeddings.length > 0) {
+          await prisma.articleParagraph.createMany({
+            data: paragraphsWithEmbeddings.map(p => ({
+              articleId: created.id,
+              text: p.text,
+              embedding: p.embedding as any,
+            })),
+          });
+          console.log(`[SCRAPE] Created ${paragraphsWithEmbeddings.length} paragraph embeddings`);
+        }
+        
+        console.log(`[SCRAPE] Saved article: ${article.question}`);
+      } catch (error) {
+        console.error(`[SCRAPE] Error saving article ${article.url}:`, error);
+      }
+    }
     
     // Log final statistics
     await logScrapingStats();

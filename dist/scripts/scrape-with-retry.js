@@ -1,7 +1,42 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const crypto_1 = require("crypto");
+const openai_1 = require("../utils/openai");
+const languageDetection_1 = require("../utils/languageDetection");
 const slugify_1 = require("../utils/slugify");
 // Enhanced Prisma client with retry logic
 class RetryablePrismaClient extends client_1.PrismaClient {
@@ -184,9 +219,66 @@ async function main() {
         // Get existing URLs to avoid duplicates
         const existingUrls = await getExistingArticleUrls();
         console.log(`[SCRAPE] Found ${existingUrls.size} existing articles`);
-        // For now, let's just test the database connection and skip actual scraping
-        // to avoid overwhelming the system while we debug the connection issue
-        console.log('[SCRAPE] Database connection test successful - skipping actual scraping for now');
+        // Import scraping functions
+        const { scrapeAirbnbCommunity } = await Promise.resolve().then(() => __importStar(require('./scrape')));
+        // Scrape Airbnb Community
+        console.log('[SCRAPE] ===== AIRBNB COMMUNITY SCRAPING =====');
+        const communityArticles = await scrapeAirbnbCommunity();
+        console.log(`[SCRAPE] Found ${communityArticles.length} community articles`);
+        // Filter out existing articles
+        const newCommunityArticles = communityArticles.filter(article => !existingUrls.has(article.url));
+        console.log(`[SCRAPE] ${newCommunityArticles.length} new community articles`);
+        // Save new articles to database
+        for (const article of newCommunityArticles) {
+            try {
+                // Generate unique slug
+                const slug = await generateUniqueSlug(article.question);
+                // Detect language
+                const languageDetection = (0, languageDetection_1.detectLanguage)(article.answer);
+                // Generate embeddings for content
+                const paragraphs = article.answer.split('\n\n').filter(p => p.trim().length > 50);
+                const paragraphsWithEmbeddings = [];
+                for (const paragraph of paragraphs.slice(0, 5)) {
+                    try {
+                        const embedding = await (0, openai_1.getEmbedding)(paragraph);
+                        paragraphsWithEmbeddings.push({ text: paragraph, embedding });
+                    }
+                    catch (error) {
+                        console.error(`[SCRAPE] Error generating embedding for paragraph:`, error);
+                    }
+                }
+                // Create article
+                const created = await prisma.article.create({
+                    data: {
+                        url: article.url,
+                        question: article.question,
+                        answer: article.answer,
+                        slug,
+                        category: article.category,
+                        platform: article.platform,
+                        contentType: article.contentType,
+                        source: 'community',
+                        language: languageDetection.language,
+                        crawlStatus: 'active',
+                    }
+                });
+                // Create paragraphs if embeddings were generated
+                if (paragraphsWithEmbeddings.length > 0) {
+                    await prisma.articleParagraph.createMany({
+                        data: paragraphsWithEmbeddings.map(p => ({
+                            articleId: created.id,
+                            text: p.text,
+                            embedding: p.embedding,
+                        })),
+                    });
+                    console.log(`[SCRAPE] Created ${paragraphsWithEmbeddings.length} paragraph embeddings`);
+                }
+                console.log(`[SCRAPE] Saved article: ${article.question}`);
+            }
+            catch (error) {
+                console.error(`[SCRAPE] Error saving article ${article.url}:`, error);
+            }
+        }
         // Log final statistics
         await logScrapingStats();
     }
