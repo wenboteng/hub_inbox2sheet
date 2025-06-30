@@ -1,41 +1,41 @@
-import { PrismaClient } from '@prisma/client';
-import { crawlExpedia } from '@/crawlers/expedia';
-
-const prisma = new PrismaClient();
+import { scrapeTripAdvisor, scrapeBooking, scrapeQuora } from './comprehensive-discovery';
 
 async function testNewSources() {
-  console.log('🧪 TESTING NEW SOURCES');
-  console.log('======================\n');
-
+  console.log('[TEST] Starting focused test of new content sources...');
+  
   try {
-    const existingArticles = await prisma.article.findMany({
-      select: { url: true },
+    // Test TripAdvisor
+    console.log('\n[TEST] === TESTING TRIPADVISOR ===');
+    const tripAdvisorArticles = await scrapeTripAdvisor();
+    console.log(`[TEST] TripAdvisor: Found ${tripAdvisorArticles.length} articles`);
+    tripAdvisorArticles.forEach(article => {
+      console.log(`[TEST] - ${article.question} (${article.answer.length} chars)`);
     });
-    const existingUrlSet = new Set(existingArticles.map(a => a.url));
-    console.log(`📊 Found ${existingUrlSet.size} existing articles`);
-
-    // Test Expedia
-    console.log('\n🔧 Testing Expedia...');
-    try {
-      const expediaArticles = await crawlExpedia();
-      console.log(`✅ Expedia: ${expediaArticles.length} articles found`);
-      
-      if (expediaArticles.length > 0) {
-        console.log('📋 Sample Expedia articles:');
-        expediaArticles.slice(0, 3).forEach(article => {
-          console.log(`   - ${article.question}`);
-        });
-      }
-    } catch (error) {
-      console.log(`❌ Expedia test failed: ${error}`);
-    }
-
-    console.log('\n✅ Test completed');
-
+    
+    // Test Booking.com
+    console.log('\n[TEST] === TESTING BOOKING.COM ===');
+    const bookingArticles = await scrapeBooking();
+    console.log(`[TEST] Booking.com: Found ${bookingArticles.length} articles`);
+    bookingArticles.forEach(article => {
+      console.log(`[TEST] - ${article.question} (${article.answer.length} chars)`);
+    });
+    
+    // Test Quora
+    console.log('\n[TEST] === TESTING QUORA ===');
+    const quoraArticles = await scrapeQuora();
+    console.log(`[TEST] Quora: Found ${quoraArticles.length} articles`);
+    quoraArticles.forEach(article => {
+      console.log(`[TEST] - ${article.question} (${article.answer.length} chars)`);
+    });
+    
+    console.log('\n[TEST] === SUMMARY ===');
+    console.log(`[TEST] Total articles found: ${tripAdvisorArticles.length + bookingArticles.length + quoraArticles.length}`);
+    console.log(`[TEST] - TripAdvisor: ${tripAdvisorArticles.length}`);
+    console.log(`[TEST] - Booking.com: ${bookingArticles.length}`);
+    console.log(`[TEST] - Quora: ${quoraArticles.length}`);
+    
   } catch (error) {
-    console.error('❌ Test failed:', error);
-  } finally {
-    await prisma.$disconnect();
+    console.error('[TEST] Error during testing:', error);
   }
 }
 

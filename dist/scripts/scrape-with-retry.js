@@ -219,17 +219,76 @@ async function main() {
         // Get existing URLs to avoid duplicates
         const existingUrls = await getExistingArticleUrls();
         console.log(`[SCRAPE] Found ${existingUrls.size} existing articles`);
-        // Import scraping functions
-        const { scrapeAirbnbCommunity } = await Promise.resolve().then(() => __importStar(require('./scrape')));
-        // Scrape Airbnb Community
-        console.log('[SCRAPE] ===== AIRBNB COMMUNITY SCRAPING =====');
-        const communityArticles = await scrapeAirbnbCommunity();
-        console.log(`[SCRAPE] Found ${communityArticles.length} community articles`);
+        // Import comprehensive discovery functions
+        const { deepScrapeAirbnb, scrapeTripAdvisor, scrapeBooking, scrapeReddit, scrapeQuora } = await Promise.resolve().then(() => __importStar(require('./comprehensive-discovery')));
+        const { scrapeAirbnb } = await Promise.resolve().then(() => __importStar(require('./scrapers/airbnb')));
+        const { crawlGetYourGuideArticlesWithPagination } = await Promise.resolve().then(() => __importStar(require('../crawlers/getyourguide')));
+        const { crawlViatorArticles } = await Promise.resolve().then(() => __importStar(require('../crawlers/viator')));
+        let allArticles = [];
+        // Deep scraping of existing platforms
+        console.log('\n[SCRAPE] === DEEP CONTENT DISCOVERY ===');
+        try {
+            console.log('[SCRAPE] Starting deep Airbnb scraping...');
+            const deepAirbnbArticles = await deepScrapeAirbnb();
+            allArticles = allArticles.concat(deepAirbnbArticles);
+            console.log(`[SCRAPE] Deep Airbnb scraping completed. Found ${deepAirbnbArticles.length} articles`);
+        }
+        catch (e) {
+            console.error('[SCRAPE] Deep Airbnb scraping failed:', e);
+        }
+        // Regular scrapers with enhanced pagination
+        const existingScrapers = [
+            { name: 'Airbnb', scraper: scrapeAirbnb, enabled: true },
+            { name: 'GetYourGuide', scraper: crawlGetYourGuideArticlesWithPagination, enabled: true },
+            { name: 'Viator', scraper: crawlViatorArticles, enabled: true },
+        ];
+        for (const scraper of existingScrapers) {
+            if (scraper.enabled) {
+                console.log(`\n[SCRAPE] Starting ${scraper.name} scraping...`);
+                try {
+                    const articles = await scraper.scraper();
+                    const mappedArticles = articles.map((a) => ({
+                        ...a,
+                        platform: scraper.name,
+                        contentType: 'official',
+                        category: a.category || 'Help Center',
+                    }));
+                    allArticles = allArticles.concat(mappedArticles);
+                    console.log(`[SCRAPE] ${scraper.name} scraping completed. Found ${articles.length} articles`);
+                }
+                catch (e) {
+                    console.error(`[SCRAPE] ${scraper.name} scraping failed:`, e);
+                }
+            }
+        }
+        // New content sources
+        console.log('\n[SCRAPE] === NEW CONTENT SOURCES ===');
+        const newSources = [
+            { name: 'TripAdvisor', scraper: scrapeTripAdvisor, enabled: true },
+            { name: 'Booking.com', scraper: scrapeBooking, enabled: true },
+            { name: 'Reddit', scraper: scrapeReddit, enabled: true },
+            { name: 'Quora', scraper: scrapeQuora, enabled: true },
+        ];
+        for (const source of newSources) {
+            if (source.enabled) {
+                console.log(`\n[SCRAPE] Starting ${source.name} scraping...`);
+                try {
+                    const articles = await source.scraper();
+                    allArticles = allArticles.concat(articles);
+                    console.log(`[SCRAPE] ${source.name} scraping completed. Found ${articles.length} articles`);
+                }
+                catch (e) {
+                    console.error(`[SCRAPE] ${source.name} scraping failed:`, e);
+                }
+            }
+        }
+        console.log(`\n[SCRAPE] Found a total of ${allArticles.length} articles from all sources.`);
         // Filter out existing articles
-        const newCommunityArticles = communityArticles.filter(article => !existingUrls.has(article.url));
-        console.log(`[SCRAPE] ${newCommunityArticles.length} new community articles`);
+        const newArticles = allArticles.filter(article => !existingUrls.has(article.url));
+        console.log(`[SCRAPE] ${newArticles.length} are new articles not yet in the database.`);
         // Save new articles to database
-        for (const article of newCommunityArticles) {
+        let processedCount = 0, errorCount = 0;
+        for (const article of newArticles) {
             try {
                 // Generate unique slug
                 const slug = await generateUniqueSlug(article.question);
@@ -257,7 +316,7 @@ async function main() {
                         category: article.category,
                         platform: article.platform,
                         contentType: article.contentType,
-                        source: 'community',
+                        source: 'help_center',
                         language: languageDetection.language,
                         crawlStatus: 'active',
                     }
@@ -274,11 +333,17 @@ async function main() {
                     console.log(`[SCRAPE] Created ${paragraphsWithEmbeddings.length} paragraph embeddings`);
                 }
                 console.log(`[SCRAPE] Saved article: ${article.question}`);
+                processedCount++;
             }
             catch (error) {
                 console.error(`[SCRAPE] Error saving article ${article.url}:`, error);
+                errorCount++;
             }
         }
+        console.log(`\n[SCRAPE] Processing summary:`);
+        console.log(`[SCRAPE] - New articles processed: ${processedCount}`);
+        console.log(`[SCRAPE] - Articles with errors: ${errorCount}`);
+        console.log(`[SCRAPE] - Total new articles attempted: ${newArticles.length}`);
         // Log final statistics
         await logScrapingStats();
     }

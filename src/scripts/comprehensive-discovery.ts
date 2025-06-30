@@ -190,18 +190,24 @@ async function scrapeTripAdvisor(): Promise<Article[]> {
       const page = await browser.newPage();
       await setupPage(page);
       
-      // TripAdvisor help center URLs
+      // Updated TripAdvisor help center URLs with correct structure
       const helpUrls = [
-        'https://tripadvisor.mediasoup.com/help',
-        'https://tripadvisor.mediasoup.com/help/booking',
-        'https://tripadvisor.mediasoup.com/help/payment',
-        'https://tripadvisor.mediasoup.com/help/cancellation',
-        'https://tripadvisor.mediasoup.com/help/refund',
-        'https://tripadvisor.mediasoup.com/help/contact',
-        'https://tripadvisor.mediasoup.com/help/account',
-        'https://tripadvisor.mediasoup.com/help/technical',
-        'https://tripadvisor.mediasoup.com/help/security',
-        'https://tripadvisor.mediasoup.com/help/privacy',
+        'https://www.tripadvisor.com/help',
+        'https://www.tripadvisor.com/help/booking',
+        'https://www.tripadvisor.com/help/payment',
+        'https://www.tripadvisor.com/help/cancellation',
+        'https://www.tripadvisor.com/help/refund',
+        'https://www.tripadvisor.com/help/contact',
+        'https://www.tripadvisor.com/help/account',
+        'https://www.tripadvisor.com/help/technical',
+        'https://www.tripadvisor.com/help/security',
+        'https://www.tripadvisor.com/help/privacy',
+        // Try alternative help URLs
+        'https://www.tripadvisor.com/help/faq',
+        'https://www.tripadvisor.com/help/support',
+        'https://www.tripadvisor.com/help/contact-us',
+        'https://www.tripadvisor.com/help/terms',
+        'https://www.tripadvisor.com/help/privacy-policy',
       ];
       
       for (const helpUrl of helpUrls) {
@@ -209,11 +215,59 @@ async function scrapeTripAdvisor(): Promise<Article[]> {
           console.log(`[NEW-SOURCES] Scraping ${helpUrl}...`);
           await page.goto(helpUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
           
+          // Wait a bit for content to load
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          // Debug: Check what's on the page
+          const pageTitle = await page.title();
+          console.log(`[NEW-SOURCES] Page title: ${pageTitle}`);
+          
           const articleData = await page.evaluate(() => {
-            const title = document.querySelector('h1, .title, .page-title')?.textContent?.trim() || '';
-            const content = document.querySelector('.content, .body, .help-content')?.textContent?.trim() || '';
+            // Try multiple selectors for TripAdvisor
+            const titleSelectors = [
+              'h1', '.title', '.page-title', '.help-title', 
+              '.article-title', '.content-title', '.main-title'
+            ];
+            const contentSelectors = [
+              '.content', '.body', '.help-content', '.help-text', 
+              '.article-content', '.main-content', '.page-content',
+              '.faq-content', '.support-content'
+            ];
+            
+            let title = '';
+            let content = '';
+            
+            // Try to find title
+            for (const selector of titleSelectors) {
+              const element = document.querySelector(selector);
+              if (element && element.textContent?.trim()) {
+                title = element.textContent.trim();
+                break;
+              }
+            }
+            
+            // Try to find content
+            for (const selector of contentSelectors) {
+              const element = document.querySelector(selector);
+              if (element && element.textContent?.trim()) {
+                content = element.textContent.trim();
+                break;
+              }
+            }
+            
+            // If no specific content found, try to get all text content
+            if (!content) {
+              const body = document.querySelector('body');
+              if (body) {
+                content = body.textContent?.trim() || '';
+              }
+            }
+            
             return { title, content };
           });
+          
+          console.log(`[NEW-SOURCES] Found title: "${articleData.title}" (${articleData.title.length} chars)`);
+          console.log(`[NEW-SOURCES] Found content: ${articleData.content.length} chars`);
           
           if (articleData.title && articleData.content && articleData.content.length > 100) {
             articles.push({
@@ -225,6 +279,8 @@ async function scrapeTripAdvisor(): Promise<Article[]> {
               contentType: 'official'
             });
             console.log(`[NEW-SOURCES] Scraped TripAdvisor: ${articleData.title}`);
+          } else {
+            console.log(`[NEW-SOURCES] No valid content found on ${helpUrl}`);
           }
           
           await new Promise(resolve => setTimeout(resolve, 2000));
@@ -258,7 +314,7 @@ async function scrapeBooking(): Promise<Article[]> {
       const page = await browser.newPage();
       await setupPage(page);
       
-      // Booking.com help center URLs
+      // Updated Booking.com help center URLs with correct structure
       const helpUrls = [
         'https://www.booking.com/content/help.html',
         'https://www.booking.com/content/help/booking.html',
@@ -270,6 +326,15 @@ async function scrapeBooking(): Promise<Article[]> {
         'https://www.booking.com/content/help/technical.html',
         'https://www.booking.com/content/help/security.html',
         'https://www.booking.com/content/help/privacy.html',
+        // Try alternative help URLs
+        'https://www.booking.com/content/help/faq.html',
+        'https://www.booking.com/content/help/support.html',
+        'https://www.booking.com/content/help/contact-us.html',
+        'https://www.booking.com/content/help/terms.html',
+        'https://www.booking.com/content/help/privacy-policy.html',
+        // Try customer service URLs
+        'https://www.booking.com/content/customer-service.html',
+        'https://www.booking.com/content/help-center.html',
       ];
       
       for (const helpUrl of helpUrls) {
@@ -277,11 +342,60 @@ async function scrapeBooking(): Promise<Article[]> {
           console.log(`[NEW-SOURCES] Scraping ${helpUrl}...`);
           await page.goto(helpUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
           
+          // Wait a bit for content to load
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          // Debug: Check what's on the page
+          const pageTitle = await page.title();
+          console.log(`[NEW-SOURCES] Page title: ${pageTitle}`);
+          
           const articleData = await page.evaluate(() => {
-            const title = document.querySelector('h1, .title, .page-title')?.textContent?.trim() || '';
-            const content = document.querySelector('.content, .body, .help-content')?.textContent?.trim() || '';
+            // Try multiple selectors for Booking.com
+            const titleSelectors = [
+              'h1', '.title', '.page-title', '.help-title', 
+              '.article-title', '.content-title', '.main-title',
+              '.header-title', '.page-header h1'
+            ];
+            const contentSelectors = [
+              '.content', '.body', '.help-content', '.help-text', 
+              '.article-content', '.main-content', '.page-content',
+              '.faq-content', '.support-content', '.help-body'
+            ];
+            
+            let title = '';
+            let content = '';
+            
+            // Try to find title
+            for (const selector of titleSelectors) {
+              const element = document.querySelector(selector);
+              if (element && element.textContent?.trim()) {
+                title = element.textContent.trim();
+                break;
+              }
+            }
+            
+            // Try to find content
+            for (const selector of contentSelectors) {
+              const element = document.querySelector(selector);
+              if (element && element.textContent?.trim()) {
+                content = element.textContent.trim();
+                break;
+              }
+            }
+            
+            // If no specific content found, try to get all text content
+            if (!content) {
+              const body = document.querySelector('body');
+              if (body) {
+                content = body.textContent?.trim() || '';
+              }
+            }
+            
             return { title, content };
           });
+          
+          console.log(`[NEW-SOURCES] Found title: "${articleData.title}" (${articleData.title.length} chars)`);
+          console.log(`[NEW-SOURCES] Found content: ${articleData.content.length} chars`);
           
           if (articleData.title && articleData.content && articleData.content.length > 100) {
             articles.push({
@@ -293,6 +407,8 @@ async function scrapeBooking(): Promise<Article[]> {
               contentType: 'official'
             });
             console.log(`[NEW-SOURCES] Scraped Booking.com: ${articleData.title}`);
+          } else {
+            console.log(`[NEW-SOURCES] No valid content found on ${helpUrl}`);
           }
           
           await new Promise(resolve => setTimeout(resolve, 2000));
@@ -411,7 +527,7 @@ async function scrapeQuora(): Promise<Article[]> {
       const page = await browser.newPage();
       await setupPage(page);
       
-      // Quora travel topics
+      // Quora travel topics - using more reliable URLs
       const quoraUrls = [
         'https://www.quora.com/topic/Travel',
         'https://www.quora.com/topic/Vacation-Rentals',
@@ -426,24 +542,92 @@ async function scrapeQuora(): Promise<Article[]> {
       for (const quoraUrl of quoraUrls) {
         try {
           console.log(`[NEW-SOURCES] Scraping ${quoraUrl}...`);
-          await page.goto(quoraUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+          await page.goto(quoraUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
           
-          // Extract questions
-          const questions = await page.$$eval('a[href*="/topic/"]', (links) =>
-            links.slice(0, 15).map((link) => ({
-              title: link.textContent?.trim() || '',
-              url: (link as HTMLAnchorElement).href || ''
-            }))
-          );
+          // Wait longer for Quora to load
+          await new Promise(resolve => setTimeout(resolve, 8000));
           
-          for (const question of questions) {
+          // Debug: Check page title
+          const pageTitle = await page.title();
+          console.log(`[NEW-SOURCES] Quora page title: ${pageTitle}`);
+          
+          // Extract questions with better selectors
+          const questions = await page.evaluate(() => {
+            // Try multiple selectors for Quora questions
+            const questionSelectors = [
+              'a[href*="/question/"]',
+              '.question_link',
+              '.question-title',
+              '[data-testid="question-title"]',
+              '.q-text',
+              '.question_text',
+              'h3 a[href*="/question/"]',
+              '.title a[href*="/question/"]'
+            ];
+            
+            const questions: Array<{title: string, url: string}> = [];
+            
+            for (const selector of questionSelectors) {
+              const elements = document.querySelectorAll(selector);
+              elements.forEach((element) => {
+                const link = element as HTMLAnchorElement;
+                const title = link.textContent?.trim() || '';
+                const url = link.href || '';
+                
+                if (title.length > 10 && url.includes('/question/') && !questions.some(q => q.url === url)) {
+                  questions.push({ title, url });
+                }
+              });
+              
+              if (questions.length > 0) break; // Use first selector that works
+            }
+            
+            return questions.slice(0, 10);
+          });
+          
+          console.log(`[NEW-SOURCES] Found ${questions.length} questions on ${quoraUrl}`);
+          
+          for (const question of questions.slice(0, 3)) { // Limit to 3 questions per topic
             if (question.title && question.url && question.title.length > 10) {
               try {
-                await page.goto(question.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                console.log(`[NEW-SOURCES] Scraping question: ${question.title}`);
+                await page.goto(question.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+                
+                // Wait for content to load
+                await new Promise(resolve => setTimeout(resolve, 5000));
                 
                 const answerContent = await page.evaluate(() => {
-                  const content = document.querySelector('.content, .answer, [data-testid="answer-content"]')?.textContent?.trim() || '';
-                  return content;
+                  // Try multiple selectors for Quora answers
+                  const answerSelectors = [
+                    '.q-text',
+                    '.Answer',
+                    '.answer_text',
+                    '.rendered_qtext',
+                    '.content',
+                    '.answer',
+                    '[data-testid="answer-content"]',
+                    '.answer-content',
+                    '.answer-body'
+                  ];
+                  
+                  for (const selector of answerSelectors) {
+                    const elements = document.querySelectorAll(selector);
+                    for (let i = 0; i < elements.length; i++) {
+                      const element = elements[i];
+                      const content = element.textContent?.trim();
+                      if (content && content.length > 100) {
+                        return content;
+                      }
+                    }
+                  }
+                  
+                  // Fallback: try to get any text content
+                  const body = document.querySelector('body');
+                  if (body) {
+                    return body.textContent?.trim() || '';
+                  }
+                  
+                  return '';
                 });
                 
                 if (answerContent && answerContent.length > 100) {
@@ -456,16 +640,18 @@ async function scrapeQuora(): Promise<Article[]> {
                     contentType: 'community'
                   });
                   console.log(`[NEW-SOURCES] Scraped Quora: ${question.title}`);
+                } else {
+                  console.log(`[NEW-SOURCES] No valid answer content found for: ${question.title}`);
                 }
                 
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 3000));
               } catch (error) {
                 console.error(`[NEW-SOURCES] Error scraping Quora question ${question.url}:`, error);
               }
             }
           }
           
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          await new Promise(resolve => setTimeout(resolve, 5000));
         } catch (error) {
           console.error(`[NEW-SOURCES] Error scraping Quora ${quoraUrl}:`, error);
         }
@@ -652,3 +838,12 @@ async function main() {
 }
 
 main(); 
+
+// Export functions for use in other scripts
+export {
+  deepScrapeAirbnb,
+  scrapeTripAdvisor,
+  scrapeBooking,
+  scrapeReddit,
+  scrapeQuora
+};
