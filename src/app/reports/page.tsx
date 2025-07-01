@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 interface ReportMeta {
   id: string;
@@ -42,6 +43,44 @@ export default function ReportsPage() {
     }
   };
 
+  // SEO: Set meta tags and JSON-LD for the selected report
+  useEffect(() => {
+    if (selectedReport) {
+      document.title = `${selectedReport.title} | Analytics & Insights Reports | OTA Answers`;
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute('content', `Read the latest analytics and insights: ${selectedReport.title}`);
+      } else {
+        const meta = document.createElement('meta');
+        meta.name = 'description';
+        meta.content = `Read the latest analytics and insights: ${selectedReport.title}`;
+        document.head.appendChild(meta);
+      }
+      // Add JSON-LD structured data
+      const scriptId = 'report-jsonld';
+      let script = document.getElementById(scriptId);
+      if (script) script.remove();
+      script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.id = scriptId;
+      script.innerHTML = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Report",
+        "name": selectedReport.title,
+        "description": `Analytics and insights report: ${selectedReport.title}`,
+        "datePublished": selectedReport.createdAt,
+        "dateModified": selectedReport.updatedAt,
+        "headline": selectedReport.title,
+        "inLanguage": "en",
+        "publisher": {
+          "@type": "Organization",
+          "name": "OTA Answers"
+        }
+      });
+      document.head.appendChild(script);
+    }
+  }, [selectedReport]);
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
       <h1 className="text-3xl font-bold mb-8 text-blue-900">📊 Analytics & Insights Reports</h1>
@@ -66,14 +105,14 @@ export default function ReportsPage() {
         <div className="md:w-2/3">
           {selectedReport ? (
             <div>
-              <h3 className="text-xl font-semibold mb-2 text-blue-800">{selectedReport.title}</h3>
+              <h2 className="text-xl font-semibold mb-2 text-blue-800">{selectedReport.title}</h2>
               {loading ? (
                 <div className="text-blue-600">Loading...</div>
               ) : error ? (
                 <div className="text-red-600">{error}</div>
               ) : (
-                <div className="bg-white border rounded p-4 whitespace-pre-wrap text-sm text-gray-900 max-h-[70vh] overflow-y-auto">
-                  {reportContent}
+                <div className="bg-white border rounded p-4 prose prose-blue max-w-none text-gray-900 max-h-[70vh] overflow-y-auto">
+                  <ReactMarkdown>{reportContent}</ReactMarkdown>
                 </div>
               )}
             </div>
