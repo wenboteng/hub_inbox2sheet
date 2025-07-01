@@ -2,10 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runDiscoveryMode = main;
 const client_1 = require("@prisma/client");
-const crawler_1 = require("../lib/crawler");
-const communityCrawler_1 = require("../lib/communityCrawler");
-const getyourguide_1 = require("../crawlers/getyourguide");
-const airbnb_1 = require("../scripts/scrapers/airbnb");
+const crawler_1 = require("@/lib/crawler");
+const communityCrawler_1 = require("../src/lib/communityCrawler");
+const getyourguide_1 = require("../src/crawlers/getyourguide");
+const airbnb_1 = require("@/scripts/scrapers/airbnb");
 const prisma = new client_1.PrismaClient();
 // Configuration for discovery mode
 const DISCOVERY_CONFIG = {

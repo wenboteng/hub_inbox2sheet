@@ -34,10 +34,10 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
-const openai_1 = require("../utils/openai");
-const contentDeduplication_1 = require("../utils/contentDeduplication");
-const languageDetection_1 = require("../utils/languageDetection");
-const slugify_1 = require("../utils/slugify");
+const openai_1 = require("../src/utils/openai");
+const contentDeduplication_1 = require("../src/utils/contentDeduplication");
+const languageDetection_1 = require("../src/utils/languageDetection");
+const slugify_1 = require("../src/utils/slugify");
 const crypto_1 = require("crypto");
 const prisma = new client_1.PrismaClient();
 // Helper function to setup a page
@@ -74,7 +74,7 @@ async function scrapeTripAdvisor() {
     console.log('[NEW-SOURCES] Starting TripAdvisor scraping...');
     const articles = [];
     try {
-        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../utils/puppeteer')));
+        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../src/utils/puppeteer')));
         const browser = await createBrowser();
         try {
             const page = await browser.newPage();
@@ -131,7 +131,7 @@ async function scrapeBooking() {
     console.log('[NEW-SOURCES] Starting Booking.com scraping...');
     const articles = [];
     try {
-        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../utils/puppeteer')));
+        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../src/utils/puppeteer')));
         const browser = await createBrowser();
         try {
             const page = await browser.newPage();
@@ -188,7 +188,7 @@ async function scrapeReddit() {
     console.log('[NEW-SOURCES] Starting Reddit scraping...');
     const articles = [];
     try {
-        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../utils/puppeteer')));
+        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../src/utils/puppeteer')));
         const browser = await createBrowser();
         try {
             const page = await browser.newPage();
@@ -259,7 +259,7 @@ async function scrapeQuora() {
     console.log('[NEW-SOURCES] Starting Quora scraping...');
     const articles = [];
     try {
-        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../utils/puppeteer')));
+        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../src/utils/puppeteer')));
         const browser = await createBrowser();
         try {
             const page = await browser.newPage();

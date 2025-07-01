@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runCommunityDiscoveryMode = main;
 const client_1 = require("@prisma/client");
-const communityCrawler_1 = require("../lib/communityCrawler");
-const communityCrawler_2 = require("../lib/communityCrawler");
+const communityCrawler_1 = require("../src/lib/communityCrawler");
+const communityCrawler_2 = require("../src/lib/communityCrawler");
 const prisma = new client_1.PrismaClient();
 // Configuration for community discovery
 const COMMUNITY_DISCOVERY_CONFIG = {

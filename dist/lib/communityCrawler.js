@@ -43,7 +43,7 @@ const axios_1 = __importDefault(require("axios"));
 const cheerio = __importStar(require("cheerio"));
 const client_1 = require("@prisma/client");
 const languageDetection_1 = require("../utils/languageDetection");
-const slugify_1 = require("../utils/slugify");
+const slugify_1 = require("../src/utils/slugify");
 const prisma = new client_1.PrismaClient();
 // Browser headers to avoid being blocked
 const BROWSER_HEADERS = {

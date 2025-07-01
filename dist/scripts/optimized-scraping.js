@@ -1,15 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
-const airbnb_1 = require("../scripts/scrapers/airbnb");
-const getyourguide_1 = require("../crawlers/getyourguide");
-const viator_1 = require("../crawlers/viator");
+const airbnb_1 = require("@/scripts/scrapers/airbnb");
+const getyourguide_1 = require("../src/crawlers/getyourguide");
+const viator_1 = require("@/crawlers/viator");
 const scrape_1 = require("./scrape");
-const featureFlags_1 = require("../utils/featureFlags");
-const openai_1 = require("../utils/openai");
-const contentDeduplication_1 = require("../utils/contentDeduplication");
-const languageDetection_1 = require("../utils/languageDetection");
-const slugify_1 = require("../utils/slugify");
+const featureFlags_1 = require("@/utils/featureFlags");
+const openai_1 = require("../src/utils/openai");
+const contentDeduplication_1 = require("../src/utils/contentDeduplication");
+const languageDetection_1 = require("../src/utils/languageDetection");
+const slugify_1 = require("../src/utils/slugify");
 const crypto_1 = require("crypto");
 const prisma = new client_1.PrismaClient();
 // Generate unique slug

@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runRecheckMode = main;
 const client_1 = require("@prisma/client");
-const crawler_1 = require("../lib/crawler");
-const communityCrawler_1 = require("../lib/communityCrawler");
+const crawler_1 = require("@/lib/crawler");
+const communityCrawler_1 = require("../src/lib/communityCrawler");
 const prisma = new client_1.PrismaClient();
 // Configuration for recheck mode
 const RECHECK_CONFIG = {

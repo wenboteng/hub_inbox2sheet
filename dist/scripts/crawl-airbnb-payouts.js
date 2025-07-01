@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.crawlAirbnbPayouts = crawlAirbnbPayouts;
 const client_1 = require("@prisma/client");
-const openai_1 = require("../utils/openai");
-const slugify_1 = require("../utils/slugify");
+const openai_1 = require("../src/utils/openai");
+const slugify_1 = require("../src/utils/slugify");
 const prisma = new client_1.PrismaClient();
 const AIRBNB_PAYOUT_URLS = [
     'https://www.airbnb.com/help/article/425/when-youll-get-your-payout',

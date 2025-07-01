@@ -36,9 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.scrapeAirbnbCommunity = scrapeAirbnbCommunity;
 const client_1 = require("@prisma/client");
 const crypto_1 = require("crypto");
-const openai_1 = require("../utils/openai");
-const languageDetection_1 = require("../utils/languageDetection");
-const slugify_1 = require("../utils/slugify");
+const openai_1 = require("../src/utils/openai");
+const languageDetection_1 = require("../src/utils/languageDetection");
+const slugify_1 = require("../src/utils/slugify");
 const prisma = new client_1.PrismaClient();
 // Helper function to setup a page
 async function setupPage(page) {
@@ -165,7 +165,7 @@ async function scrapeAirbnbCommunity() {
     const articles = [];
     const processedUrls = new Set(); // Track processed URLs to avoid duplicates
     try {
-        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../utils/puppeteer')));
+        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../src/utils/puppeteer')));
         const browser = await createBrowser();
         console.log('[SCRAPE][AIRBNB-COMMUNITY] Browser created successfully');
         try {

@@ -35,9 +35,9 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const crypto_1 = require("crypto");
-const openai_1 = require("../utils/openai");
-const languageDetection_1 = require("../utils/languageDetection");
-const slugify_1 = require("../utils/slugify");
+const openai_1 = require("../src/utils/openai");
+const languageDetection_1 = require("../src/utils/languageDetection");
+const slugify_1 = require("../src/utils/slugify");
 // Enhanced Prisma client with retry logic
 class RetryablePrismaClient extends client_1.PrismaClient {
     constructor() {
@@ -222,8 +222,8 @@ async function main() {
         // Import comprehensive discovery functions
         const { deepScrapeAirbnb, scrapeTripAdvisor, scrapeBooking, scrapeReddit, scrapeQuora } = await Promise.resolve().then(() => __importStar(require('./comprehensive-discovery')));
         const { scrapeAirbnb } = await Promise.resolve().then(() => __importStar(require('./scrapers/airbnb')));
-        const { crawlGetYourGuideArticlesWithPagination } = await Promise.resolve().then(() => __importStar(require('../crawlers/getyourguide')));
-        const { crawlViatorArticles } = await Promise.resolve().then(() => __importStar(require('../crawlers/viator')));
+        const { crawlGetYourGuideArticlesWithPagination } = await Promise.resolve().then(() => __importStar(require('../src/crawlers/getyourguide')));
+        const { crawlViatorArticles } = await Promise.resolve().then(() => __importStar(require('@/crawlers/viator')));
         let allArticles = [];
         // Deep scraping of existing platforms
         console.log('\n[SCRAPE] === DEEP CONTENT DISCOVERY ===');

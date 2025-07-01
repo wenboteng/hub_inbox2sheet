@@ -60,7 +60,7 @@ async function setupPage(page) {
 async function testCommunityUrl() {
     console.log('[TEST] Starting test of Airbnb Community URL...');
     try {
-        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../utils/puppeteer')));
+        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../src/utils/puppeteer')));
         const browser = await createBrowser();
         try {
             const page = await browser.newPage();

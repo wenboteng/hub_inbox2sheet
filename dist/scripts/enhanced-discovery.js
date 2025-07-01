@@ -34,14 +34,14 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
-const openai_1 = require("../utils/openai");
-const airbnb_1 = require("../scripts/scrapers/airbnb");
-const getyourguide_1 = require("../crawlers/getyourguide");
-const contentDeduplication_1 = require("../utils/contentDeduplication");
-const featureFlags_1 = require("../utils/featureFlags");
-const languageDetection_1 = require("../utils/languageDetection");
-const slugify_1 = require("../utils/slugify");
-const viator_1 = require("../crawlers/viator");
+const openai_1 = require("../src/utils/openai");
+const airbnb_1 = require("@/scripts/scrapers/airbnb");
+const getyourguide_1 = require("../src/crawlers/getyourguide");
+const contentDeduplication_1 = require("../src/utils/contentDeduplication");
+const featureFlags_1 = require("@/utils/featureFlags");
+const languageDetection_1 = require("../src/utils/languageDetection");
+const slugify_1 = require("../src/utils/slugify");
+const viator_1 = require("@/crawlers/viator");
 const crypto_1 = require("crypto");
 const prisma = new client_1.PrismaClient();
 // Helper function to setup a page
@@ -150,7 +150,7 @@ async function deepScrapeAirbnb() {
     console.log('[DEEP-SCRAPE] Starting deep Airbnb scraping...');
     const articles = [];
     try {
-        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../utils/puppeteer')));
+        const { createBrowser } = await Promise.resolve().then(() => __importStar(require('../src/utils/puppeteer')));
         const browser = await createBrowser();
         try {
             const page = await browser.newPage();
