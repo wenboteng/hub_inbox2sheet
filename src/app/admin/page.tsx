@@ -34,12 +34,16 @@ export default function AdminPage() {
   const [communityCrawlMessage, setCommunityCrawlMessage] = useState<string | null>(null);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyResults, setVerifyResults] = useState<any>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsMessage, setAnalyticsMessage] = useState<string | null>(null);
+  const [analyticsReports, setAnalyticsReports] = useState<any[]>([]);
 
   const platforms = ["All", "Airbnb", "Viator", "Booking.com", "GetYourGuide", "Expedia", "TripAdvisor"];
   const statuses = ["All", "pending", "answered", "rejected"];
 
   useEffect(() => {
     fetchQuestions();
+    fetchAnalyticsReports();
   }, []);
 
   const fetchQuestions = async () => {
@@ -203,6 +207,40 @@ export default function AdminPage() {
     }
   };
 
+  const fetchAnalyticsReports = async () => {
+    try {
+      const response = await fetch("/api/admin/analytics");
+      const data = await response.json();
+      if (response.ok) {
+        setAnalyticsReports(data.reports || []);
+      }
+    } catch (error) {
+      console.error("Error fetching analytics reports:", error);
+    }
+  };
+
+  const generateAnalyticsReport = async (reportType: string) => {
+    setAnalyticsLoading(true);
+    setAnalyticsMessage(null);
+    try {
+      const response = await fetch("/api/admin/analytics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reportType }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setAnalyticsMessage(data.message || "Analytics report generated successfully!");
+      } else {
+        setAnalyticsMessage(data.error || "Analytics generation failed");
+      }
+    } catch (error) {
+      setAnalyticsMessage("Analytics generation failed: " + (error as Error).message);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
   const filteredQuestions = questions.filter((q) => {
     const matchesSearch = q.question
       .toLowerCase()
@@ -283,6 +321,39 @@ export default function AdminPage() {
             )}
           </div>
         )}
+        
+        {/* Analytics Section */}
+        <div className="w-full mt-6 p-4 bg-blue-50 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4 text-blue-800">📊 Analytics Reports</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {analyticsReports.map((report) => (
+              <button
+                key={report.id}
+                className={`p-3 rounded-lg text-left transition-colors ${
+                  analyticsLoading
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-white hover:bg-blue-100 border border-blue-200'
+                }`}
+                onClick={() => generateAnalyticsReport(report.id)}
+                disabled={analyticsLoading}
+              >
+                <div className="font-medium text-blue-900">{report.name}</div>
+                <div className="text-sm text-blue-700 mt-1">{report.description}</div>
+                {analyticsLoading && (
+                  <div className="text-xs text-blue-600 mt-2">Generating...</div>
+                )}
+              </button>
+            ))}
+          </div>
+          {analyticsMessage && (
+            <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
+              <div className="text-green-800 font-medium">{analyticsMessage}</div>
+              <div className="text-sm text-green-700 mt-1">
+                Reports are saved in the project root directory.
+              </div>
+            </div>
+          )}
+        </div>
         
         <input
           type="text"

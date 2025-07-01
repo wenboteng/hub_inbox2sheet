@@ -31,7 +31,12 @@
     "crawl:airbnb-community": "tsx scripts/airbnb-community-crawler.ts",
     "test:airbnb-community": "tsx src/scripts/test-airbnb-community-only.ts",
     "test:enhanced-crawling": "tsx scripts/test-enhanced-crawling.ts",
-    "discover:content": "tsx scripts/discover-content-sources.ts"
+    "discover:content": "tsx scripts/discover-content-sources.ts",
+    "analytics:vendor": "tsx scripts/generate-vendor-analytics.ts",
+    "analytics:customer": "tsx scripts/generate-customer-insights.ts",
+    "analytics:competitive": "tsx scripts/generate-competitive-analysis.ts",
+    "analytics:all": "tsx scripts/generate-all-analytics.ts",
+    "analytics:demo": "tsx scripts/demo-analytics.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.0.0",
