@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { enrichAnalyticsReport } from '@/utils/openai';
+import fs from 'fs';
+import path from 'path';
 
 const execAsync = promisify(exec);
 
@@ -51,6 +53,11 @@ export async function POST(request: NextRequest) {
     let enrichedReport = '';
     try {
       enrichedReport = await enrichAnalyticsReport(stdout);
+      // Save enriched report to file for public access
+      const reportsDir = path.join(process.cwd(), 'reports');
+      if (!fs.existsSync(reportsDir)) fs.mkdirSync(reportsDir);
+      const filePath = path.join(reportsDir, `${reportType}-enriched.md`);
+      fs.writeFileSync(filePath, enrichedReport, 'utf8');
     } catch (enrichErr) {
       console.error('OpenAI enrichment failed:', enrichErr);
       enrichedReport = 'Enrichment failed. Showing raw analytics output.';
