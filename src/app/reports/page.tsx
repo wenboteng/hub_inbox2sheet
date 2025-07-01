@@ -58,9 +58,9 @@ export default function ReportsPage() {
       }
       // Add JSON-LD structured data
       const scriptId = 'report-jsonld';
-      let script = document.getElementById(scriptId);
+      let script = document.getElementById(scriptId) as HTMLScriptElement | null;
       if (script) script.remove();
-      script = document.createElement('script');
+      script = document.createElement('script') as HTMLScriptElement;
       script.type = 'application/ld+json';
       script.id = scriptId;
       script.innerHTML = JSON.stringify({
