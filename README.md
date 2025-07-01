@@ -8,6 +8,7 @@ A knowledge base for tour vendors to find answers about OTA platforms like Airbn
 - Public knowledge base with search and filtering
 - SEO optimized for search engines
 - Automatic crawling of OTA help centers using Axios + Cheerio
+- **Analytics Suite**: Comprehensive reports for tour vendors including market analysis, customer insights, and competitive intelligence
 
 ## Tech Stack
 
@@ -46,6 +47,46 @@ npx prisma db push
 ```bash
 npm run dev
 ```
+
+## Analytics Suite
+
+The platform includes a comprehensive analytics suite that generates valuable insights for tour vendors based on collected content from major travel platforms.
+
+### Available Reports
+
+- **Quick Demo** (`npm run analytics:demo`): Quick overview of key insights
+- **Vendor Analytics** (`npm run analytics:vendor`): Comprehensive market analysis and strategic insights
+- **Customer Insights** (`npm run analytics:customer`): Deep dive into customer behavior and pain points
+- **Competitive Analysis** (`npm run analytics:competitive`): Competitive landscape and market positioning
+- **Complete Suite** (`npm run analytics:all`): All reports with executive summary
+
+### Admin Interface
+
+Access analytics reports through the admin interface at `/admin`:
+
+1. Navigate to the admin dashboard
+2. Scroll to the "📊 Analytics Reports" section
+3. Click on any report type to generate it
+4. Reports are saved as markdown files in the project root
+
+### Key Insights
+
+Based on analysis of 260+ articles across 7 platforms:
+
+- **Market Leader**: Airbnb (45% market share)
+- **Top Customer Concerns**: Booking (155 mentions), Payment (97), Cancellation (64)
+- **Language Opportunity**: 97% English content, huge potential for multilingual expansion
+- **Community Engagement**: 43% community content, growing trend
+
+### Use Cases for Tour Vendors
+
+- **Market Entry**: Choose the right platforms to focus on
+- **Content Strategy**: Create content that addresses real customer needs
+- **Customer Support**: Understand and address customer pain points
+- **Global Expansion**: Identify language and market opportunities
+- **Competitive Positioning**: Find gaps and differentiation opportunities
+
+For detailed documentation, see [ANALYTICS_CAPABILITIES.md](./ANALYTICS_CAPABILITIES.md).
 
 ## Deployment on Render
 
