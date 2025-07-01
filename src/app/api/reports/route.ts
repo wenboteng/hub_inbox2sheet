@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     const dbReports = await prisma.report.findMany({ orderBy: { createdAt: 'desc' } });
+    console.log('DB Reports:', dbReports); // Debug log
     const reports = dbReports.map(r => ({
       id: r.id,
       type: r.type,
