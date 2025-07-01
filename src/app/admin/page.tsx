@@ -37,6 +37,9 @@ export default function AdminPage() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsMessage, setAnalyticsMessage] = useState<string | null>(null);
   const [analyticsReports, setAnalyticsReports] = useState<any[]>([]);
+  const [analyticsReportContent, setAnalyticsReportContent] = useState<string | null>(null);
+  const [analyticsRawContent, setAnalyticsRawContent] = useState<string | null>(null);
+  const [showRawAnalytics, setShowRawAnalytics] = useState(false);
 
   const platforms = ["All", "Airbnb", "Viator", "Booking.com", "GetYourGuide", "Expedia", "TripAdvisor"];
   const statuses = ["All", "pending", "answered", "rejected"];
@@ -222,6 +225,9 @@ export default function AdminPage() {
   const generateAnalyticsReport = async (reportType: string) => {
     setAnalyticsLoading(true);
     setAnalyticsMessage(null);
+    setAnalyticsReportContent(null);
+    setAnalyticsRawContent(null);
+    setShowRawAnalytics(false);
     try {
       const response = await fetch("/api/admin/analytics", {
         method: "POST",
@@ -231,6 +237,8 @@ export default function AdminPage() {
       const data = await response.json();
       if (response.ok) {
         setAnalyticsMessage(data.message || "Analytics report generated successfully!");
+        setAnalyticsReportContent(data.enrichedReport || null);
+        setAnalyticsRawContent(data.output || null);
       } else {
         setAnalyticsMessage(data.error || "Analytics generation failed");
       }
@@ -350,6 +358,24 @@ export default function AdminPage() {
               <div className="text-green-800 font-medium">{analyticsMessage}</div>
               <div className="text-sm text-green-700 mt-1">
                 Reports are saved in the project root directory.
+              </div>
+            </div>
+          )}
+          {analyticsReportContent && (
+            <div className="mt-6">
+              <div className="flex items-center mb-2">
+                <h4 className="text-md font-semibold text-blue-900 mr-4">Enriched Analytics Report</h4>
+                {analyticsRawContent && (
+                  <button
+                    className="ml-auto px-3 py-1 rounded bg-gray-200 text-gray-700 text-xs hover:bg-gray-300"
+                    onClick={() => setShowRawAnalytics((v) => !v)}
+                  >
+                    {showRawAnalytics ? 'Show Enriched' : 'Show Raw'}
+                  </button>
+                )}
+              </div>
+              <div className="bg-white border rounded p-4 whitespace-pre-wrap text-sm text-gray-900 max-h-96 overflow-y-auto">
+                {showRawAnalytics ? analyticsRawContent : analyticsReportContent}
               </div>
             </div>
           )}

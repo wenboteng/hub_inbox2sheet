@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { enrichAnalyticsReport } from '@/utils/openai';
 
 const execAsync = promisify(exec);
 
@@ -45,11 +46,21 @@ export async function POST(request: NextRequest) {
     if (stderr) {
       console.error('Analytics generation stderr:', stderr);
     }
-    
+
+    // Enrich the analytics report using OpenAI GPT-4o
+    let enrichedReport = '';
+    try {
+      enrichedReport = await enrichAnalyticsReport(stdout);
+    } catch (enrichErr) {
+      console.error('OpenAI enrichment failed:', enrichErr);
+      enrichedReport = 'Enrichment failed. Showing raw analytics output.';
+    }
+
     return NextResponse.json({
       success: true,
-      message: `${reportName} generated successfully!`,
+      message: `${reportName} generated and enriched successfully!`,
       output: stdout,
+      enrichedReport,
       reportType
     });
     
