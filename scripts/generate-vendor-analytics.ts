@@ -103,7 +103,7 @@ async function generatePlatformStats(articles: any[]): Promise<PlatformStats[]> 
     const officialContent = platformArticles.filter(a => a.contentType === 'official').length;
     const communityContent = platformArticles.filter(a => a.contentType === 'community').length;
     const helpCenterContent = platformArticles.filter(a => a.source === 'help_center').length;
-    const languages = [...new Set(platformArticles.map(a => a.language))];
+    const languages = Array.from(new Set(platformArticles.map(a => a.language)));
     const recentActivity = platformArticles.filter(a => new Date(a.lastUpdated) > thirtyDaysAgo).length;
 
     const categoryCount = new Map<string, number>();
@@ -219,9 +219,9 @@ function analyzeTrendingTopics(articles: any[]): Array<{ topic: string; growth: 
 
     if (recentCount > 0) {
       const growth = olderCount > 0 ? ((recentCount - olderCount) / olderCount) * 100 : 100;
-      const platforms = [...new Set(recentArticles
+      const platforms = Array.from(new Set(recentArticles
         .filter(a => `${a.question} ${a.answer}`.toLowerCase().includes(topic))
-        .map(a => a.platform))];
+        .map(a => a.platform)));
 
       trendingTopics.push({ topic, growth: Math.round(growth), platforms });
     }

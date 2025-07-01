@@ -25,6 +25,7 @@
   "include": [
     "src/scripts/scrape-airbnb-community-only.ts",
     "src/scripts/**/*",
+    "scripts/**/*",
     "src/crawlers/**/*",
     "src/utils/**/*",
     "src/lib/**/*",

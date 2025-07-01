@@ -91,7 +91,7 @@ async function generatePlatformComparisons(articles: any[]): Promise<PlatformCom
   return Array.from(platformGroups.entries()).map(([platform, platformArticles]) => {
     const officialContent = platformArticles.filter(a => a.contentType === 'official').length;
     const communityContent = platformArticles.filter(a => a.contentType === 'community').length;
-    const languages = [...new Set(platformArticles.map(a => a.language))];
+    const languages = Array.from(new Set(platformArticles.map(a => a.language)));
     
     // Calculate average content length
     const totalLength = platformArticles.reduce((sum, article) => sum + (article.answer?.length || 0), 0);
