@@ -1,18 +1,22 @@
-import fs from 'fs';
-import path from 'path';
+import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-
-const reportsDir = path.join(process.cwd(), 'reports');
 
 export async function GET(request: NextRequest, { params }: { params: { filename: string } }) {
   try {
     const { filename } = params;
-    const filePath = path.join(reportsDir, filename);
-    if (!fs.existsSync(filePath)) {
+    // Try to find by id or type
+    const report = await prisma.report.findFirst({
+      where: {
+        OR: [
+          { id: filename },
+          { type: filename },
+        ],
+      },
+    });
+    if (!report) {
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
-    const content = fs.readFileSync(filePath, 'utf8');
-    return NextResponse.json({ content });
+    return NextResponse.json({ content: report.content, title: report.title });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch report' }, { status: 500 });
   }

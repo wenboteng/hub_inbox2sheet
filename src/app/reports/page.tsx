@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 
 interface ReportMeta {
   id: string;
-  filename: string;
+  type: string;
   title: string;
-  url: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function ReportsPage() {
@@ -27,7 +28,7 @@ export default function ReportsPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch(`/api/reports/${report.filename}`);
+      const res = await fetch(`/api/reports/${report.id}`);
       const data = await res.json();
       if (res.ok) {
         setReportContent(data.content);
