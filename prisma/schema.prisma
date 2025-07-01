@@ -144,7 +144,7 @@ model CrawlQueue {
 
 model Report {
   id         String   @id @default(uuid())
-  type       String   // e.g. 'demo', 'vendor', etc.
+  type       String   @unique // e.g. 'demo', 'vendor', etc.
   title      String
   content    String   // The enriched report (Markdown or HTML)
   createdAt  DateTime @default(now())
