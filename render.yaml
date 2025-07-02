@@ -91,7 +91,7 @@ services:
       echo "Verifying Chrome installation location..."
       ls -la /opt/render/.cache/puppeteer/chrome/ || echo "Puppeteer cache directory not found, which may be expected on first build."
       echo "Build scripts completed successfully."
-    startCommand: npm run scrape:with-retry
+    startCommand: npm run scrape
     envVars:
       - fromGroup: ota-hub-secrets
     buildFilter:

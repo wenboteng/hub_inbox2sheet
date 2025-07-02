@@ -403,17 +403,83 @@ async function main() {
     const existingUrls = await getExistingArticleUrls();
     console.log(`[SCRAPE] Found ${existingUrls.size} existing articles`);
     
-    // Scrape Airbnb Community
+    let allNewArticles: Article[] = [];
+    
+    // 1. Scrape Airbnb Community (Community Data)
     console.log('[SCRAPE] ===== AIRBNB COMMUNITY SCRAPING =====');
-    const communityArticles = await scrapeAirbnbCommunity();
-    console.log(`[SCRAPE] Found ${communityArticles.length} community articles`);
+    try {
+      const communityArticles = await scrapeAirbnbCommunity();
+      console.log(`[SCRAPE] Found ${communityArticles.length} community articles`);
+      
+      // Filter out existing articles
+      const newCommunityArticles = communityArticles.filter(article => !existingUrls.has(article.url));
+      console.log(`[SCRAPE] ${newCommunityArticles.length} new community articles`);
+      allNewArticles = allNewArticles.concat(newCommunityArticles);
+    } catch (error) {
+      console.error('[SCRAPE] Airbnb Community scraping failed:', error);
+    }
     
-    // Filter out existing articles
-    const newCommunityArticles = communityArticles.filter(article => !existingUrls.has(article.url));
-    console.log(`[SCRAPE] ${newCommunityArticles.length} new community articles`);
+    // 2. Scrape Airbnb Help Center (Official Data)
+    console.log('[SCRAPE] ===== AIRBNB HELP CENTER SCRAPING =====');
+    try {
+      const { scrapeAirbnb } = await import('./scrapers/airbnb');
+      const helpArticles = await scrapeAirbnb();
+      console.log(`[SCRAPE] Found ${helpArticles.length} help center articles`);
+      
+      // Filter out existing articles
+      const newHelpArticles = helpArticles.filter(article => !existingUrls.has(article.url));
+      console.log(`[SCRAPE] ${newHelpArticles.length} new help center articles`);
+      allNewArticles = allNewArticles.concat(newHelpArticles);
+    } catch (error) {
+      console.error('[SCRAPE] Airbnb Help Center scraping failed:', error);
+    }
     
-    // Save new articles to database
-    for (const article of newCommunityArticles) {
+    // 3. Scrape GetYourGuide (Official Data)
+    console.log('[SCRAPE] ===== GETYOURGUIDE SCRAPING =====');
+    try {
+      const { crawlGetYourGuideArticlesWithPagination } = await import('../crawlers/getyourguide');
+      const getyourguideArticles = await crawlGetYourGuideArticlesWithPagination();
+      console.log(`[SCRAPE] Found ${getyourguideArticles.length} GetYourGuide articles`);
+      
+      // Filter out existing articles and map to Article type
+      const newGetYourGuideArticles = getyourguideArticles
+        .filter(article => !existingUrls.has(article.url))
+        .map(article => ({
+          ...article,
+          contentType: 'official' as const,
+          category: article.category || 'Help Center'
+        }));
+      console.log(`[SCRAPE] ${newGetYourGuideArticles.length} new GetYourGuide articles`);
+      allNewArticles = allNewArticles.concat(newGetYourGuideArticles);
+    } catch (error) {
+      console.error('[SCRAPE] GetYourGuide scraping failed:', error);
+    }
+    
+    // 4. Scrape Viator (Official Data)
+    console.log('[SCRAPE] ===== VIATOR SCRAPING =====');
+    try {
+      const { crawlViatorArticles } = await import('../crawlers/viator');
+      const viatorArticles = await crawlViatorArticles();
+      console.log(`[SCRAPE] Found ${viatorArticles.length} Viator articles`);
+      
+      // Filter out existing articles and map to Article type
+      const newViatorArticles = viatorArticles
+        .filter(article => !existingUrls.has(article.url))
+        .map(article => ({
+          ...article,
+          contentType: 'official' as const,
+          category: 'Help Center'
+        }));
+      console.log(`[SCRAPE] ${newViatorArticles.length} new Viator articles`);
+      allNewArticles = allNewArticles.concat(newViatorArticles);
+    } catch (error) {
+      console.error('[SCRAPE] Viator scraping failed:', error);
+    }
+    
+    console.log(`[SCRAPE] Total new articles to save: ${allNewArticles.length}`);
+    
+    // Save all new articles to database
+    for (const article of allNewArticles) {
       try {
         // Generate unique slug
         const slug = await generateUniqueSlug(article.question);
