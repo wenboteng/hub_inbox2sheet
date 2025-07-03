@@ -23,4 +23,8 @@ export declare function findRelevantParagraphs(query: string, paragraphs: {
     text: string;
     similarity: number;
 }[]>;
+/**
+ * Generate a business-enriched report using OpenAI GPT-4o
+ */
+export declare function enrichAnalyticsReport(rawText: string): Promise<string>;
 //# sourceMappingURL=openai.d.ts.map

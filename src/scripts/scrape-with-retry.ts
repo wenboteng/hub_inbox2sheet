@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import type { Page } from 'puppeteer';
 import { randomBytes } from 'crypto';
 import { getContentEmbeddings, getEmbedding } from '@/utils/openai';
-import { scrapeAirbnb } from '@/scripts/scrapers/airbnb';
+import { scrapeAirbnb } from '../scripts/scrapers/airbnb';
 import { crawlGetYourGuideArticles, crawlGetYourGuideArticlesWithPagination } from '@/crawlers/getyourguide';
 import { scrapeCommunityUrls, getCommunityContentUrls } from '@/lib/communityCrawler';
 import { crawlNewsAndPolicies } from '@/crawlers/news-policy';

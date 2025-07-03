@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { scrapeUrls } from '@/lib/crawler';
 import { scrapeCommunityUrls } from '@/lib/communityCrawler';
 import { crawlGetYourGuideArticlesWithPagination } from '@/crawlers/getyourguide';
-import { scrapeAirbnb } from '@/scripts/scrapers/airbnb';
+import { scrapeAirbnb } from '../scripts/scrapers/airbnb';
 
 const prisma = new PrismaClient();
 

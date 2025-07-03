@@ -7,6 +7,7 @@ exports.getEmbedding = getEmbedding;
 exports.cosineSimilarity = cosineSimilarity;
 exports.getContentEmbeddings = getContentEmbeddings;
 exports.findRelevantParagraphs = findRelevantParagraphs;
+exports.enrichAnalyticsReport = enrichAnalyticsReport;
 const openai_1 = __importDefault(require("openai"));
 const openai = new openai_1.default({
     apiKey: process.env.OPENAI_API_KEY,
@@ -62,5 +63,18 @@ async function findRelevantParagraphs(query, paragraphs, topK = 3) {
     return scored
         .sort((a, b) => b.similarity - a.similarity)
         .slice(0, topK);
+}
+/**
+ * Generate a business-enriched report using OpenAI GPT-4o
+ */
+async function enrichAnalyticsReport(rawText) {
+    const prompt = `You are a business analyst. Given the following analytics data, write a professional, executive-level report with actionable insights for tour vendors. Highlight trends, opportunities, and recommendations.\n\nData:\n${rawText}`;
+    const response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1500,
+        temperature: 0.7,
+    });
+    return response.choices[0].message.content || '';
 }
 //# sourceMappingURL=openai.js.map

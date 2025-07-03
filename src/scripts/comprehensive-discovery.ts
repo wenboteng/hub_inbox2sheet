@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import type { Page } from 'puppeteer';
 import { getContentEmbeddings } from '@/utils/openai';
-import { scrapeAirbnb } from '@/scripts/scrapers/airbnb';
+import { scrapeAirbnb } from '../scripts/scrapers/airbnb';
 import { crawlGetYourGuideArticles, crawlGetYourGuideArticlesWithPagination } from '@/crawlers/getyourguide';
 import { crawlViatorArticles } from '@/crawlers/viator';
 import {
