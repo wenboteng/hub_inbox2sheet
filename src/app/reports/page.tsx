@@ -2,6 +2,8 @@
 import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 interface ReportMeta {
   id: string;
@@ -17,10 +19,10 @@ function TrustBox({ report }: { report: ReportMeta }) {
     <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 rounded">
       <div className="font-semibold text-blue-800 mb-1">Why trust this report?</div>
       <ul className="text-sm text-blue-900 space-y-1">
-        <li>🔍 <b>Data Source:</b> GetYourGuide, imported & cleaned by OTA Answers</li>
-        <li>🛠️ <b>Methodology:</b> Automated parsing, deduplication, and regular updates</li>
+        <li>🔍 <b>Where the data comes from:</b> We collect and combine information from top online travel agencies (OTAs) like GetYourGuide, Viator, and more.</li>
+        <li>🤝 <b>How we create these insights:</b> Our team reviews and updates the data regularly to make sure it's accurate and useful for your business.</li>
+        <li>🏢 <b>Who we are:</b> OTA Answers is an independent analytics provider focused on helping tour and activity operators grow.</li>
         <li>📅 <b>Last Updated:</b> {new Date(report.updatedAt).toLocaleDateString()}</li>
-        <li>🏢 <b>Publisher:</b> OTA Answers (independent analytics for tour vendors)</li>
       </ul>
     </div>
   );
@@ -185,25 +187,50 @@ export default function ReportsPage() {
     }
   };
 
-  // Download CSV handler
-  const handleDownloadCSV = () => {
-    const table = extractFirstTableFromMarkdown(reportContent);
-    if (!table) {
-      setDownloadFeedback("No table found in report");
+  // Download PDF handler
+  const handleDownloadPDF = async () => {
+    if (!selectedReport) return;
+    setDownloadFeedback("Generating PDF...");
+    // Find the main report content div
+    const contentDiv = document.querySelector(".report-pdf-content");
+    if (!contentDiv) {
+      setDownloadFeedback("Could not find report content");
       setTimeout(() => setDownloadFeedback(""), 1500);
       return;
     }
-    const csv = tableToCSV(table);
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    if (downloadRef.current) {
-      downloadRef.current.href = url;
-      downloadRef.current.download = `${selectedReport?.title.replace(/[^a-z0-9]/gi, "_") || "report"}.csv`;
-      downloadRef.current.click();
-      setDownloadFeedback("CSV downloaded!");
-      setTimeout(() => setDownloadFeedback(""), 1500);
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    }
+    // Render the content to canvas
+    const canvas = await html2canvas(contentDiv as HTMLElement, { scale: 2, backgroundColor: '#f8fbff' });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+    // Add logo
+    const logoImg = new Image();
+    logoImg.src = "/logo.svg";
+    await new Promise((resolve) => { logoImg.onload = resolve; });
+    pdf.addImage(logoImg, "SVG", 40, 30, 60, 60);
+    // Add website and tagline
+    pdf.setFontSize(18);
+    pdf.setTextColor("#1e3a8a");
+    pdf.text("OTA Answers", 110, 55);
+    pdf.setFontSize(12);
+    pdf.setTextColor("#2563eb");
+    pdf.text("Independent Analytics for Tour & Activity Vendors", 110, 75);
+    pdf.setFontSize(10);
+    pdf.setTextColor("#2563eb");
+    pdf.text("www.otaanswers.com", 110, 95);
+    // Add trust message
+    pdf.setFontSize(12);
+    pdf.setTextColor("#1e3a8a");
+    pdf.text("Why trust this report?", 40, 120);
+    pdf.setFontSize(10);
+    pdf.setTextColor("#1e40af");
+    pdf.text("- Where the data comes from: We collect and combine information from top online travel agencies (OTAs) like GetYourGuide, Viator, and more.", 40, 140, { maxWidth: 500 });
+    pdf.text("- How we create these insights: Our team reviews and updates the data regularly to make sure it's accurate and useful for your business.", 40, 160, { maxWidth: 500 });
+    pdf.text("- Who we are: OTA Answers is an independent analytics provider focused on helping tour and activity operators grow.", 40, 180, { maxWidth: 500 });
+    // Add the report image (below trust message)
+    pdf.addImage(imgData, "PNG", 40, 200, 515, 0);
+    pdf.save(`${selectedReport.title.replace(/[^a-z0-9]/gi, "_") || "report"}.pdf`);
+    setDownloadFeedback("PDF downloaded!");
+    setTimeout(() => setDownloadFeedback(""), 1500);
   };
 
   return (
@@ -289,11 +316,11 @@ export default function ReportsPage() {
                   Share
                 </button>
                 <button
-                  className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition"
-                  onClick={handleDownloadCSV}
-                  title="Download first table as CSV"
+                  className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700 transition"
+                  onClick={handleDownloadPDF}
+                  title="Download full report as PDF"
                 >
-                  Download CSV
+                  Download PDF
                 </button>
                 <a ref={downloadRef} style={{ display: "none" }} />
                 {shareFeedback && <span className="text-blue-700 ml-2 text-sm">{shareFeedback}</span>}
@@ -305,7 +332,7 @@ export default function ReportsPage() {
               ) : error ? (
                 <div className="text-red-600">{error}</div>
               ) : (
-                <div className="bg-white border rounded p-4 max-w-none text-gray-900 max-h-[70vh] overflow-y-auto">
+                <div className="bg-white border rounded p-4 max-w-none text-gray-900 max-h-[70vh] overflow-y-auto report-pdf-content">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={markdownComponents}

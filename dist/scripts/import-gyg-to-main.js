@@ -103,10 +103,12 @@ const combinedData = await mainPrisma.$queryRaw\`
                 type: 'gyg-import-strategy',
                 title: 'GYG Data Import Strategy',
                 content: report,
+                isPublic: false,
             },
             update: {
                 title: 'GYG Data Import Strategy',
                 content: report,
+                isPublic: false,
             },
         });
         console.log('✅ Import strategy saved to main database');

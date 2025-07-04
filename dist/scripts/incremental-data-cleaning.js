@@ -149,10 +149,12 @@ This incremental cleaning ensures your data pipeline remains efficient and consi
                 type: 'gyg-incremental-cleaning-report',
                 title: 'GYG Incremental Data Cleaning Report',
                 content: report,
+                isPublic: false,
             },
             update: {
                 title: 'GYG Incremental Data Cleaning Report',
                 content: report,
+                isPublic: false,
             },
         });
         console.log('✅ Incremental cleaning report saved');

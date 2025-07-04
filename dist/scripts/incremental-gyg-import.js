@@ -141,10 +141,12 @@ npm run import:gyg:incremental
                 type: 'gyg-incremental-import-report',
                 title: 'GYG Incremental Import Report',
                 content: report,
+                isPublic: false,
             },
             update: {
                 title: 'GYG Incremental Import Report',
                 content: report,
+                isPublic: false,
             },
         });
         console.log('✅ Incremental import report saved');

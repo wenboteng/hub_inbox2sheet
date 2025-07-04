@@ -162,10 +162,12 @@ ${await getSampleActivities()}
                     type: 'gyg-data-analysis',
                     title: 'GetYourGuide Data Analysis Report',
                     content: report,
+                    isPublic: false,
                 },
                 update: {
                     title: 'GetYourGuide Data Analysis Report',
                     content: report,
+                    isPublic: false,
                 },
             });
             console.log('✅ Report saved to main database');

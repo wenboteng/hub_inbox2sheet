@@ -528,10 +528,12 @@ async function saveReport(report) {
                 type: 'gyg-data-cleaning-report',
                 title: 'GYG Data Cleaning Report',
                 content: report,
+                isPublic: false,
             },
             update: {
                 title: 'GYG Data Cleaning Report',
                 content: report,
+                isPublic: false,
             },
         });
         console.log('✅ Cleaning report saved to database');

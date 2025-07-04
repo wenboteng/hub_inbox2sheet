@@ -1,12 +1,8 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.gygPrisma = exports.mainPrisma = void 0;
-exports.getPrismaClient = getPrismaClient;
-exports.testBothDatabases = testBothDatabases;
-const client_1 = require("@prisma/client");
+const { PrismaClient } = require('@prisma/client');
 // Main database client (existing)
 const mainPrismaClientSingleton = () => {
-    return new client_1.PrismaClient({
+    return new PrismaClient({
         datasources: {
             db: {
                 url: process.env.DATABASE_URL,
@@ -16,7 +12,7 @@ const mainPrismaClientSingleton = () => {
 };
 // GYG database client (new)
 const gygPrismaClientSingleton = () => {
-    return new client_1.PrismaClient({
+    return new PrismaClient({
         datasources: {
             db: {
                 url: process.env.GYG_DATABASE_URL,
@@ -24,19 +20,15 @@ const gygPrismaClientSingleton = () => {
         },
     });
 };
-const mainPrisma = globalThis.mainPrisma ?? mainPrismaClientSingleton();
-exports.mainPrisma = mainPrisma;
-const gygPrisma = globalThis.gygPrisma ?? gygPrismaClientSingleton();
-exports.gygPrisma = gygPrisma;
+let mainPrisma = global.mainPrisma || mainPrismaClientSingleton();
+let gygPrisma = global.gygPrisma || gygPrismaClientSingleton();
 if (process.env.NODE_ENV !== 'production') {
-    globalThis.mainPrisma = mainPrisma;
-    globalThis.gygPrisma = gygPrisma;
+    global.mainPrisma = mainPrisma;
+    global.gygPrisma = gygPrisma;
 }
-// Utility function to get the appropriate client based on database type
 function getPrismaClient(databaseType = 'main') {
     return databaseType === 'gyg' ? gygPrisma : mainPrisma;
 }
-// Utility function to test both database connections
 async function testBothDatabases() {
     const results = {
         main: { connected: false, error: null },
@@ -68,4 +60,10 @@ async function testBothDatabases() {
     }
     return results;
 }
+module.exports = {
+    mainPrisma,
+    gygPrisma,
+    getPrismaClient,
+    testBothDatabases,
+};
 //# sourceMappingURL=dual-prisma.js.map
