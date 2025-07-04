@@ -150,3 +150,32 @@ model Report {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
+
+model ImportedGYGActivity {
+  id                String   @id @default(cuid())
+  originalId        String   // Original ID from GYG database
+  activityName      String
+  providerName      String
+  location          String
+  priceText         String?  // Original price text (e.g., "€43")
+  priceNumeric      Float?   // Parsed numeric price (e.g., 43.0)
+  ratingText        String?  // Original rating text (e.g., "4.4")
+  ratingNumeric     Float?   // Parsed numeric rating (e.g., 4.4)
+  reviewCountText   String?  // Original review count text (e.g., "63,652")
+  reviewCountNumeric Int?    // Parsed numeric review count (e.g., 63652)
+  duration          String?
+  description       String?  @db.Text
+  extractionQuality String?
+  tags              String[] // Array of tags
+  url               String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  importedAt        DateTime @default(now()) // When this record was imported
+
+  @@index([providerName])
+  @@index([location])
+  @@index([ratingNumeric])
+  @@index([priceNumeric])
+  @@index([extractionQuality])
+  @@index([importedAt])
+}

@@ -36,7 +36,13 @@
     "analytics:customer": "node dist/scripts/generate-customer-insights.js",
     "analytics:competitive": "node dist/scripts/generate-competitive-analysis.js",
     "analytics:all": "node dist/scripts/generate-all-analytics.js",
-    "analytics:demo": "node dist/scripts/demo-analytics.js"
+    "analytics:demo": "node dist/scripts/demo-analytics.js",
+    "test:dual-db": "node dist/scripts/test-dual-database.js",
+    "extract:gyg": "node dist/scripts/extract-gyg-data.js",
+    "process:gyg": "node dist/scripts/process-gyg-data.js",
+    "import:gyg": "node dist/scripts/full-gyg-import.js",
+    "import:gyg:incremental": "node dist/scripts/incremental-gyg-import.js",
+    "strategy:gyg": "node dist/scripts/data-management-strategy.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.0.0",
