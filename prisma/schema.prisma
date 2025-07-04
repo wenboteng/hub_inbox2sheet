@@ -153,7 +153,7 @@ model Report {
 
 model ImportedGYGActivity {
   id                String   @id @default(cuid())
-  originalId        String   // Original ID from GYG database
+  originalId        String   @unique // Original ID from GYG database
   activityName      String
   providerName      String
   location          String
@@ -171,6 +171,16 @@ model ImportedGYGActivity {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   importedAt        DateTime @default(now()) // When this record was imported
+  
+  // Additional fields for data cleaning and quality monitoring
+  cleanedAt         DateTime? // When this record was last cleaned
+  qualityScore      Int?      // Quality score (0-100)
+  city              String?   // Standardized city name
+  country           String?   // Standardized country name
+  venue             String?   // Specific venue/location
+  priceCurrency     String?   // Extracted currency (€, $, £, etc.)
+  durationHours     Int?      // Duration in hours
+  durationDays      Int?      // Duration in days
 
   @@index([providerName])
   @@index([location])
@@ -178,4 +188,8 @@ model ImportedGYGActivity {
   @@index([priceNumeric])
   @@index([extractionQuality])
   @@index([importedAt])
+  @@index([cleanedAt])
+  @@index([qualityScore])
+  @@index([city])
+  @@index([country])
 }
