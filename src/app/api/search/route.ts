@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
       Promise.resolve(getRelatedTerms(query))
     ]);
 
-    // Build base query with content type filtering
+    // Build base query with content type filtering (for Article, do not use isPublic)
     const baseQuery = {
       where: {
         ...(platform ? { platform } : {}),
@@ -245,22 +245,62 @@ export async function GET(request: NextRequest) {
     // Check if we have good semantic matches
     const hasGoodSemanticMatches = sortedSemanticResults.some(r => r.score > 0.3);
 
+    // After fetching articles, also fetch matching reports
+    let reportResults: SearchResult[] = [];
+    if (query.length > 2) {
+      // Simple keyword search on title and content
+      const reports = await prisma.report.findMany({
+        where: {
+          isPublic: true,
+          OR: [
+            { title: { contains: query, mode: 'insensitive' } },
+            { content: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 5,
+      });
+      reportResults = reports.map((report) => {
+        // Extract a relevant snippet (first matching line or table row)
+        let snippet = '';
+        const lines = report.content.split('\n');
+        const matchLine = lines.find(line => line.toLowerCase().includes(query.toLowerCase()));
+        if (matchLine) {
+          snippet = matchLine;
+        } else {
+          // fallback: first non-empty line after title
+          snippet = lines.slice(1).find(line => line.trim().length > 0) || '';
+        }
+        return {
+          id: report.id,
+          url: `/reports?report=${report.id}`,
+          question: report.title,
+          platform: 'Analytics',
+          category: 'Report',
+          snippets: [snippet],
+          score: 1.0, // Always show, let frontend rank
+          isSemanticMatch: false,
+          contentType: 'report',
+          source: 'report',
+        };
+      });
+    }
+
     if (hasGoodSemanticMatches) {
-      // Mark top match and limit results
       const results = sortedSemanticResults
         .filter(r => r.score > 0.3)
         .map((r, index) => ({ ...r, isTopMatch: index === 0 }));
-      
-      const limitedResults = showAll ? results : results.slice(0, 5);
-      
+      // Merge report results at the top
+      const mergedResults = reportResults.length > 0 ? [...reportResults, ...results] : results;
+      const limitedResults = showAll ? mergedResults : mergedResults.slice(0, 5);
       return NextResponse.json({ 
         articles: limitedResults,
         searchType: 'semantic',
-        totalResults: results.length,
-        hasMore: !showAll && results.length > 5,
+        totalResults: mergedResults.length,
+        hasMore: !showAll && mergedResults.length > 5,
         platformMismatch,
         platformWarning,
-        contentTypes: Array.from(new Set(results.map(r => r.contentType))),
+        contentTypes: Array.from(new Set(mergedResults.map(r => r.contentType))),
         faqFallback,
         noPlatformMatch,
       } as SearchResponse);
@@ -285,26 +325,24 @@ export async function GET(request: NextRequest) {
     if (sortedSemanticResults.length > 0 || keywordResults.length > 0) {
       // Combine and sort results, preferring semantic matches
       const combinedResults = [
-        // Include top semantic match even if below threshold
         ...sortedSemanticResults.slice(0, 1).map(r => ({
           ...r,
           snippets: [...r.snippets, "This may not be a perfect match, but it's semantically related."],
           isTopMatch: true
         })),
-        // Include keyword matches
         ...keywordResults
       ];
-
-      const limitedResults = showAll ? combinedResults : combinedResults.slice(0, 5);
-
+      // Merge report results at the top
+      const mergedCombinedResults = reportResults.length > 0 ? [...reportResults, ...combinedResults] : combinedResults;
+      const limitedCombinedResults = showAll ? mergedCombinedResults : mergedCombinedResults.slice(0, 5);
       return NextResponse.json({ 
-        articles: limitedResults,
+        articles: limitedCombinedResults,
         searchType: 'combined',
-        totalResults: combinedResults.length,
-        hasMore: !showAll && combinedResults.length > 5,
+        totalResults: mergedCombinedResults.length,
+        hasMore: !showAll && mergedCombinedResults.length > 5,
         platformMismatch,
         platformWarning,
-        contentTypes: Array.from(new Set(combinedResults.map(r => r.contentType))),
+        contentTypes: Array.from(new Set(mergedCombinedResults.map(r => r.contentType))),
         faqFallback,
         noPlatformMatch,
       } as SearchResponse);
