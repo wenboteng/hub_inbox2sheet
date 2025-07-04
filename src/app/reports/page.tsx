@@ -10,6 +10,20 @@ interface ReportMeta {
   updatedAt: string;
 }
 
+function TrustBox({ report }: { report: ReportMeta }) {
+  return (
+    <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 rounded">
+      <div className="font-semibold text-blue-800 mb-1">Why trust this report?</div>
+      <ul className="text-sm text-blue-900 space-y-1">
+        <li>🔍 <b>Data Source:</b> GetYourGuide, imported & cleaned by OTA Answers</li>
+        <li>🛠️ <b>Methodology:</b> Automated parsing, deduplication, and regular updates</li>
+        <li>📅 <b>Last Updated:</b> {new Date(report.updatedAt).toLocaleDateString()}</li>
+        <li>🏢 <b>Publisher:</b> OTA Answers (independent analytics for tour vendors)</li>
+      </ul>
+    </div>
+  );
+}
+
 export default function ReportsPage() {
   const [reports, setReports] = useState<ReportMeta[]>([]);
   const [selectedReport, setSelectedReport] = useState<ReportMeta | null>(null);
@@ -82,13 +96,26 @@ export default function ReportsPage() {
   }, [selectedReport]);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold mb-8 text-blue-900">📊 Analytics & Insights Reports</h1>
+    <div className="max-w-5xl mx-auto px-4 py-10">
+      <h1 className="text-4xl font-bold mb-6 text-blue-900">📊 OTA Analytics & Insights Reports</h1>
+      {/* Featured Report */}
+      {reports.length > 0 && !selectedReport && (
+        <div className="mb-8 p-6 bg-white border rounded shadow">
+          <div className="text-lg font-semibold text-blue-800 mb-2">{reports[0].title}</div>
+          <div className="text-gray-700 mb-2">Latest report, updated {new Date(reports[0].updatedAt).toLocaleDateString()}</div>
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+            onClick={() => loadReport(reports[0])}
+          >
+            Read Full Report
+          </button>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row gap-8">
+        {/* Report List */}
         <div className="md:w-1/3">
-          <h2 className="text-lg font-semibold mb-4">Available Reports</h2>
+          <h2 className="text-lg font-semibold mb-4">All Reports</h2>
           <ul className="space-y-2">
-            {reports.length === 0 && <li className="text-gray-500">No reports available yet.</li>}
             {reports.map((report) => (
               <li key={report.id}>
                 <button
@@ -96,16 +123,19 @@ export default function ReportsPage() {
                   onClick={() => loadReport(report)}
                   disabled={loading && selectedReport?.id === report.id}
                 >
-                  <span className="font-medium text-blue-900">{report.title}</span>
+                  <div className="font-medium text-blue-900">{report.title}</div>
+                  <div className="text-xs text-gray-500">Updated {new Date(report.updatedAt).toLocaleDateString()}</div>
                 </button>
               </li>
             ))}
           </ul>
         </div>
+        {/* Report Detail */}
         <div className="md:w-2/3">
           {selectedReport ? (
             <div>
-              <h2 className="text-xl font-semibold mb-2 text-blue-800">{selectedReport.title}</h2>
+              <h2 className="text-2xl font-bold mb-2 text-blue-800">{selectedReport.title}</h2>
+              <TrustBox report={selectedReport} />
               {loading ? (
                 <div className="text-blue-600">Loading...</div>
               ) : error ? (
