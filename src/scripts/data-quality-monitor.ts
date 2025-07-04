@@ -272,10 +272,12 @@ async function saveQualityReport(report: string) {
         type: 'gyg-data-quality-report',
         title: 'GYG Data Quality Report',
         content: report,
+        isPublic: false,
       },
       update: {
         title: 'GYG Data Quality Report',
         content: report,
+        isPublic: false,
       },
     });
   } catch (error) {

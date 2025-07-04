@@ -36,12 +36,10 @@ async function generateGYGCityCountryReport() {
       type: 'gyg-city-country-report',
       title: 'Average Price & Rating by City/Country',
       content: report,
-      isPublic: true,
     },
     update: {
       title: 'Average Price & Rating by City/Country',
       content: report,
-      isPublic: true,
     },
   });
 

@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
-    const dbReports = await prisma.report.findMany({ orderBy: { createdAt: 'desc' } });
+    const dbReports = await prisma.report.findMany({
+      where: { isPublic: true },
+      orderBy: { createdAt: 'desc' },
+    });
     console.log('DB Reports:', dbReports); // Debug log
     const reports = dbReports.map(r => ({
       id: r.id,
@@ -11,6 +14,7 @@ export async function GET(request: NextRequest) {
       title: r.title,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
+      isPublic: r.isPublic,
     }));
     return NextResponse.json({ reports });
   } catch (error) {

@@ -74,21 +74,37 @@ function cleanPrice(priceText: string | null): CleanedPrice {
 }
 
 // Rating cleaning function
-function cleanRating(ratingText: string | null): CleanedRating {
-  if (!ratingText || ratingText.trim() === '') {
+function cleanRating(ratingText: string | null, reviewCountText?: string | null): CleanedRating {
+  if ((!ratingText || ratingText.trim() === '') && (!reviewCountText || reviewCountText.trim() === '')) {
     return { rating: null, reviews: null, original: ratingText || '' };
   }
 
-  const original = ratingText.trim();
-  
-  // Extract rating (e.g., "4.4" from "4.4 (63,652)")
-  const ratingMatch = original.match(/^(\d+(?:\.\d+)?)/);
-  const rating = ratingMatch ? parseFloat(ratingMatch[1]) : null;
-  
-  // Extract review count (e.g., "63652" from "4.4 (63,652)")
-  const reviewMatch = original.match(/\((\d+(?:,\d+)*)\)/);
-  const reviews = reviewMatch ? parseInt(reviewMatch[1].replace(/,/g, '')) : null;
-  
+  let original = ratingText?.trim() || '';
+  let rating: number | null = null;
+  let reviews: number | null = null;
+
+  // If ratingText contains both rating and review count (e.g., "4.4 (63,652)")
+  if (original.match(/^(\d+(?:\.\d+)?)\s*\((\d{1,3}(?:,\d{3})*)\)/)) {
+    const match = original.match(/^(\d+(?:\.\d+)?)\s*\((\d{1,3}(?:,\d{3})*)\)/);
+    if (match) {
+      rating = parseFloat(match[1]);
+      reviews = parseInt(match[2].replace(/,/g, ''));
+    }
+  } else {
+    // Try to extract rating as a float
+    const ratingMatch = original.match(/^(\d+(?:\.\d+)?)/);
+    if (ratingMatch) {
+      rating = parseFloat(ratingMatch[1]);
+    }
+    // Try to extract review count from reviewCountText if available
+    if (reviewCountText && reviewCountText.trim() !== '') {
+      const reviewMatch = reviewCountText.match(/(\d{1,3}(?:,\d{3})*)/);
+      if (reviewMatch) {
+        reviews = parseInt(reviewMatch[1].replace(/,/g, ''));
+      }
+    }
+  }
+
   return { rating, reviews, original };
 }
 
@@ -275,7 +291,7 @@ async function cleanGYGData() {
       try {
         // Clean all fields
         const cleanedPrice = cleanPrice(activity.price);
-        const cleanedRating = cleanRating(activity.rating);
+        const cleanedRating = cleanRating(activity.rating, activity.review_count);
         const cleanedLocation = cleanLocation(activity.location);
         const cleanedDuration = cleanDuration(activity.duration);
         const cleanedProvider = cleanProviderName(activity.provider_name);
@@ -598,10 +614,12 @@ async function saveReport(report: string) {
         type: 'gyg-data-cleaning-report',
         title: 'GYG Data Cleaning Report',
         content: report,
+        isPublic: false,
       },
       update: {
         title: 'GYG Data Cleaning Report',
         content: report,
+        isPublic: false,
       },
     });
     console.log('✅ Cleaning report saved to database');

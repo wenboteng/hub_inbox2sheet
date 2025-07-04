@@ -20,7 +20,7 @@ interface CleanedDuration {
     original: string;
 }
 declare function cleanPrice(priceText: string | null): CleanedPrice;
-declare function cleanRating(ratingText: string | null): CleanedRating;
+declare function cleanRating(ratingText: string | null, reviewCountText?: string | null): CleanedRating;
 declare function cleanLocation(locationText: string | null): CleanedLocation;
 declare function cleanDuration(durationText: string | null): CleanedDuration;
 declare function cleanProviderName(providerName: string | null): string;

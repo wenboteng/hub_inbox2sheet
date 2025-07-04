@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ReportMeta {
   id: string;
@@ -8,6 +9,7 @@ interface ReportMeta {
   title: string;
   createdAt: string;
   updatedAt: string;
+  isPublic: boolean;
 }
 
 function TrustBox({ report }: { report: ReportMeta }) {
@@ -41,16 +43,16 @@ const markdownComponents = {
   pre: (props: any) => <pre className="bg-gray-900 text-white rounded p-3 overflow-x-auto my-3" {...props} />,
   table: (props: any) => (
     <div className="overflow-x-auto my-4">
-      <table className="min-w-full border border-gray-300 text-sm">
+      <table className="min-w-full border border-gray-300 text-sm rounded-lg shadow-sm">
         {props.children}
       </table>
     </div>
   ),
-  thead: (props: any) => <thead className="bg-blue-100 text-blue-900" {...props} />,
+  thead: (props: any) => <thead className="bg-blue-100 text-blue-900 sticky top-0 z-10" {...props} />,
   tbody: (props: any) => <tbody className="divide-y divide-gray-200" {...props} />,
-  tr: (props: any) => <tr className="even:bg-gray-50" {...props} />,
-  th: (props: any) => <th className="px-3 py-2 border-b border-gray-300 font-semibold text-left" {...props} />,
-  td: (props: any) => <td className="px-3 py-2 border-b border-gray-200" {...props} />,
+  tr: (props: any) => <tr className="even:bg-gray-50 hover:bg-blue-50 transition" {...props} />,
+  th: (props: any) => <th className="px-4 py-2 border-b border-gray-300 font-semibold text-left whitespace-nowrap" {...props} />,
+  td: (props: any) => <td className="px-4 py-2 border-b border-gray-200 whitespace-nowrap" {...props} />,
 };
 
 function extractFirstTableFromMarkdown(markdown: string): string[][] | null {
@@ -169,8 +171,8 @@ export default function ReportsPage() {
     );
   }
 
-  // Filtered reports by search
-  const filteredReports = reports.filter(r => r.title.toLowerCase().includes(search.toLowerCase()));
+  // Filtered reports by search and isPublic
+  const filteredReports = reports.filter(r => r.isPublic && r.title.toLowerCase().includes(search.toLowerCase()));
 
   // Share button handler
   const handleShare = () => {
@@ -304,7 +306,10 @@ export default function ReportsPage() {
                 <div className="text-red-600">{error}</div>
               ) : (
                 <div className="bg-white border rounded p-4 max-w-none text-gray-900 max-h-[70vh] overflow-y-auto">
-                  <ReactMarkdown components={markdownComponents}>{reportContent}</ReactMarkdown>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={markdownComponents}
+                  >{reportContent}</ReactMarkdown>
                 </div>
               )}
             </div>
