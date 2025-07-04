@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 
 interface ReportMeta {
@@ -24,12 +24,71 @@ function TrustBox({ report }: { report: ReportMeta }) {
   );
 }
 
+// Custom markdown renderers for better styling
+const markdownComponents = {
+  h1: (props: any) => <h1 className="text-3xl font-bold mt-6 mb-4 text-blue-900" {...props} />,
+  h2: (props: any) => <h2 className="text-2xl font-semibold mt-5 mb-3 text-blue-800" {...props} />,
+  h3: (props: any) => <h3 className="text-xl font-semibold mt-4 mb-2 text-blue-700" {...props} />,
+  h4: (props: any) => <h4 className="text-lg font-semibold mt-3 mb-2 text-blue-600" {...props} />,
+  ul: (props: any) => <ul className="list-disc ml-6 mb-3 space-y-1" {...props} />,
+  ol: (props: any) => <ol className="list-decimal ml-6 mb-3 space-y-1" {...props} />,
+  li: (props: any) => <li className="mb-1" {...props} />,
+  p: (props: any) => <p className="mb-3 leading-relaxed" {...props} />,
+  strong: (props: any) => <strong className="font-semibold text-blue-900" {...props} />,
+  em: (props: any) => <em className="italic text-blue-700" {...props} />,
+  blockquote: (props: any) => <blockquote className="border-l-4 border-blue-300 pl-4 italic text-blue-700 bg-blue-50 py-2 my-3" {...props} />,
+  code: (props: any) => <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono text-blue-800" {...props} />,
+  pre: (props: any) => <pre className="bg-gray-900 text-white rounded p-3 overflow-x-auto my-3" {...props} />,
+  table: (props: any) => (
+    <div className="overflow-x-auto my-4">
+      <table className="min-w-full border border-gray-300 text-sm">
+        {props.children}
+      </table>
+    </div>
+  ),
+  thead: (props: any) => <thead className="bg-blue-100 text-blue-900" {...props} />,
+  tbody: (props: any) => <tbody className="divide-y divide-gray-200" {...props} />,
+  tr: (props: any) => <tr className="even:bg-gray-50" {...props} />,
+  th: (props: any) => <th className="px-3 py-2 border-b border-gray-300 font-semibold text-left" {...props} />,
+  td: (props: any) => <td className="px-3 py-2 border-b border-gray-200" {...props} />,
+};
+
+function extractFirstTableFromMarkdown(markdown: string): string[][] | null {
+  // Simple regex-based parser for markdown tables
+  const lines = markdown.split("\n");
+  let tableStart = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\|(.+)\|$/.test(lines[i]) && i + 1 < lines.length && /^\|[\s:-]+\|$/.test(lines[i + 1])) {
+      tableStart = i;
+      break;
+    }
+  }
+  if (tableStart === -1) return null;
+  const tableLines = [];
+  for (let i = tableStart; i < lines.length; i++) {
+    if (!/^\|(.+)\|$/.test(lines[i])) break;
+    tableLines.push(lines[i]);
+  }
+  if (tableLines.length < 2) return null;
+  // Parse rows
+  return tableLines.map(line => line.slice(1, -1).split("|").map(cell => cell.trim()));
+}
+
+function tableToCSV(table: string[][]): string {
+  return table.map(row => row.map(cell => '"' + cell.replace(/"/g, '""') + '"').join(",")).join("\n");
+}
+
 export default function ReportsPage() {
   const [reports, setReports] = useState<ReportMeta[]>([]);
   const [selectedReport, setSelectedReport] = useState<ReportMeta | null>(null);
   const [reportContent, setReportContent] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [shareFeedback, setShareFeedback] = useState("");
+  const [downloadFeedback, setDownloadFeedback] = useState("");
+  const downloadRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     fetch("/api/reports")
@@ -42,6 +101,7 @@ export default function ReportsPage() {
     setReportContent("");
     setError(null);
     setLoading(true);
+    setSidebarOpen(false); // close sidebar on mobile
     try {
       const res = await fetch(`/api/reports/${report.id}`);
       const data = await res.json();
@@ -95,61 +155,163 @@ export default function ReportsPage() {
     }
   }, [selectedReport]);
 
+  // Breadcrumbs
+  function Breadcrumbs() {
+    return (
+      <nav className="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+        <ol className="list-reset flex">
+          <li><a href="/" className="hover:underline">Home</a></li>
+          <li><span className="mx-2">/</span></li>
+          <li><a href="/reports" className="hover:underline">Reports</a></li>
+          {selectedReport && <><li><span className="mx-2">/</span></li><li className="text-blue-800 font-semibold">{selectedReport.title}</li></>}
+        </ol>
+      </nav>
+    );
+  }
+
+  // Filtered reports by search
+  const filteredReports = reports.filter(r => r.title.toLowerCase().includes(search.toLowerCase()));
+
+  // Share button handler
+  const handleShare = () => {
+    if (selectedReport) {
+      const url = window.location.origin + `/reports?report=${selectedReport.id}`;
+      navigator.clipboard.writeText(url).then(() => {
+        setShareFeedback("Link copied!");
+        setTimeout(() => setShareFeedback(""), 1500);
+      });
+    }
+  };
+
+  // Download CSV handler
+  const handleDownloadCSV = () => {
+    const table = extractFirstTableFromMarkdown(reportContent);
+    if (!table) {
+      setDownloadFeedback("No table found in report");
+      setTimeout(() => setDownloadFeedback(""), 1500);
+      return;
+    }
+    const csv = tableToCSV(table);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    if (downloadRef.current) {
+      downloadRef.current.href = url;
+      downloadRef.current.download = `${selectedReport?.title.replace(/[^a-z0-9]/gi, "_") || "report"}.csv`;
+      downloadRef.current.click();
+      setDownloadFeedback("CSV downloaded!");
+      setTimeout(() => setDownloadFeedback(""), 1500);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+  };
+
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10">
-      <h1 className="text-4xl font-bold mb-6 text-blue-900">📊 OTA Analytics & Insights Reports</h1>
-      {/* Featured Report */}
-      {reports.length > 0 && !selectedReport && (
-        <div className="mb-8 p-6 bg-white border rounded shadow">
-          <div className="text-lg font-semibold text-blue-800 mb-2">{reports[0].title}</div>
-          <div className="text-gray-700 mb-2">Latest report, updated {new Date(reports[0].updatedAt).toLocaleDateString()}</div>
-          <button
-            className="bg-blue-600 text-white px-4 py-2 rounded"
-            onClick={() => loadReport(reports[0])}
-          >
-            Read Full Report
-          </button>
-        </div>
-      )}
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Report List */}
-        <div className="md:w-1/3">
+    <div className="max-w-6xl mx-auto px-2 sm:px-4 py-8">
+      <h1 className="text-4xl font-bold mb-4 text-blue-900">📊 OTA Analytics & Insights Reports</h1>
+      <Breadcrumbs />
+      <div className="flex gap-6">
+        {/* Sticky Sidebar */}
+        <aside className="hidden md:block md:w-1/4 lg:w-1/5 sticky top-8 self-start h-fit bg-white border rounded shadow-sm p-4">
           <h2 className="text-lg font-semibold mb-4">All Reports</h2>
+          <input
+            type="text"
+            placeholder="Search reports..."
+            className="w-full border rounded px-3 py-2 mb-3 text-sm"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
           <ul className="space-y-2">
-            {reports.map((report) => (
+            {filteredReports.map((report) => (
               <li key={report.id}>
                 <button
-                  className={`w-full text-left px-4 py-2 rounded border ${selectedReport?.id === report.id ? "bg-blue-100 border-blue-400" : "bg-white border-gray-200 hover:bg-blue-50"}`}
+                  className={`w-full text-left px-3 py-2 rounded border transition-colors ${selectedReport?.id === report.id ? "bg-blue-100 border-blue-400 font-bold" : "bg-white border-gray-200 hover:bg-blue-50"}`}
                   onClick={() => loadReport(report)}
                   disabled={loading && selectedReport?.id === report.id}
                 >
-                  <div className="font-medium text-blue-900">{report.title}</div>
+                  <div className="font-medium text-blue-900 truncate">{report.title}</div>
                   <div className="text-xs text-gray-500">Updated {new Date(report.updatedAt).toLocaleDateString()}</div>
                 </button>
               </li>
             ))}
+            {filteredReports.length === 0 && <li className="text-gray-400 text-sm">No reports found.</li>}
           </ul>
-        </div>
-        {/* Report Detail */}
-        <div className="md:w-2/3">
+        </aside>
+        {/* Mobile Sidebar Toggle */}
+        <button className="md:hidden fixed top-4 left-4 z-20 bg-blue-600 text-white px-3 py-2 rounded shadow" onClick={() => setSidebarOpen(true)} aria-label="Open report navigation">
+          ☰ Reports
+        </button>
+        {/* Mobile Sidebar Drawer */}
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-30 bg-black bg-opacity-30 flex">
+            <aside className="w-3/4 max-w-xs bg-white h-full p-4 shadow-lg">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">All Reports</h2>
+                <button onClick={() => setSidebarOpen(false)} className="text-2xl font-bold">×</button>
+              </div>
+              <input
+                type="text"
+                placeholder="Search reports..."
+                className="w-full border rounded px-3 py-2 mb-3 text-sm"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              <ul className="space-y-2">
+                {filteredReports.map((report) => (
+                  <li key={report.id}>
+                    <button
+                      className={`w-full text-left px-3 py-2 rounded border transition-colors ${selectedReport?.id === report.id ? "bg-blue-100 border-blue-400 font-bold" : "bg-white border-gray-200 hover:bg-blue-50"}`}
+                      onClick={() => loadReport(report)}
+                      disabled={loading && selectedReport?.id === report.id}
+                    >
+                      <div className="font-medium text-blue-900 truncate">{report.title}</div>
+                      <div className="text-xs text-gray-500">Updated {new Date(report.updatedAt).toLocaleDateString()}</div>
+                    </button>
+                  </li>
+                ))}
+                {filteredReports.length === 0 && <li className="text-gray-400 text-sm">No reports found.</li>}
+              </ul>
+            </aside>
+            <div className="flex-1" onClick={() => setSidebarOpen(false)} />
+          </div>
+        )}
+        {/* Main Content */}
+        <main className="flex-1 min-w-0">
           {selectedReport ? (
             <div>
               <h2 className="text-2xl font-bold mb-2 text-blue-800">{selectedReport.title}</h2>
+              <div className="flex flex-wrap gap-2 mb-2">
+                <button
+                  className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition"
+                  onClick={handleShare}
+                  title="Copy link to this report"
+                >
+                  Share
+                </button>
+                <button
+                  className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition"
+                  onClick={handleDownloadCSV}
+                  title="Download first table as CSV"
+                >
+                  Download CSV
+                </button>
+                <a ref={downloadRef} style={{ display: "none" }} />
+                {shareFeedback && <span className="text-blue-700 ml-2 text-sm">{shareFeedback}</span>}
+                {downloadFeedback && <span className="text-green-700 ml-2 text-sm">{downloadFeedback}</span>}
+              </div>
               <TrustBox report={selectedReport} />
               {loading ? (
                 <div className="text-blue-600">Loading...</div>
               ) : error ? (
                 <div className="text-red-600">{error}</div>
               ) : (
-                <div className="bg-white border rounded p-4 prose prose-blue max-w-none text-gray-900 max-h-[70vh] overflow-y-auto">
-                  <ReactMarkdown>{reportContent}</ReactMarkdown>
+                <div className="bg-white border rounded p-4 max-w-none text-gray-900 max-h-[70vh] overflow-y-auto">
+                  <ReactMarkdown components={markdownComponents}>{reportContent}</ReactMarkdown>
                 </div>
               )}
             </div>
           ) : (
-            <div className="text-gray-500">Select a report to view its content.</div>
+            <div className="text-gray-500 text-lg mt-12 text-center">Select a report from the left to view its content.</div>
           )}
-        </div>
+        </main>
       </div>
     </div>
   );
