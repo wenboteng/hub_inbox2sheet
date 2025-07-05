@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.processGYGData = processGYGData;
 const dual_prisma_1 = require("../lib/dual-prisma");
+const slugify_1 = require("../utils/slugify");
 async function processGYGData() {
     console.log('🔄 PROCESSING GYG DATA FOR ANALYSIS...\n');
     try {
@@ -77,10 +78,12 @@ ${activities
                 create: {
                     type: 'gyg-processing',
                     title: 'GetYourGuide Data Processing Report',
+                    slug: (0, slugify_1.slugify)('GetYourGuide Data Processing Report'),
                     content: report,
                 },
                 update: {
                     title: 'GetYourGuide Data Processing Report',
+                    slug: (0, slugify_1.slugify)('GetYourGuide Data Processing Report'),
                     content: report,
                 },
             });

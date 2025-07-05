@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.dataManagementStrategy = dataManagementStrategy;
 const dual_prisma_1 = require("../lib/dual-prisma");
+const slugify_1 = require("../utils/slugify");
 async function dataManagementStrategy() {
     console.log('📋 GYG DATA MANAGEMENT STRATEGY...\n');
     try {
@@ -222,10 +223,12 @@ This strategy ensures your data pipeline is robust, efficient, and maintainable.
             create: {
                 type: 'gyg-data-management-strategy',
                 title: 'GYG Data Management Strategy',
+                slug: (0, slugify_1.slugify)('GYG Data Management Strategy'),
                 content: report,
             },
             update: {
                 title: 'GYG Data Management Strategy',
+                slug: (0, slugify_1.slugify)('GYG Data Management Strategy'),
                 content: report,
             },
         });

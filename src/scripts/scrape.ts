@@ -1,23 +1,23 @@
 import { PrismaClient } from '@prisma/client';
 import type { Page } from 'puppeteer';
 import { randomBytes } from 'crypto';
-import { getContentEmbeddings, getEmbedding } from '@/utils/openai';
-import { scrapeAirbnb } from '@/scripts/scrapers/airbnb';
-import { crawlGetYourGuideArticles, crawlGetYourGuideArticlesWithPagination } from '@/crawlers/getyourguide';
-import { scrapeCommunityUrls, getCommunityContentUrls } from '@/lib/communityCrawler';
-import { crawlNewsAndPolicies } from '@/crawlers/news-policy';
+import { getContentEmbeddings, getEmbedding } from '../utils/openai';
+import { scrapeAirbnb } from './scrapers/airbnb';
+import { crawlGetYourGuideArticles, crawlGetYourGuideArticlesWithPagination } from '../crawlers/getyourguide';
+import { scrapeCommunityUrls, getCommunityContentUrls } from '../lib/communityCrawler';
+import { crawlNewsAndPolicies } from '../crawlers/news-policy';
 import {
   generateContentHash,
   checkContentDuplicate,
   markArticleAsDuplicate,
   getDeduplicationStats,
   DEFAULT_DEDUP_CONFIG,
-} from '@/utils/contentDeduplication';
-import { isFeatureEnabled, getFeatureFlagsSummary } from '@/utils/featureFlags';
-import { detectLanguage } from '@/utils/languageDetection';
-import { slugify } from '@/utils/slugify';
-import { crawlViatorArticles } from '@/crawlers/viator';
-import { crawlExpedia } from '@/crawlers/expedia';
+} from '../utils/contentDeduplication';
+import { isFeatureEnabled, getFeatureFlagsSummary } from '../utils/featureFlags';
+import { detectLanguage } from '../utils/languageDetection';
+import { slugify } from '../utils/slugify';
+import { crawlViatorArticles } from '../crawlers/viator';
+import { crawlExpedia } from '../crawlers/expedia';
 
 const prisma = new PrismaClient();
 
@@ -228,7 +228,7 @@ export async function scrapeAirbnbCommunity(): Promise<Article[]> {
   const processedUrls = new Set<string>(); // Track processed URLs to avoid duplicates
   
   try {
-    const { createBrowser } = await import('@/utils/puppeteer');
+    const { createBrowser } = await import('../utils/puppeteer');
     const browser = await createBrowser();
     console.log('[SCRAPE][AIRBNB-COMMUNITY] Browser created successfully');
     try {

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.incrementalDataCleaning = incrementalDataCleaning;
 const dual_prisma_1 = require("../lib/dual-prisma");
 const data_cleaning_pipeline_1 = require("./data-cleaning-pipeline");
+const slugify_1 = require("../utils/slugify");
 async function incrementalDataCleaning() {
     console.log('🔄 INCREMENTAL GYG DATA CLEANING...\n');
     try {
@@ -148,11 +149,13 @@ This incremental cleaning ensures your data pipeline remains efficient and consi
             create: {
                 type: 'gyg-incremental-cleaning-report',
                 title: 'GYG Incremental Data Cleaning Report',
+                slug: (0, slugify_1.slugify)('GYG Incremental Data Cleaning Report'),
                 content: report,
                 isPublic: false,
             },
             update: {
                 title: 'GYG Incremental Data Cleaning Report',
+                slug: (0, slugify_1.slugify)('GYG Incremental Data Cleaning Report'),
                 content: report,
                 isPublic: false,
             },

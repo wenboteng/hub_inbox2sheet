@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.extractGYGData = extractGYGData;
 const dual_prisma_1 = require("../lib/dual-prisma");
+const slugify_1 = require("../utils/slugify");
 async function extractGYGData() {
     console.log('🔍 EXTRACTING GYG DATA FROM SECONDARY DATABASE...\n');
     try {
@@ -161,11 +162,13 @@ ${await getSampleActivities()}
                 create: {
                     type: 'gyg-data-analysis',
                     title: 'GetYourGuide Data Analysis Report',
+                    slug: (0, slugify_1.slugify)('GetYourGuide Data Analysis Report'),
                     content: report,
                     isPublic: false,
                 },
                 update: {
                     title: 'GetYourGuide Data Analysis Report',
+                    slug: (0, slugify_1.slugify)('GetYourGuide Data Analysis Report'),
                     content: report,
                     isPublic: false,
                 },

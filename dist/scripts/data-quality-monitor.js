@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.monitorDataQuality = monitorDataQuality;
 exports.calculateQualityMetrics = calculateQualityMetrics;
 const dual_prisma_1 = require("../lib/dual-prisma");
+const slugify_1 = require("../utils/slugify");
 async function monitorDataQuality() {
     console.log('📊 MONITORING GYG DATA QUALITY...\n');
     try {
@@ -245,11 +246,13 @@ async function saveQualityReport(report) {
             create: {
                 type: 'gyg-data-quality-report',
                 title: 'GYG Data Quality Report',
+                slug: (0, slugify_1.slugify)('GYG Data Quality Report'),
                 content: report,
                 isPublic: false,
             },
             update: {
                 title: 'GYG Data Quality Report',
+                slug: (0, slugify_1.slugify)('GYG Data Quality Report'),
                 content: report,
                 isPublic: false,
             },

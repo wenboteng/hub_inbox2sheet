@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.incrementalGYGImport = incrementalGYGImport;
 const dual_prisma_1 = require("../lib/dual-prisma");
+const slugify_1 = require("../utils/slugify");
 async function incrementalGYGImport() {
     console.log('🔄 INCREMENTAL GYG DATA IMPORT...\n');
     try {
@@ -140,11 +141,13 @@ npm run import:gyg:incremental
             create: {
                 type: 'gyg-incremental-import-report',
                 title: 'GYG Incremental Import Report',
+                slug: (0, slugify_1.slugify)('GYG Incremental Import Report'),
                 content: report,
                 isPublic: false,
             },
             update: {
                 title: 'GYG Incremental Import Report',
+                slug: (0, slugify_1.slugify)('GYG Incremental Import Report'),
                 content: report,
                 isPublic: false,
             },

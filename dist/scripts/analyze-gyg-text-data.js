@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.analyzeGYGTextData = analyzeGYGTextData;
 const dual_prisma_1 = require("../lib/dual-prisma");
+const slugify_1 = require("../utils/slugify");
 async function analyzeGYGTextData() {
     console.log('🔍 ANALYZING GYG TEXT-BASED DATA...\n');
     try {
@@ -167,10 +168,12 @@ ${activityNames.map((activity) => `- **${activity.activity_name}** (${activity.p
                 create: {
                     type: 'gyg-text-analysis',
                     title: 'GetYourGuide Text-Based Data Analysis Report',
+                    slug: (0, slugify_1.slugify)('GetYourGuide Text-Based Data Analysis Report'),
                     content: report,
                 },
                 update: {
                     title: 'GetYourGuide Text-Based Data Analysis Report',
+                    slug: (0, slugify_1.slugify)('GetYourGuide Text-Based Data Analysis Report'),
                     content: report,
                 },
             });

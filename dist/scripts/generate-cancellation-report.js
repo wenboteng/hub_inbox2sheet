@@ -4,6 +4,7 @@ exports.generateCancellationReport = generateCancellationReport;
 const client_1 = require("@prisma/client");
 const fs_1 = require("fs");
 const path_1 = require("path");
+const slugify_1 = require("../utils/slugify");
 const prisma = new client_1.PrismaClient();
 async function generateCancellationReport() {
     console.log('🚨 Generating Top Cancellation Reasons Report...\n');
@@ -33,11 +34,15 @@ async function generateCancellationReport() {
             create: {
                 type: 'cancellation-reasons',
                 title: 'Top Cancellation Reasons: What Tour Vendors Need to Know',
+                slug: (0, slugify_1.slugify)('Top Cancellation Reasons: What Tour Vendors Need to Know'),
                 content: report,
+                isPublic: true,
             },
             update: {
                 title: 'Top Cancellation Reasons: What Tour Vendors Need to Know',
+                slug: (0, slugify_1.slugify)('Top Cancellation Reasons: What Tour Vendors Need to Know'),
                 content: report,
+                isPublic: true,
             },
         });
         // Also save as markdown file

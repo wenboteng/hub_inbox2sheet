@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fullGYGImport = fullGYGImport;
 const dual_prisma_1 = require("../lib/dual-prisma");
+const slugify_1 = require("../utils/slugify");
 async function fullGYGImport() {
     console.log('🚀 FULL GYG DATA IMPORT TO MAIN DATABASE...\n');
     try {
@@ -134,10 +135,12 @@ const providerStats = await mainPrisma.importedGYGActivity.groupBy({
             create: {
                 type: 'gyg-full-import-report',
                 title: 'GYG Full Data Import Report',
+                slug: (0, slugify_1.slugify)('GYG Full Data Import Report'),
                 content: report,
             },
             update: {
                 title: 'GYG Full Data Import Report',
+                slug: (0, slugify_1.slugify)('GYG Full Data Import Report'),
                 content: report,
             },
         });

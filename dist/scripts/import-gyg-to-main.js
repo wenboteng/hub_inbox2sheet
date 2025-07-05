@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.importGYGToMain = importGYGToMain;
 const dual_prisma_1 = require("../lib/dual-prisma");
+const slugify_1 = require("../utils/slugify");
 async function importGYGToMain() {
     console.log('📥 IMPORTING GYG DATA TO MAIN DATABASE...\n');
     try {
@@ -102,11 +103,13 @@ const combinedData = await mainPrisma.$queryRaw\`
             create: {
                 type: 'gyg-import-strategy',
                 title: 'GYG Data Import Strategy',
+                slug: (0, slugify_1.slugify)('GYG Data Import Strategy'),
                 content: report,
                 isPublic: false,
             },
             update: {
                 title: 'GYG Data Import Strategy',
+                slug: (0, slugify_1.slugify)('GYG Data Import Strategy'),
                 content: report,
                 isPublic: false,
             },

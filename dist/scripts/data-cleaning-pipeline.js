@@ -9,6 +9,7 @@ exports.cleanTags = cleanTags;
 exports.calculateQualityScore = calculateQualityScore;
 exports.cleanGYGData = cleanGYGData;
 const dual_prisma_1 = require("../lib/dual-prisma");
+const slugify_1 = require("../utils/slugify");
 // Price cleaning function
 function cleanPrice(priceText) {
     if (!priceText || priceText.trim() === '') {
@@ -527,11 +528,13 @@ async function saveReport(report) {
             create: {
                 type: 'gyg-data-cleaning-report',
                 title: 'GYG Data Cleaning Report',
+                slug: (0, slugify_1.slugify)('GYG Data Cleaning Report'),
                 content: report,
                 isPublic: false,
             },
             update: {
                 title: 'GYG Data Cleaning Report',
+                slug: (0, slugify_1.slugify)('GYG Data Cleaning Report'),
                 content: report,
                 isPublic: false,
             },

@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const prisma_1 = __importDefault(require("../lib/prisma"));
+const slugify_1 = require("../utils/slugify");
 async function generateGYGCityCountryReport() {
     console.log('📊 Generating Average Price & Rating by City/Country Report...');
     await prisma_1.default.$connect();
@@ -34,10 +35,12 @@ async function generateGYGCityCountryReport() {
         create: {
             type: 'gyg-city-country-report',
             title: 'Average Price & Rating by City/Country',
+            slug: (0, slugify_1.slugify)('Average Price & Rating by City/Country'),
             content: report,
         },
         update: {
             title: 'Average Price & Rating by City/Country',
+            slug: (0, slugify_1.slugify)('Average Price & Rating by City/Country'),
             content: report,
         },
     });
