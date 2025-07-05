@@ -42,11 +42,11 @@ const AIRBNB_COMMUNITY_CONFIG = {
         nextPageLinks: 'a[rel="next"], .lia-paging-next a, .next a',
     },
     rateLimit: {
-        minDelay: 2000,
-        maxDelay: 5000,
+        minDelay: 500, // More aggressive - reduced from 2000ms
+        maxDelay: 1500, // More aggressive - reduced from 5000ms
     },
-    maxThreadsPerCategory: 100, // Limit to avoid overwhelming
-    maxRepliesPerThread: 50, // Limit to avoid overwhelming
+    maxThreadsPerCategory: 200, // Increased from 100 for more content
+    maxRepliesPerThread: 100, // Increased from 50 for more content
 };
 class AirbnbCommunityCrawler {
     constructor() {

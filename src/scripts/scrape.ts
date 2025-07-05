@@ -108,23 +108,60 @@ function validateArticle(article: Article, platform: string): { isValid: boolean
   return { isValid, issues };
 }
 
-// Dynamic URL discovery function
+// Enhanced dynamic URL discovery function with deeper crawling
 async function discoverNewUrls(): Promise<string[]> {
-  console.log('[DISCOVERY] Starting dynamic URL discovery...');
+  console.log('[DISCOVERY] Starting enhanced dynamic URL discovery...');
   const discoveredUrls = new Set<string>();
   
-  // Add more sources to discover URLs from
+  // Expanded sources to discover URLs from
   const discoverySources = [
+    // Airbnb sources
     'https://www.airbnb.com/help',
-    'https://supply.getyourguide.support/hc/en-us',
-    'https://www.viator.com/help/',
-    'https://www.expedia.com/help',
-    'https://www.booking.com/content/help.html',
     'https://community.withairbnb.com',
+    'https://www.airbnb.com/help/article/',
+    'https://www.airbnb.com/help/topic/',
+    
+    // GetYourGuide sources
+    'https://supply.getyourguide.support/hc/en-us',
+    'https://supply.getyourguide.support/hc/en-us/articles/',
+    'https://supply.getyourguide.support/hc/en-us/categories/',
+    
+    // Viator sources
+    'https://www.viator.com/help/',
+    'https://www.viator.com/help/articles/',
+    
+    // Expedia sources
+    'https://www.expedia.com/help',
+    'https://help.expedia.com/',
+    
+    // Booking.com sources
+    'https://www.booking.com/content/help.html',
+    'https://partner.booking.com/',
+    
+    // Community forums
+    'https://airhostsforum.com/',
     'https://www.reddit.com/r/AirBnB/',
     'https://www.reddit.com/r/travel/',
+    'https://www.reddit.com/r/hosting/',
     'https://www.quora.com/topic/Airbnb',
     'https://www.quora.com/topic/Travel',
+    'https://www.quora.com/topic/Hospitality',
+    
+    // Stack Overflow
+    'https://stackoverflow.com/questions/tagged/airbnb',
+    'https://stackoverflow.com/questions/tagged/travel',
+    'https://stackoverflow.com/questions/tagged/hospitality',
+    
+    // TripAdvisor
+    'https://www.tripadvisor.com/ForumHome',
+    'https://www.tripadvisor.com/ShowForum-g1-i10703-Cruises.html',
+    'https://www.tripadvisor.com/ShowForum-g1-i10704-Air_Travel.html',
+    
+    // Additional travel platforms
+    'https://www.kayak.com/help',
+    'https://www.hotels.com/help',
+    'https://www.orbitz.com/help',
+    'https://www.travelocity.com/help',
   ];
   
   for (const source of discoverySources) {
@@ -133,20 +170,45 @@ async function discoverNewUrls(): Promise<string[]> {
       const response = await fetch(source, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
+          'Accept-Encoding': 'gzip, deflate',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1',
         },
-        signal: AbortSignal.timeout(10000)
+        signal: AbortSignal.timeout(15000)
       });
       
       if (response.ok) {
         const html = await response.text();
-        const urlRegex = /href=["']([^"']+)["']/g;
-        let match;
         
-        while ((match = urlRegex.exec(html)) !== null) {
-          const href = match[1];
-          if (href && href.includes('help') && href.includes('article')) {
-            const fullUrl = href.startsWith('http') ? href : new URL(href, source).toString();
-            discoveredUrls.add(fullUrl);
+        // Enhanced URL extraction patterns
+        const urlPatterns = [
+          /href=["']([^"']*help[^"']*article[^"']*)["']/gi,
+          /href=["']([^"']*help[^"']*topic[^"']*)["']/gi,
+          /href=["']([^"']*help[^"']*category[^"']*)["']/gi,
+          /href=["']([^"']*forum[^"']*)["']/gi,
+          /href=["']([^"']*community[^"']*)["']/gi,
+          /href=["']([^"']*support[^"']*)["']/gi,
+          /href=["']([^"']*faq[^"']*)["']/gi,
+          /href=["']([^"']*questions[^"']*)["']/gi,
+        ];
+        
+        for (const pattern of urlPatterns) {
+          let match;
+          while ((match = pattern.exec(html)) !== null) {
+            const href = match[1];
+            if (href && href.length > 10) {
+              try {
+                const fullUrl = href.startsWith('http') ? href : new URL(href, source).toString();
+                if (fullUrl.includes('help') || fullUrl.includes('forum') || fullUrl.includes('community') || 
+                    fullUrl.includes('support') || fullUrl.includes('faq') || fullUrl.includes('questions')) {
+                  discoveredUrls.add(fullUrl);
+                }
+              } catch (e) {
+                // Skip invalid URLs
+              }
+            }
           }
         }
       }
@@ -474,6 +536,123 @@ async function main() {
       allNewArticles = allNewArticles.concat(newViatorArticles);
     } catch (error) {
       console.error('[SCRAPE] Viator scraping failed:', error);
+    }
+    
+    // 5. Scrape Stack Overflow (Community Data)
+    console.log('[SCRAPE] ===== STACK OVERFLOW SCRAPING =====');
+    try {
+      const { crawlStackOverflow } = await import('../crawlers/stackoverflow');
+      const stackOverflowPosts = await crawlStackOverflow();
+      console.log(`[SCRAPE] Found ${stackOverflowPosts.length} Stack Overflow posts`);
+      
+      // Filter out existing articles and map to Article type
+      const newStackOverflowArticles = stackOverflowPosts
+        .filter(post => !existingUrls.has(post.url))
+        .map(post => ({
+          url: post.url,
+          question: post.question,
+          answer: post.answer,
+          platform: post.platform,
+          category: post.category || 'StackOverflow',
+          contentType: 'community' as const,
+        }));
+      console.log(`[SCRAPE] ${newStackOverflowArticles.length} new Stack Overflow articles`);
+      allNewArticles = allNewArticles.concat(newStackOverflowArticles);
+    } catch (error) {
+      console.error('[SCRAPE] Stack Overflow scraping failed:', error);
+    }
+    
+    // 6. Scrape TripAdvisor Community (Community Data)
+    console.log('[SCRAPE] ===== TRIPADVISOR COMMUNITY SCRAPING =====');
+    try {
+      const { crawlTripAdvisorCommunity } = await import('../crawlers/tripadvisor-community');
+      const tripAdvisorPosts = await crawlTripAdvisorCommunity();
+      console.log(`[SCRAPE] Found ${tripAdvisorPosts.length} TripAdvisor posts`);
+      
+      // Filter out existing articles and map to Article type
+      const newTripAdvisorArticles = tripAdvisorPosts
+        .filter(post => !existingUrls.has(post.url))
+        .map(post => ({
+          url: post.url,
+          question: post.question,
+          answer: post.answer,
+          platform: post.platform,
+          category: post.category || 'TripAdvisor',
+          contentType: 'community' as const,
+        }));
+      console.log(`[SCRAPE] ${newTripAdvisorArticles.length} new TripAdvisor articles`);
+      allNewArticles = allNewArticles.concat(newTripAdvisorArticles);
+    } catch (error) {
+      console.error('[SCRAPE] TripAdvisor Community scraping failed:', error);
+    }
+    
+    // 7. Scrape AirHosts Forum (Community Data)
+    console.log('[SCRAPE] ===== AIRHOSTS FORUM SCRAPING =====');
+    try {
+      const { crawlAirHostsForum } = await import('../crawlers/airhosts-forum');
+      const airHostsPosts = await crawlAirHostsForum();
+      console.log(`[SCRAPE] Found ${airHostsPosts.length} AirHosts Forum posts`);
+      
+      const newAirHostsArticles = airHostsPosts
+        .filter(post => !existingUrls.has(post.url))
+        .map(post => ({
+          url: post.url,
+          question: post.question,
+          answer: post.answer,
+          platform: 'AirHosts Forum',
+          category: post.category || 'Hosting Discussion',
+          contentType: 'community' as const,
+        }));
+      console.log(`[SCRAPE] ${newAirHostsArticles.length} new AirHosts Forum articles`);
+      allNewArticles = allNewArticles.concat(newAirHostsArticles);
+    } catch (error) {
+      console.error('[SCRAPE] AirHosts Forum scraping failed:', error);
+    }
+    
+    // 8. Scrape Expedia Help Center (Official Data)
+    console.log('[SCRAPE] ===== EXPEDIA HELP CENTER SCRAPING =====');
+    try {
+      const { crawlExpedia } = await import('../crawlers/expedia');
+      const expediaArticles = await crawlExpedia();
+      console.log(`[SCRAPE] Found ${expediaArticles.length} Expedia articles`);
+      
+      const newExpediaArticles = expediaArticles
+        .filter(article => !existingUrls.has(article.url))
+        .map(article => ({
+          url: article.url,
+          question: article.question,
+          answer: article.answer,
+          platform: 'Expedia',
+          category: article.category || 'Help Center',
+          contentType: 'official' as const,
+        }));
+      console.log(`[SCRAPE] ${newExpediaArticles.length} new Expedia articles`);
+      allNewArticles = allNewArticles.concat(newExpediaArticles);
+    } catch (error) {
+      console.error('[SCRAPE] Expedia scraping failed:', error);
+    }
+    
+    // 9. Scrape Booking.com Help Center (Official Data)
+    console.log('[SCRAPE] ===== BOOKING.COM HELP CENTER SCRAPING =====');
+    try {
+      const { crawlBooking } = await import('../crawlers/booking');
+      const bookingArticles = await crawlBooking();
+      console.log(`[SCRAPE] Found ${bookingArticles.length} Booking.com articles`);
+      
+      const newBookingArticles = bookingArticles
+        .filter(article => !existingUrls.has(article.url))
+        .map(article => ({
+          url: article.url,
+          question: article.question,
+          answer: article.answer,
+          platform: 'Booking.com',
+          category: article.category || 'Help Center',
+          contentType: 'official' as const,
+        }));
+      console.log(`[SCRAPE] ${newBookingArticles.length} new Booking.com articles`);
+      allNewArticles = allNewArticles.concat(newBookingArticles);
+    } catch (error) {
+      console.error('[SCRAPE] Booking.com scraping failed:', error);
     }
     
     console.log(`[SCRAPE] Total new articles to save: ${allNewArticles.length}`);

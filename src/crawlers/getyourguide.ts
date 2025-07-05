@@ -25,14 +25,20 @@ const ADDITIONAL_CATEGORIES = [
   'https://supply.getyourguide.support/hc/en-us/categories/13013952719910-Troubleshooting',
   'https://supply.getyourguide.support/hc/en-us/categories/13013952719911-API-Documentation',
   'https://supply.getyourguide.support/hc/en-us/categories/13013952719912-Integration-Guides',
+  // New categories for broader coverage
+  'https://supply.getyourguide.support/hc/en-us/categories/13013952719913-Marketing',
+  'https://supply.getyourguide.support/hc/en-us/categories/13013952719914-Analytics',
+  'https://supply.getyourguide.support/hc/en-us/categories/13013952719915-Customer-Support',
+  'https://supply.getyourguide.support/hc/en-us/categories/13013952719916-Pricing',
+  'https://supply.getyourguide.support/hc/en-us/categories/13013952719917-Compliance',
 ];
 
 // Pagination configuration
 const PAGINATION_CONFIG = {
-  maxPages: 10, // Maximum pages to crawl per category
+  maxPages: 20, // Increased from 10 for more content
   articlesPerPage: 20, // Expected articles per page
-  delayBetweenPages: 3000, // 3 seconds between page requests
-  delayBetweenArticles: 2000, // 2 seconds between article requests
+  delayBetweenPages: 1000, // Reduced from 3000ms for faster crawling
+  delayBetweenArticles: 500, // Reduced from 2000ms for faster crawling
 };
 
 export interface GetYourGuideArticle {

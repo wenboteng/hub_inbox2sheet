@@ -1,9 +1,10 @@
-export interface BookingArticle {
-    platform: 'Booking.com';
+interface BookingArticle {
     url: string;
     question: string;
     answer: string;
-    category?: string;
+    platform: string;
+    category: string;
 }
-export declare function crawlBookingArticles(): Promise<BookingArticle[]>;
+export declare function crawlBooking(): Promise<BookingArticle[]>;
+export {};
 //# sourceMappingURL=booking.d.ts.map

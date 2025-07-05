@@ -67,7 +67,7 @@ services:
     name: ota-answer-hub-crawler
     runtime: node
     plan: starter
-    schedule: "0 2 * * *" # Runs daily at 2am UTC
+    schedule: "0 * * * *" # Runs every hour
     autoDeploy: true
     buildCommand: |
       # Build timestamp: 2025-06-26-10:20:00 - Enhanced with database retry logic

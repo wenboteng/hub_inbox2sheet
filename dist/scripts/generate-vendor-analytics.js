@@ -8,19 +8,15 @@ const prisma = new client_1.PrismaClient();
 async function generateVendorAnalytics() {
     console.log('📊 Generating Vendor Analytics Report...\n');
     try {
-        // Get all articles
         const allArticles = await prisma.article.findMany({
             include: {
                 paragraphs: true
             }
         });
         console.log(`📈 Analyzing ${allArticles.length} articles...`);
-        // Generate insights
         const insights = await generateContentInsights(allArticles);
         const recommendations = await generateVendorRecommendations(allArticles, insights);
-        // Create comprehensive report
         const report = createComprehensiveReport(insights, recommendations);
-        // Save report
         const reportPath = (0, path_1.join)(process.cwd(), 'vendor-analytics-report.md');
         (0, fs_1.writeFileSync)(reportPath, report, 'utf-8');
         console.log(`✅ Vendor Analytics Report generated: ${reportPath}`);
@@ -39,15 +35,10 @@ async function generateVendorAnalytics() {
 }
 async function generateContentInsights(articles) {
     const totalContent = articles.length;
-    // Platform breakdown
     const platformStats = await generatePlatformStats(articles);
-    // Top topics analysis
     const topTopics = analyzeTopTopics(articles);
-    // Language distribution
     const languageDistribution = analyzeLanguageDistribution(articles);
-    // Content quality metrics
     const contentQuality = analyzeContentQuality(articles);
-    // Trending topics (based on recent activity)
     const trendingTopics = analyzeTrendingTopics(articles);
     return {
         totalContent,
@@ -74,7 +65,6 @@ async function generatePlatformStats(articles) {
         const helpCenterContent = platformArticles.filter(a => a.source === 'help_center').length;
         const languages = Array.from(new Set(platformArticles.map(a => a.language)));
         const recentActivity = platformArticles.filter(a => new Date(a.lastUpdated) > thirtyDaysAgo).length;
-        // Top categories
         const categoryCount = new Map();
         platformArticles.forEach(article => {
             const category = article.category || 'Uncategorized';
@@ -177,27 +167,23 @@ async function generateVendorRecommendations(articles, insights) {
     const competitiveInsights = [];
     const contentGaps = [];
     const platformStrategy = [];
-    // Market opportunities based on trending topics
     insights.trendingTopics.forEach(topic => {
         if (topic.growth > 20) {
             marketOpportunities.push(`High demand for ${topic.topic} content (${topic.growth}% growth)`);
         }
     });
-    // Competitive insights
     const platformStats = insights.platformBreakdown;
     const largestPlatform = platformStats[0];
     if (largestPlatform) {
         competitiveInsights.push(`${largestPlatform.platform} dominates with ${largestPlatform.totalArticles} articles`);
         competitiveInsights.push(`Community content represents ${Math.round((largestPlatform.communityContent / largestPlatform.totalArticles) * 100)}% of ${largestPlatform.platform} content`);
     }
-    // Content gaps
     const allCategories = new Set();
     articles.forEach(a => allCategories.add(a.category));
     const categoryArray = Array.from(allCategories);
     if (categoryArray.length < 10) {
         contentGaps.push('Limited category diversity - opportunity to expand into new content areas');
     }
-    // Platform-specific recommendations
     platformStats.forEach(platform => {
         const recommendations = [];
         if (platform.communityContent > platform.officialContent) {
