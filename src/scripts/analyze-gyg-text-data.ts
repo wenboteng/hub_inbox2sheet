@@ -1,4 +1,5 @@
 import { mainPrisma, gygPrisma } from '../lib/dual-prisma';
+import { slugify } from '../utils/slugify';
 
 async function analyzeGYGTextData() {
   console.log('🔍 ANALYZING GYG TEXT-BASED DATA...\n');
@@ -181,10 +182,12 @@ ${(activityNames as any[]).map((activity: any) =>
         create: {
           type: 'gyg-text-analysis',
           title: 'GetYourGuide Text-Based Data Analysis Report',
+          slug: slugify('GetYourGuide Text-Based Data Analysis Report'),
           content: report,
         },
         update: {
           title: 'GetYourGuide Text-Based Data Analysis Report',
+          slug: slugify('GetYourGuide Text-Based Data Analysis Report'),
           content: report,
         },
       });

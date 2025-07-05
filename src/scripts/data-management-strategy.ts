@@ -1,4 +1,5 @@
 import { mainPrisma } from '../lib/dual-prisma';
+import { slugify } from '../utils/slugify';
 
 async function dataManagementStrategy() {
   console.log('📋 GYG DATA MANAGEMENT STRATEGY...\n');
@@ -225,10 +226,12 @@ This strategy ensures your data pipeline is robust, efficient, and maintainable.
       create: {
         type: 'gyg-data-management-strategy',
         title: 'GYG Data Management Strategy',
+        slug: slugify('GYG Data Management Strategy'),
         content: report,
       },
       update: {
         title: 'GYG Data Management Strategy',
+        slug: slugify('GYG Data Management Strategy'),
         content: report,
       },
     });
