@@ -39,13 +39,16 @@ async function analyzeOTAData() {
       'airbnb algorithm', 'viator algorithm', 'getyourguide algorithm', 'expedia algorithm', 'booking algorithm'
     ];
 
+    // Build OR conditions for each keyword
+    const orConditions = deepKeywords.flatMap(keyword => [
+      { question: { contains: keyword, mode: 'insensitive' as const } },
+      { answer: { contains: keyword, mode: 'insensitive' as const } }
+    ]);
+
     // Use a broad OR search for all keywords in question or answer
     const deepArticles = await prisma.article.findMany({
       where: {
-        OR: deepKeywords.map(keyword => ([
-          { question: { contains: keyword, mode: 'insensitive' } },
-          { answer: { contains: keyword, mode: 'insensitive' } }
-        ])).flat()
+        OR: orConditions
       },
       select: {
         id: true,
