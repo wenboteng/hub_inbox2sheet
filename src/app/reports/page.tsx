@@ -8,10 +8,13 @@ import html2canvas from "html2canvas";
 interface ReportMeta {
   id: string;
   type: string;
+  slug: string;
   title: string;
   createdAt: string;
   updatedAt: string;
   isPublic: boolean;
+  summary: string;
+  platform: string;
 }
 
 function TrustBox({ report }: { report: ReportMeta }) {
@@ -84,15 +87,9 @@ function tableToCSV(table: string[][]): string {
 
 export default function ReportsPage() {
   const [reports, setReports] = useState<ReportMeta[]>([]);
-  const [selectedReport, setSelectedReport] = useState<ReportMeta | null>(null);
-  const [reportContent, setReportContent] = useState<string>("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [shareFeedback, setShareFeedback] = useState("");
-  const [downloadFeedback, setDownloadFeedback] = useState("");
-  const downloadRef = useRef<HTMLAnchorElement>(null);
+  const [platformFilter, setPlatformFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   useEffect(() => {
     fetch("/api/reports")
@@ -100,250 +97,78 @@ export default function ReportsPage() {
       .then((data) => setReports(data.reports || []));
   }, []);
 
-  const loadReport = async (report: ReportMeta) => {
-    setSelectedReport(report);
-    setReportContent("");
-    setError(null);
-    setLoading(true);
-    setSidebarOpen(false); // close sidebar on mobile
-    try {
-      const res = await fetch(`/api/reports/${report.id}`);
-      const data = await res.json();
-      if (res.ok) {
-        setReportContent(data.content);
-      } else {
-        setError(data.error || "Failed to load report");
-      }
-    } catch (err) {
-      setError("Failed to load report");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Unique platforms and types for filters
+  const platforms = Array.from(new Set(reports.map(r => r.platform))).filter(p => p && p !== "Other");
+  const types = Array.from(new Set(reports.map(r => r.type)));
 
-  // SEO: Set meta tags and JSON-LD for the selected report
-  useEffect(() => {
-    if (selectedReport) {
-      document.title = `${selectedReport.title} | Analytics & Insights Reports | OTA Answers`;
-      const metaDesc = document.querySelector('meta[name="description"]');
-      if (metaDesc) {
-        metaDesc.setAttribute('content', `Read the latest analytics and insights: ${selectedReport.title}`);
-      } else {
-        const meta = document.createElement('meta');
-        meta.name = 'description';
-        meta.content = `Read the latest analytics and insights: ${selectedReport.title}`;
-        document.head.appendChild(meta);
-      }
-      // Add JSON-LD structured data
-      const scriptId = 'report-jsonld';
-      let script = document.getElementById(scriptId) as HTMLScriptElement | null;
-      if (script) script.remove();
-      script = document.createElement('script') as HTMLScriptElement;
-      script.type = 'application/ld+json';
-      script.id = scriptId;
-      script.innerHTML = JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "Report",
-        "name": selectedReport.title,
-        "description": `Analytics and insights report: ${selectedReport.title}`,
-        "datePublished": selectedReport.createdAt,
-        "dateModified": selectedReport.updatedAt,
-        "headline": selectedReport.title,
-        "inLanguage": "en",
-        "publisher": {
-          "@type": "Organization",
-          "name": "OTA Answers"
-        }
-      });
-      document.head.appendChild(script);
-    }
-  }, [selectedReport]);
+  // Filtered reports
+  const filteredReports = reports.filter(r =>
+    r.isPublic &&
+    (platformFilter === "all" || r.platform === platformFilter) &&
+    (typeFilter === "all" || r.type === typeFilter) &&
+    (r.title.toLowerCase().includes(search.toLowerCase()) || r.summary.toLowerCase().includes(search.toLowerCase()))
+  );
 
-  // Breadcrumbs
-  function Breadcrumbs() {
-    return (
-      <nav className="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
-        <ol className="list-reset flex">
-          <li><a href="/" className="hover:underline">Home</a></li>
-          <li><span className="mx-2">/</span></li>
-          <li><a href="/reports" className="hover:underline">Reports</a></li>
-          {selectedReport && <><li><span className="mx-2">/</span></li><li className="text-blue-800 font-semibold">{selectedReport.title}</li></>}
-        </ol>
-      </nav>
-    );
-  }
-
-  // Filtered reports by search and isPublic
-  const filteredReports = reports.filter(r => r.isPublic && r.title.toLowerCase().includes(search.toLowerCase()));
-
-  // Share button handler
-  const handleShare = () => {
-    if (selectedReport) {
-      const url = window.location.origin + `/reports?report=${selectedReport.id}`;
-      navigator.clipboard.writeText(url).then(() => {
-        setShareFeedback("Link copied!");
-        setTimeout(() => setShareFeedback(""), 1500);
-      });
-    }
-  };
-
-  // Download PDF handler
-  const handleDownloadPDF = async () => {
-    if (!selectedReport) return;
-    setDownloadFeedback("Generating PDF...");
-    // Find the main report content div
-    const contentDiv = document.querySelector(".report-pdf-content");
-    if (!contentDiv) {
-      setDownloadFeedback("Could not find report content");
-      setTimeout(() => setDownloadFeedback(""), 1500);
-      return;
-    }
-    // Render the content to canvas
-    const canvas = await html2canvas(contentDiv as HTMLElement, { scale: 2, backgroundColor: '#f8fbff' });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
-    // Add logo
-    const logoImg = new Image();
-    logoImg.src = "/logo.svg";
-    await new Promise((resolve) => { logoImg.onload = resolve; });
-    pdf.addImage(logoImg, "SVG", 40, 30, 60, 60);
-    // Add website and tagline
-    pdf.setFontSize(18);
-    pdf.setTextColor("#1e3a8a");
-    pdf.text("OTA Answers", 110, 55);
-    pdf.setFontSize(12);
-    pdf.setTextColor("#2563eb");
-    pdf.text("Independent Analytics for Tour & Activity Vendors", 110, 75);
-    pdf.setFontSize(10);
-    pdf.setTextColor("#2563eb");
-    pdf.text("www.otaanswers.com", 110, 95);
-    // Add trust message
-    pdf.setFontSize(12);
-    pdf.setTextColor("#1e3a8a");
-    pdf.text("Why trust this report?", 40, 120);
-    pdf.setFontSize(10);
-    pdf.setTextColor("#1e40af");
-    pdf.text("- Where the data comes from: We collect and combine information from top online travel agencies (OTAs) like GetYourGuide, Viator, and more.", 40, 140, { maxWidth: 500 });
-    pdf.text("- How we create these insights: Our team reviews and updates the data regularly to make sure it's accurate and useful for your business.", 40, 160, { maxWidth: 500 });
-    pdf.text("- Who we are: OTA Answers is an independent analytics provider focused on helping tour and activity operators grow.", 40, 180, { maxWidth: 500 });
-    // Add the report image (below trust message)
-    pdf.addImage(imgData, "PNG", 40, 200, 515, 0);
-    pdf.save(`${selectedReport.title.replace(/[^a-z0-9]/gi, "_") || "report"}.pdf`);
-    setDownloadFeedback("PDF downloaded!");
-    setTimeout(() => setDownloadFeedback(""), 1500);
+  // Platform icon map
+  const platformIcons: Record<string, string> = {
+    Airbnb: "/logo.svg", // Replace with actual icons
+    Viator: "/globe.svg",
+    GetYourGuide: "/globe.svg",
+    "Booking.com": "/globe.svg",
+    Expedia: "/globe.svg",
+    Tripadvisor: "/globe.svg",
+    Other: "/globe.svg",
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-2 sm:px-4 py-8">
-      <h1 className="text-4xl font-bold mb-4 text-blue-900">📊 OTA Analytics & Insights Reports</h1>
-      <Breadcrumbs />
-      <div className="flex gap-6">
-        {/* Sticky Sidebar */}
-        <aside className="hidden md:block md:w-1/4 lg:w-1/5 sticky top-8 self-start h-fit bg-white border rounded shadow-sm p-4">
-          <h2 className="text-lg font-semibold mb-4">All Reports</h2>
-          <input
-            type="text"
-            placeholder="Search reports..."
-            className="w-full border rounded px-3 py-2 mb-3 text-sm"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          <ul className="space-y-2">
-            {filteredReports.map((report) => (
-              <li key={report.id}>
-                <button
-                  className={`w-full text-left px-3 py-2 rounded border transition-colors ${selectedReport?.id === report.id ? "bg-blue-100 border-blue-400 font-bold" : "bg-white border-gray-200 hover:bg-blue-50"}`}
-                  onClick={() => loadReport(report)}
-                  disabled={loading && selectedReport?.id === report.id}
-                >
-                  <div className="font-medium text-blue-900 truncate">{report.title}</div>
-                  <div className="text-xs text-gray-500">Updated {new Date(report.updatedAt).toLocaleDateString()}</div>
-                </button>
-              </li>
-            ))}
-            {filteredReports.length === 0 && <li className="text-gray-400 text-sm">No reports found.</li>}
-          </ul>
-        </aside>
-        {/* Mobile Sidebar Toggle */}
-        <button className="md:hidden fixed top-4 left-4 z-20 bg-blue-600 text-white px-3 py-2 rounded shadow" onClick={() => setSidebarOpen(true)} aria-label="Open report navigation">
-          ☰ Reports
-        </button>
-        {/* Mobile Sidebar Drawer */}
-        {sidebarOpen && (
-          <div className="fixed inset-0 z-30 bg-black bg-opacity-30 flex">
-            <aside className="w-3/4 max-w-xs bg-white h-full p-4 shadow-lg">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">All Reports</h2>
-                <button onClick={() => setSidebarOpen(false)} className="text-2xl font-bold">×</button>
-              </div>
-              <input
-                type="text"
-                placeholder="Search reports..."
-                className="w-full border rounded px-3 py-2 mb-3 text-sm"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-              <ul className="space-y-2">
-                {filteredReports.map((report) => (
-                  <li key={report.id}>
-                    <button
-                      className={`w-full text-left px-3 py-2 rounded border transition-colors ${selectedReport?.id === report.id ? "bg-blue-100 border-blue-400 font-bold" : "bg-white border-gray-200 hover:bg-blue-50"}`}
-                      onClick={() => loadReport(report)}
-                      disabled={loading && selectedReport?.id === report.id}
-                    >
-                      <div className="font-medium text-blue-900 truncate">{report.title}</div>
-                      <div className="text-xs text-gray-500">Updated {new Date(report.updatedAt).toLocaleDateString()}</div>
-                    </button>
-                  </li>
-                ))}
-                {filteredReports.length === 0 && <li className="text-gray-400 text-sm">No reports found.</li>}
-              </ul>
-            </aside>
-            <div className="flex-1" onClick={() => setSidebarOpen(false)} />
-          </div>
-        )}
-        {/* Main Content */}
-        <main className="flex-1 min-w-0">
-          {selectedReport ? (
-            <div>
-              <h2 className="text-2xl font-bold mb-2 text-blue-800">{selectedReport.title}</h2>
-              <div className="flex flex-wrap gap-2 mb-2">
-                <button
-                  className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition"
-                  onClick={handleShare}
-                  title="Copy link to this report"
-                >
-                  Share
-                </button>
-                <button
-                  className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700 transition"
-                  onClick={handleDownloadPDF}
-                  title="Download full report as PDF"
-                >
-                  Download PDF
-                </button>
-                <a ref={downloadRef} style={{ display: "none" }} />
-                {shareFeedback && <span className="text-blue-700 ml-2 text-sm">{shareFeedback}</span>}
-                {downloadFeedback && <span className="text-green-700 ml-2 text-sm">{downloadFeedback}</span>}
-              </div>
-              <TrustBox report={selectedReport} />
-              {loading ? (
-                <div className="text-blue-600">Loading...</div>
-              ) : error ? (
-                <div className="text-red-600">{error}</div>
-              ) : (
-                <div className="bg-white border rounded p-4 max-w-none text-gray-900 max-h-[70vh] overflow-y-auto report-pdf-content">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={markdownComponents}
-                  >{reportContent}</ReactMarkdown>
-                </div>
-              )}
+    <div className="max-w-7xl mx-auto px-2 sm:px-4 py-8">
+      <h1 className="text-4xl font-bold mb-6 text-blue-900">📊 OTA Analytics & Insights Reports</h1>
+      <div className="mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <input
+          type="text"
+          placeholder="Search reports, e.g., Airbnb ranking, pricing by city…"
+          className="w-full md:w-1/2 border rounded px-4 py-2 text-lg shadow-sm"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <select
+          className="border rounded px-3 py-2 text-base"
+          value={platformFilter}
+          onChange={e => setPlatformFilter(e.target.value)}
+        >
+          <option value="all">All Platforms</option>
+          {platforms.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <select
+          className="border rounded px-3 py-2 text-base"
+          value={typeFilter}
+          onChange={e => setTypeFilter(e.target.value)}
+        >
+          <option value="all">All Report Types</option>
+          {types.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredReports.map(report => (
+          <a
+            key={report.id}
+            href={`/reports/${report.slug}`}
+            className="block bg-white border rounded-lg shadow hover:shadow-lg transition p-6 h-full group"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <img src={platformIcons[report.platform] || "/globe.svg"} alt={report.platform} className="w-8 h-8" />
+              <span className="text-lg font-semibold text-blue-900 group-hover:underline">{report.title}</span>
             </div>
-          ) : (
-            <div className="text-gray-500 text-lg mt-12 text-center">Select a report from the left to view its content.</div>
-          )}
-        </main>
+            <div className="text-gray-600 text-sm mb-2 line-clamp-3">{report.summary}</div>
+            <div className="flex justify-between items-end mt-4">
+              <span className="text-xs text-gray-400">Last updated: {new Date(report.updatedAt).toLocaleDateString()}</span>
+              <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">{report.platform}</span>
+            </div>
+          </a>
+        ))}
+        {filteredReports.length === 0 && (
+          <div className="col-span-full text-gray-400 text-center text-lg py-12">No reports found.</div>
+        )}
       </div>
     </div>
   );

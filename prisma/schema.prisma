@@ -146,6 +146,7 @@ model Report {
   id         String   @id @default(uuid())
   type       String   @unique // e.g. 'demo', 'vendor', etc.
   title      String
+  slug       String   @unique // SEO-friendly URL slug (e.g., 'airbnb-ranking-guide')
   content    String   // The enriched report (Markdown or HTML)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
