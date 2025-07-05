@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
+import { slugify } from '../src/utils/slugify';
 
 const prisma = new PrismaClient();
 
@@ -59,10 +60,12 @@ async function generateCancellationReport(): Promise<void> {
       create: {
         type: 'cancellation-reasons',
         title: 'Top Cancellation Reasons: What Tour Vendors Need to Know',
+        slug: slugify('Top Cancellation Reasons: What Tour Vendors Need to Know'),
         content: report,
       },
       update: {
         title: 'Top Cancellation Reasons: What Tour Vendors Need to Know',
+        slug: slugify('Top Cancellation Reasons: What Tour Vendors Need to Know'),
         content: report,
       },
     });
