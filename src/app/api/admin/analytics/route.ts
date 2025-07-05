@@ -3,6 +3,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { enrichAnalyticsReport } from '@/utils/openai';
 import prisma from '@/lib/prisma';
+import { slugify } from '@/utils/slugify';
 
 const execAsync = promisify(exec);
 
@@ -57,11 +58,13 @@ export async function POST(request: NextRequest) {
         where: { type: reportType },
         update: {
           title: reportName,
+          slug: slugify(reportName || reportType),
           content: enrichedReport,
         },
         create: {
           type: reportType,
           title: reportName,
+          slug: slugify(reportName || reportType),
           content: enrichedReport,
         },
       });
