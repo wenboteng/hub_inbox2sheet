@@ -1,4 +1,5 @@
 import { gygPrisma, mainPrisma } from '../lib/dual-prisma';
+import { slugify } from '../utils/slugify';
 
 // Data cleaning utilities
 interface CleanedPrice {
@@ -613,11 +614,13 @@ async function saveReport(report: string) {
       create: {
         type: 'gyg-data-cleaning-report',
         title: 'GYG Data Cleaning Report',
+        slug: slugify('GYG Data Cleaning Report'),
         content: report,
         isPublic: false,
       },
       update: {
         title: 'GYG Data Cleaning Report',
+        slug: slugify('GYG Data Cleaning Report'),
         content: report,
         isPublic: false,
       },

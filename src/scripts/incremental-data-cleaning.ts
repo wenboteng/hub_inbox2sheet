@@ -8,6 +8,7 @@ import {
   cleanTags, 
   calculateQualityScore 
 } from './data-cleaning-pipeline';
+import { slugify } from '../utils/slugify';
 
 async function incrementalDataCleaning() {
   console.log('🔄 INCREMENTAL GYG DATA CLEANING...\n');
@@ -168,11 +169,13 @@ This incremental cleaning ensures your data pipeline remains efficient and consi
       create: {
         type: 'gyg-incremental-cleaning-report',
         title: 'GYG Incremental Data Cleaning Report',
+        slug: slugify('GYG Incremental Data Cleaning Report'),
         content: report,
         isPublic: false,
       },
       update: {
         title: 'GYG Incremental Data Cleaning Report',
+        slug: slugify('GYG Incremental Data Cleaning Report'),
         content: report,
         isPublic: false,
       },

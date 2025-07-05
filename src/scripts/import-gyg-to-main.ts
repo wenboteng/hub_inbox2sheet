@@ -1,4 +1,5 @@
 import { mainPrisma, gygPrisma } from '../lib/dual-prisma';
+import { slugify } from '../utils/slugify';
 
 async function importGYGToMain() {
   console.log('📥 IMPORTING GYG DATA TO MAIN DATABASE...\n');
@@ -107,11 +108,13 @@ const combinedData = await mainPrisma.$queryRaw\`
       create: {
         type: 'gyg-import-strategy',
         title: 'GYG Data Import Strategy',
+        slug: slugify('GYG Data Import Strategy'),
         content: report,
         isPublic: false,
       },
       update: {
         title: 'GYG Data Import Strategy',
+        slug: slugify('GYG Data Import Strategy'),
         content: report,
         isPublic: false,
       },

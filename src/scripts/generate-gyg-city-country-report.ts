@@ -1,4 +1,5 @@
 import prisma from '../lib/prisma';
+import { slugify } from '../utils/slugify';
 
 async function generateGYGCityCountryReport() {
   console.log('📊 Generating Average Price & Rating by City/Country Report...');
@@ -35,10 +36,12 @@ async function generateGYGCityCountryReport() {
     create: {
       type: 'gyg-city-country-report',
       title: 'Average Price & Rating by City/Country',
+      slug: slugify('Average Price & Rating by City/Country'),
       content: report,
     },
     update: {
       title: 'Average Price & Rating by City/Country',
+      slug: slugify('Average Price & Rating by City/Country'),
       content: report,
     },
   });

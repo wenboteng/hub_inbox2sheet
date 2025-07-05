@@ -1,4 +1,5 @@
 import { mainPrisma, gygPrisma } from '../lib/dual-prisma';
+import { slugify } from '../utils/slugify';
 
 interface ProcessedGYGActivity {
   originalId: string;
@@ -165,10 +166,12 @@ const providerStats = await mainPrisma.importedGYGActivity.groupBy({
       create: {
         type: 'gyg-full-import-report',
         title: 'GYG Full Data Import Report',
+        slug: slugify('GYG Full Data Import Report'),
         content: report,
       },
       update: {
         title: 'GYG Full Data Import Report',
+        slug: slugify('GYG Full Data Import Report'),
         content: report,
       },
     });

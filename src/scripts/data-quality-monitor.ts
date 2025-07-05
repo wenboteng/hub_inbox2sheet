@@ -1,4 +1,5 @@
 import { mainPrisma } from '../lib/dual-prisma';
+import { slugify } from '../utils/slugify';
 
 interface QualityMetrics {
   totalActivities: number;
@@ -271,11 +272,13 @@ async function saveQualityReport(report: string) {
       create: {
         type: 'gyg-data-quality-report',
         title: 'GYG Data Quality Report',
+        slug: slugify('GYG Data Quality Report'),
         content: report,
         isPublic: false,
       },
       update: {
         title: 'GYG Data Quality Report',
+        slug: slugify('GYG Data Quality Report'),
         content: report,
         isPublic: false,
       },

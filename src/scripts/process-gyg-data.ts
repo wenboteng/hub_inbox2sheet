@@ -1,4 +1,5 @@
 import { mainPrisma, gygPrisma } from '../lib/dual-prisma';
+import { slugify } from '../utils/slugify';
 
 async function processGYGData() {
   console.log('🔄 PROCESSING GYG DATA FOR ANALYSIS...\n');
@@ -86,10 +87,12 @@ ${(activities as any[])
         create: {
           type: 'gyg-processing',
           title: 'GetYourGuide Data Processing Report',
+          slug: slugify('GetYourGuide Data Processing Report'),
           content: report,
         },
         update: {
           title: 'GetYourGuide Data Processing Report',
+          slug: slugify('GetYourGuide Data Processing Report'),
           content: report,
         },
       });

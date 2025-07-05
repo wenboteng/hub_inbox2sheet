@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
+import { slugify } from '../utils/slugify';
 
 const prisma = new PrismaClient();
 
@@ -49,11 +50,13 @@ async function generateAirbnbRankingReport(): Promise<void> {
       create: {
         type: 'airbnb-ranking-algorithm',
         title: 'Airbnb Ranking Algorithm: Complete Guide for Hosts',
+        slug: slugify('Airbnb Ranking Algorithm: Complete Guide for Hosts'),
         content: report,
         isPublic: true,
       },
       update: {
         title: 'Airbnb Ranking Algorithm: Complete Guide for Hosts',
+        slug: slugify('Airbnb Ranking Algorithm: Complete Guide for Hosts'),
         content: report,
         isPublic: true,
       },

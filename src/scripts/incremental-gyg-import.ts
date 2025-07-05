@@ -1,4 +1,5 @@
 import { mainPrisma, gygPrisma } from '../lib/dual-prisma';
+import { slugify } from '../utils/slugify';
 
 async function incrementalGYGImport() {
   console.log('🔄 INCREMENTAL GYG DATA IMPORT...\n');
@@ -150,11 +151,13 @@ npm run import:gyg:incremental
       create: {
         type: 'gyg-incremental-import-report',
         title: 'GYG Incremental Import Report',
+        slug: slugify('GYG Incremental Import Report'),
         content: report,
         isPublic: false,
       },
       update: {
         title: 'GYG Incremental Import Report',
+        slug: slugify('GYG Incremental Import Report'),
         content: report,
         isPublic: false,
       },

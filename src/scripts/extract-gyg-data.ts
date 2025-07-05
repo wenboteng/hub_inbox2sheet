@@ -1,4 +1,5 @@
 import { mainPrisma, gygPrisma } from '../lib/dual-prisma';
+import { slugify } from '../utils/slugify';
 
 async function extractGYGData() {
   console.log('🔍 EXTRACTING GYG DATA FROM SECONDARY DATABASE...\n');
@@ -173,11 +174,13 @@ ${await getSampleActivities()}
         create: {
           type: 'gyg-data-analysis',
           title: 'GetYourGuide Data Analysis Report',
+          slug: slugify('GetYourGuide Data Analysis Report'),
           content: report,
           isPublic: false,
         },
         update: {
           title: 'GetYourGuide Data Analysis Report',
+          slug: slugify('GetYourGuide Data Analysis Report'),
           content: report,
           isPublic: false,
         },
