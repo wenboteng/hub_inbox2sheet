@@ -304,7 +304,7 @@ class RedditCrawler {
         }
 
         // Use English as default language for Reddit content
-        const language = 'en';
+        const language: string = 'en';
 
         // Create slug
         const slug = slugify(post.question);
@@ -320,7 +320,7 @@ class RedditCrawler {
             platform: post.platform,
             contentType: post.contentType,
             source: post.source,
-            author: post.author,
+            author: post.author || 'Unknown',
             language,
             // Store additional metadata
             lastCheckedAt: new Date(),

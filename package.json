@@ -48,9 +48,7 @@
     "clean:gyg:incremental": "node dist/scripts/incremental-data-cleaning.js",
     "monitor:gyg:quality": "node dist/scripts/data-quality-monitor.js",
     "test:reddit": "tsx scripts/test-reddit-crawler.ts",
-    "test:reddit-enhanced": "tsx scripts/test-reddit-enhanced.ts",
-    "crawl:reddit": "tsx src/crawlers/reddit.ts",
-    "crawl:reddit-enhanced": "tsx src/crawlers/reddit-enhanced.ts"
+    "crawl:reddit": "tsx src/crawlers/reddit.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.0.0",
