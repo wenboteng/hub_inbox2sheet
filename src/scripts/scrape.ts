@@ -655,6 +655,21 @@ async function main() {
       console.error('[SCRAPE] Booking.com scraping failed:', error);
     }
     
+    // 10. Scrape Reddit Travel Communities (Community Data)
+    console.log('[SCRAPE] ===== REDDIT TRAVEL COMMUNITIES SCRAPING =====');
+    try {
+      const { crawlReddit } = await import('../crawlers/reddit');
+      const redditStats = await crawlReddit();
+      console.log(`[SCRAPE] Reddit crawl completed:`);
+      console.log(`  - Subreddits processed: ${redditStats.subredditsProcessed}`);
+      console.log(`  - Posts extracted: ${redditStats.postsExtracted}`);
+      console.log(`  - Comments extracted: ${redditStats.commentsExtracted}`);
+      console.log(`  - Total content: ${redditStats.postsExtracted + redditStats.commentsExtracted}`);
+      console.log(`  - Errors: ${redditStats.errors.length}`);
+    } catch (error) {
+      console.error('[SCRAPE] Reddit scraping failed:', error);
+    }
+    
     console.log(`[SCRAPE] Total new articles to save: ${allNewArticles.length}`);
     
     // Save all new articles to database
