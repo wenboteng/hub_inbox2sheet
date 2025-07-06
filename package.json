@@ -38,6 +38,8 @@
     "analytics:all": "node dist/scripts/generate-all-analytics.js",
     "analytics:demo": "node dist/scripts/demo-analytics.js",
     "analytics:cancellation": "node dist/scripts/generate-cancellation-report.js",
+    "analytics:smart-update": "node dist/scripts/smart-report-updater.js",
+    "analytics:check-freshness": "node dist/scripts/check-report-freshness.js",
     "test:dual-db": "node dist/scripts/test-dual-database.js",
     "extract:gyg": "node dist/scripts/extract-gyg-data.js",
     "process:gyg": "node dist/scripts/process-gyg-data.js",

@@ -3,155 +3,120 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 async function checkContentStats() {
-    console.log('📊 CONTENT COLLECTION STATISTICS');
-    console.log('==================================\n');
+    console.log('📊 Checking Content Statistics in Database...\n');
     try {
-        // Total articles
-        const totalArticles = await prisma.article.count();
-        console.log(`📈 Total Articles: ${totalArticles.toLocaleString()}`);
+        // Count all content tables
+        const [articleCount, answerCount, articleParagraphCount, importedGYGCount, submittedQuestionCount, crawlQueueCount, crawlJobCount, reportCount] = await Promise.all([
+            prisma.article.count(),
+            prisma.answer.count(),
+            prisma.articleParagraph.count(),
+            prisma.importedGYGActivity.count(),
+            prisma.submittedQuestion.count(),
+            prisma.crawlQueue.count(),
+            prisma.crawlJob.count(),
+            prisma.report.count()
+        ]);
+        console.log('📈 TOTAL CONTENT RECORDS:');
+        console.log(`   Articles: ${articleCount.toLocaleString()}`);
+        console.log(`   Answers: ${answerCount.toLocaleString()}`);
+        console.log(`   Article Paragraphs: ${articleParagraphCount.toLocaleString()}`);
+        console.log(`   Imported GYG Activities: ${importedGYGCount.toLocaleString()}`);
+        console.log(`   Submitted Questions: ${submittedQuestionCount.toLocaleString()}`);
+        console.log(`   Crawl Queue Items: ${crawlQueueCount.toLocaleString()}`);
+        console.log(`   Crawl Jobs: ${crawlJobCount.toLocaleString()}`);
+        console.log(`   Reports: ${reportCount.toLocaleString()}`);
+        const totalContent = articleCount + answerCount + articleParagraphCount + importedGYGCount + submittedQuestionCount;
+        console.log(`\n🎯 TOTAL CONTENT ITEMS: ${totalContent.toLocaleString()}\n`);
+        // Detailed breakdowns
+        console.log('📋 DETAILED BREAKDOWNS:');
         // Articles by platform
-        console.log('\n🏢 Articles by Platform:');
-        const platformStats = await prisma.article.groupBy({
+        const articlesByPlatform = await prisma.article.groupBy({
             by: ['platform'],
-            _count: { id: true },
-            orderBy: { _count: { id: 'desc' } }
+            _count: { platform: true }
         });
-        platformStats.forEach(stat => {
-            console.log(`   ${stat.platform}: ${stat._count.id.toLocaleString()} articles`);
+        console.log('\n📰 Articles by Platform:');
+        articlesByPlatform.forEach(item => {
+            console.log(`   ${item.platform}: ${item._count.platform.toLocaleString()}`);
         });
-        // Articles by source
-        console.log('\n📚 Articles by Source:');
-        const sourceStats = await prisma.article.groupBy({
-            by: ['source'],
-            _count: { id: true },
-            orderBy: { _count: { id: 'desc' } }
+        // Articles by category
+        const articlesByCategory = await prisma.article.groupBy({
+            by: ['category'],
+            _count: { category: true }
         });
-        sourceStats.forEach(stat => {
-            console.log(`   ${stat.source}: ${stat._count.id.toLocaleString()} articles`);
+        console.log('\n📂 Articles by Category:');
+        articlesByCategory.forEach(item => {
+            console.log(`   ${item.category}: ${item._count.category.toLocaleString()}`);
         });
         // Articles by content type
-        console.log('\n📝 Articles by Content Type:');
-        const contentTypeStats = await prisma.article.groupBy({
+        const articlesByContentType = await prisma.article.groupBy({
             by: ['contentType'],
-            _count: { id: true },
-            orderBy: { _count: { id: 'desc' } }
+            _count: { contentType: true }
         });
-        contentTypeStats.forEach(stat => {
-            console.log(`   ${stat.contentType}: ${stat._count.id.toLocaleString()} articles`);
+        console.log('\n🏷️ Articles by Content Type:');
+        articlesByContentType.forEach(item => {
+            console.log(`   ${item.contentType}: ${item._count.contentType.toLocaleString()}`);
         });
         // Articles by language
-        console.log('\n🌍 Articles by Language:');
-        const languageStats = await prisma.article.groupBy({
+        const articlesByLanguage = await prisma.article.groupBy({
             by: ['language'],
-            _count: { id: true },
-            orderBy: { _count: { id: 'desc' } }
+            _count: { language: true }
         });
-        languageStats.forEach(stat => {
-            console.log(`   ${stat.language}: ${stat._count.id.toLocaleString()} articles`);
+        console.log('\n🌍 Articles by Language:');
+        articlesByLanguage.forEach(item => {
+            console.log(`   ${item.language}: ${item._count.language.toLocaleString()}`);
         });
-        // Top categories
-        console.log('\n🏷️  Top Categories:');
-        const categoryStats = await prisma.article.groupBy({
-            by: ['category'],
-            _count: { id: true },
-            orderBy: { _count: { id: 'desc' } },
-            take: 10
+        // Answers by platform
+        const answersByPlatform = await prisma.answer.groupBy({
+            by: ['platform'],
+            _count: { platform: true }
         });
-        categoryStats.forEach(stat => {
-            console.log(`   ${stat.category}: ${stat._count.id.toLocaleString()} articles`);
+        console.log('\n💬 Answers by Platform:');
+        answersByPlatform.forEach(item => {
+            console.log(`   ${item.platform}: ${item._count.platform.toLocaleString()}`);
         });
-        // Recent articles (last 7 days)
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        // GYG Activities by provider
+        const gygByProvider = await prisma.importedGYGActivity.groupBy({
+            by: ['providerName'],
+            _count: { providerName: true }
+        });
+        console.log('\n🎯 GYG Activities by Provider:');
+        gygByProvider.slice(0, 10).forEach(item => {
+            console.log(`   ${item.providerName}: ${item._count.providerName.toLocaleString()}`);
+        });
+        if (gygByProvider.length > 10) {
+            console.log(`   ... and ${gygByProvider.length - 10} more providers`);
+        }
+        // Recent activity
+        const lastWeek = new Date();
+        lastWeek.setDate(lastWeek.getDate() - 7);
         const recentArticles = await prisma.article.count({
-            where: {
-                createdAt: {
-                    gte: sevenDaysAgo
-                }
-            }
+            where: { createdAt: { gte: lastWeek } }
         });
-        console.log(`\n📅 Recent Articles (Last 7 days): ${recentArticles.toLocaleString()}`);
-        // Articles added today
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayArticles = await prisma.article.count({
-            where: {
-                createdAt: {
-                    gte: today
-                }
-            }
+        const recentAnswers = await prisma.answer.count({
+            where: { createdAt: { gte: lastWeek } }
         });
-        console.log(`📅 Articles Added Today: ${todayArticles.toLocaleString()}`);
-        // Articles with embeddings
-        const articlesWithEmbeddings = await prisma.article.count({
-            where: {
-                paragraphs: {
-                    some: {}
-                }
-            }
-        });
-        console.log(`\n🧠 Articles with Embeddings: ${articlesWithEmbeddings.toLocaleString()}`);
-        // Duplicate articles
+        console.log('\n⏰ Recent Activity (Last 7 Days):');
+        console.log(`   New Articles: ${recentArticles.toLocaleString()}`);
+        console.log(`   New Answers: ${recentAnswers.toLocaleString()}`);
+        // Content quality metrics
         const duplicateArticles = await prisma.article.count({
-            where: {
-                isDuplicate: true
-            }
+            where: { isDuplicate: true }
         });
-        console.log(`🔄 Duplicate Articles: ${duplicateArticles.toLocaleString()}`);
-        // Sample of recent articles
-        console.log('\n📋 Sample of Recent Articles:');
-        const recentSample = await prisma.article.findMany({
-            select: {
-                question: true,
-                platform: true,
-                source: true,
-                contentType: true,
-                createdAt: true,
-                url: true
-            },
-            orderBy: {
-                createdAt: 'desc'
-            },
-            take: 5
+        const verifiedArticles = await prisma.article.count({
+            where: { isVerified: true }
         });
-        recentSample.forEach((article, index) => {
-            console.log(`   ${index + 1}. ${article.question}`);
-            console.log(`      Platform: ${article.platform} | Source: ${article.source} | Type: ${article.contentType}`);
-            console.log(`      Added: ${article.createdAt.toLocaleDateString()}`);
-            console.log(`      URL: ${article.url}`);
-            console.log('');
-        });
-        // Articles by crawl status
-        console.log('\n🔄 Articles by Crawl Status:');
-        const statusStats = await prisma.article.groupBy({
-            by: ['crawlStatus'],
-            _count: { id: true }
-        });
-        statusStats.forEach(stat => {
-            console.log(`   ${stat.crawlStatus}: ${stat._count.id.toLocaleString()} articles`);
-        });
-        // Check for high-priority news articles
-        console.log('\n📰 High-Priority News Articles:');
-        const highPriorityNews = await prisma.article.findMany({
-            where: {
-                category: {
-                    contains: '[HIGH]'
-                }
-            },
-            select: {
-                question: true,
-                platform: true,
-                category: true,
-                createdAt: true
-            },
-            orderBy: {
-                createdAt: 'desc'
-            }
-        });
-        console.log(`   Found ${highPriorityNews.length} high-priority news articles:`);
-        highPriorityNews.forEach(article => {
-            console.log(`   - ${article.question} (${article.platform})`);
-        });
+        console.log('\n🔍 Content Quality Metrics:');
+        console.log(`   Duplicate Articles: ${duplicateArticles.toLocaleString()}`);
+        console.log(`   Verified Articles: ${verifiedArticles.toLocaleString()}`);
+        // Storage estimation (rough calculation)
+        const avgArticleLength = 1000; // characters
+        const avgAnswerLength = 500; // characters
+        const avgParagraphLength = 200; // characters
+        const estimatedStorage = (articleCount * avgArticleLength +
+            answerCount * avgAnswerLength +
+            articleParagraphCount * avgParagraphLength) / (1024 * 1024); // Convert to MB
+        console.log('\n💾 Estimated Storage:');
+        console.log(`   ~${estimatedStorage.toFixed(2)} MB of text content`);
     }
     catch (error) {
         console.error('❌ Error checking content stats:', error);

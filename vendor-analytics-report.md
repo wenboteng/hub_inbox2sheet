@@ -1,27 +1,54 @@
 # Tour Vendor Analytics Report
-*Generated on 7/1/2025*
+*Generated on 7/6/2025*
 
 ## Executive Summary
 
-This report analyzes 260 pieces of content across 7 major travel platforms to provide actionable insights for tour vendors and activity providers.
+This report analyzes 1,034 pieces of content across 8 major travel platforms to provide actionable insights for tour vendors and activity providers.
 
 ## 📊 Content Overview
 
 ### Total Content Distribution
-- **Total Articles**: 260
-- **Platforms Covered**: 7
-- **Languages**: 5
+- **Total Articles**: 1,034
+- **Platforms Covered**: 8
+- **Languages**: 4
 - **Content Types**: Official Help Center, Community Discussions, User-Generated Content
 
 ### Platform Breakdown
 
+#### TripAdvisor
+- **Total Articles**: 427
+- **Official Content**: 0
+- **Community Content**: 427
+- **Recent Activity**: 427 articles (last 30 days)
+- **Languages**: en, pt, de
+- **Top Categories**: Travel Forum (427)
+
+
 #### Airbnb
-- **Total Articles**: 116
+- **Total Articles**: 259
 - **Official Content**: 24
-- **Community Content**: 92
-- **Recent Activity**: 116 articles (last 30 days)
-- **Languages**: en, pt, fr, es, it
-- **Top Categories**: Community Center (46), Airbnb Community Discussion (13), Ask About Your Listing (11), Help Center (11), Help With Your Business (6)
+- **Community Content**: 235
+- **Recent Activity**: 259 articles (last 30 days)
+- **Languages**: en, pt, es
+- **Top Categories**: Advice On Your Space (57), Support With Your Bookings (56), Ask About Your Listing (41), Community Center (40), Help With Your Business (19)
+
+
+#### Reddit
+- **Total Articles**: 160
+- **Official Content**: 0
+- **Community Content**: 155
+- **Recent Activity**: 160 articles (last 30 days)
+- **Languages**: en
+- **Top Categories**: Solo Travel (49), Travel Tips & Hacks (30), Digital Nomad (28), General Travel (19), Backpacking (10)
+
+
+#### StackOverflow
+- **Total Articles**: 94
+- **Official Content**: 0
+- **Community Content**: 94
+- **Recent Activity**: 94 articles (last 30 days)
+- **Languages**: en, es, de
+- **Top Categories**: vue.js, vuejs2, vuejs3, eslint, airbnb-js-styleguide (9), javascript, eslint, airbnb-js-styleguide (7), unit-testing, reactjs, enzyme, airbnb-js-styleguide (6), javascript, iterator, reduce, airbnb-js-styleguide, eslint-config-airbnb (6), javascript, reactjs, ecmascript-6, eslint, airbnb-js-styleguide (5)
 
 
 #### Viator
@@ -34,88 +61,69 @@ This report analyzes 260 pieces of content across 7 major travel platforms to pr
 
 
 #### GetYourGuide
-- **Total Articles**: 43
-- **Official Content**: 43
+- **Total Articles**: 42
+- **Official Content**: 42
 - **Community Content**: 0
-- **Recent Activity**: 43 articles (last 30 days)
+- **Recent Activity**: 42 articles (last 30 days)
 - **Languages**: en
-- **Top Categories**: Help Center (43)
+- **Top Categories**: Suppliers FAQs (32), Help Center (10)
 
 
 #### Other
-- **Total Articles**: 19
+- **Total Articles**: 7
 - **Official Content**: 0
-- **Community Content**: 19
-- **Recent Activity**: 19 articles (last 30 days)
+- **Community Content**: 7
+- **Recent Activity**: 7 articles (last 30 days)
 - **Languages**: en
-- **Top Categories**: AirHosts Forum Discussion (19)
+- **Top Categories**: AirHosts Forum Discussion (7)
 
 
-#### Booking.com
-- **Total Articles**: 17
-- **Official Content**: 17
-- **Community Content**: 0
-- **Recent Activity**: 17 articles (last 30 days)
-- **Languages**: en
-- **Top Categories**: Help Center (17)
-
-
-#### TripAdvisor
-- **Total Articles**: 15
-- **Official Content**: 15
-- **Community Content**: 0
-- **Recent Activity**: 15 articles (last 30 days)
-- **Languages**: en
-- **Top Categories**: Help Center (15)
-
-
-#### Reddit
-- **Total Articles**: 6
+#### AirHosts Forum
+- **Total Articles**: 1
 - **Official Content**: 0
-- **Community Content**: 0
-- **Recent Activity**: 6 articles (last 30 days)
+- **Community Content**: 1
+- **Recent Activity**: 1 articles (last 30 days)
 - **Languages**: en
-- **Top Categories**: Reddit community_policy_discussion [HIGH] (5), Reddit community_policy_discussion [MEDIUM] (1)
+- **Top Categories**: Hosting Discussion (1)
 
 
 ## 🎯 Key Insights
 
 ### Top Topics by Volume
-1. **booking** - 155 mentions across 7 platforms
-2. **help** - 147 mentions across 7 platforms
-3. **review** - 123 mentions across 7 platforms
-4. **experience** - 113 mentions across 7 platforms
-5. **account** - 108 mentions across 7 platforms
-6. **guide** - 101 mentions across 6 platforms
-7. **guest** - 97 mentions across 5 platforms
-8. **payment** - 97 mentions across 7 platforms
-9. **host** - 93 mentions across 5 platforms
-10. **reservation** - 88 mentions across 6 platforms
-11. **tour** - 65 mentions across 5 platforms
-12. **cancellation** - 64 mentions across 7 platforms
-13. **support** - 48 mentions across 5 platforms
-14. **activity** - 43 mentions across 5 platforms
-15. **quality** - 41 mentions across 5 platforms
+1. **booking** - 271 mentions across 8 platforms
+2. **help** - 231 mentions across 7 platforms
+3. **experience** - 225 mentions across 6 platforms
+4. **host** - 161 mentions across 6 platforms
+5. **review** - 157 mentions across 7 platforms
+6. **guest** - 140 mentions across 7 platforms
+7. **guide** - 139 mentions across 6 platforms
+8. **tour** - 104 mentions across 6 platforms
+9. **reservation** - 99 mentions across 7 platforms
+10. **account** - 92 mentions across 7 platforms
+11. **payment** - 78 mentions across 6 platforms
+12. **support** - 48 mentions across 5 platforms
+13. **refund** - 45 mentions across 6 platforms
+14. **traveler** - 39 mentions across 5 platforms
+15. **cancellation** - 37 mentions across 6 platforms
 
 ### Language Distribution
-- **en**: 251 articles (97%)
-- **pt**: 5 articles (2%)
-- **es**: 2 articles (1%)
-- **fr**: 1 articles (0%)
-- **it**: 1 articles (0%)
+- **en**: 1,022 articles (99%)
+- **pt**: 7 articles (1%)
+- **es**: 3 articles (0%)
+- **de**: 2 articles (0%)
 
 ### Content Quality Metrics
 - **Verified Content**: 0 articles
 - **Community Voted Content**: 0 articles
-- **Average Content Length**: 23169 characters
+- **Average Content Length**: 1186 characters
 
 ### Trending Topics (Last 30 Days)
-- **cancellation**: +100% growth on Airbnb, GetYourGuide, Other, Booking.com, Reddit, TripAdvisor, Viator
-- **payment**: +100% growth on Airbnb, GetYourGuide, Viator, Other, Booking.com, Reddit, TripAdvisor
-- **booking**: +100% growth on GetYourGuide, Other, Viator, Airbnb, Booking.com, Reddit, TripAdvisor
-- **payout**: +100% growth on GetYourGuide, Airbnb
-- **tax**: +100% growth on GetYourGuide, Other, Booking.com, Airbnb
-- **verification**: +100% growth on GetYourGuide, Other, Booking.com
+- **cancellation**: +100% growth on Airbnb, Other, TripAdvisor, GetYourGuide, Viator, Reddit
+- **payment**: +100% growth on Airbnb, Viator, GetYourGuide, Other, TripAdvisor, Reddit
+- **booking**: +100% growth on Airbnb, GetYourGuide, Viator, TripAdvisor, Other, StackOverflow, Reddit, AirHosts Forum
+- **payout**: +100% growth on Airbnb, GetYourGuide
+- **tax**: +100% growth on GetYourGuide, StackOverflow, Other, Airbnb, TripAdvisor, Reddit
+- **verification**: +100% growth on Other, GetYourGuide, TripAdvisor, Reddit
 
 ## 💡 Market Opportunities
 
@@ -128,8 +136,8 @@ This report analyzes 260 pieces of content across 7 major travel platforms to pr
 
 ## 🔍 Competitive Insights
 
-- Airbnb dominates with 116 articles
-- Community content represents 79% of Airbnb content
+- TripAdvisor dominates with 427 articles
+- Community content represents 100% of TripAdvisor content
 
 ## 📈 Content Gaps & Opportunities
 
@@ -138,7 +146,20 @@ This report analyzes 260 pieces of content across 7 major travel platforms to pr
 ## 🎯 Platform-Specific Recommendations
 
 
+### TripAdvisor
+- Focus on community engagement and user-generated content
+
+
 ### Airbnb
+- Focus on community engagement and user-generated content
+
+
+### Reddit
+- Focus on community engagement and user-generated content
+- Consider expanding to multiple languages for broader reach
+
+
+### StackOverflow
 - Focus on community engagement and user-generated content
 
 
@@ -155,15 +176,8 @@ This report analyzes 260 pieces of content across 7 major travel platforms to pr
 - Consider expanding to multiple languages for broader reach
 
 
-### Booking.com
-- Consider expanding to multiple languages for broader reach
-
-
-### TripAdvisor
-- Consider expanding to multiple languages for broader reach
-
-
-### Reddit
+### AirHosts Forum
+- Focus on community engagement and user-generated content
 - Consider expanding to multiple languages for broader reach
 
 
@@ -175,32 +189,32 @@ This report analyzes 260 pieces of content across 7 major travel platforms to pr
 - **Community engagement**: Leverage user-generated content and community discussions
 
 ### 2. Platform Strategy
-- **Primary focus**: Airbnb (116 articles)
-- **Secondary opportunities**: Viator, GetYourGuide
-- **Emerging platforms**: Monitor TripAdvisor, Reddit
+- **Primary focus**: TripAdvisor (427 articles)
+- **Secondary opportunities**: Airbnb, Reddit
+- **Emerging platforms**: Monitor Other, AirHosts Forum
 
 ### 3. Quality & Trust
 - **Verification focus**: 0 verified articles show trust is crucial
 - **Community validation**: 0 community-voted articles indicate peer validation importance
-- **Content depth**: Average 23169 characters suggests detailed content performs better
+- **Content depth**: Average 1186 characters suggests detailed content performs better
 
 ### 4. Operational Insights
 - **Customer support**: 0 customer service mentions
-- **Payment concerns**: 97 payment-related discussions
-- **Cancellation policies**: 64 cancellation mentions
+- **Payment concerns**: 78 payment-related discussions
+- **Cancellation policies**: 37 cancellation mentions
 
 ## 📊 Data Methodology
 
 This report is based on analysis of:
-- **260** articles from major travel platforms
-- Content spanning **5** languages
-- Data collected over the past **181** days
+- **1,034** articles from major travel platforms
+- Content spanning **4** languages
+- Data collected over the past **187** days
 - Real-time community discussions and official help content
 
 ## 🔄 Next Steps
 
 1. **Monitor trending topics** for content creation opportunities
-2. **Engage with community discussions** on Airbnb, Viator, GetYourGuide, Other, Booking.com, TripAdvisor, Reddit
+2. **Engage with community discussions** on TripAdvisor, Airbnb, Reddit, StackOverflow, Viator, GetYourGuide, Other, AirHosts Forum
 3. **Develop multi-language content** strategy
 4. **Focus on verified, high-quality content** that builds trust
 5. **Track platform-specific trends** for targeted marketing
