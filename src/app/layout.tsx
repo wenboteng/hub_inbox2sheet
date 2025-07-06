@@ -73,16 +73,7 @@ export default function RootLayout({
                   </Link>
                 </div>
               </div>
-              <div className="hidden sm:ml-6 sm:flex sm:items-center">
-                <Link
-                  href="https://inbox2sheet.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
-                >
-                  Powered by Inbox2Sheet
-                </Link>
-              </div>
+
               <div className="flex items-center sm:hidden">
                 {/* Mobile menu button */}
                 <button
@@ -154,18 +145,7 @@ export default function RootLayout({
                 Reports
               </Link>
             </div>
-            <div className="pt-4 pb-3 border-t border-gray-200">
-              <div className="flex items-center px-4">
-                <Link
-                  href="https://inbox2sheet.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors duration-200"
-                >
-                  Powered by Inbox2Sheet
-                </Link>
-              </div>
-            </div>
+
           </div>
         </nav>
         <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
