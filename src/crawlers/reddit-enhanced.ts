@@ -7,8 +7,13 @@ const prisma = new PrismaClient();
 
 // Enhanced Reddit API Configuration
 const REDDIT_CONFIG = {
-  // Popular travel subreddits to target
+  // Priority travel/hosting subreddits (these will be crawled first)
   subreddits: [
+    'Tourguide',        // PRIORITY
+    'airbnb_hosts',     // PRIORITY
+    'AirBnBHosts',      // PRIORITY
+    'TravelAgent',      // PRIORITY
+    // Existing popular travel subreddits
     'travel',
     'solotravel',
     'backpacking',
