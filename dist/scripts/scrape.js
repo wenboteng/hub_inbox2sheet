@@ -614,6 +614,25 @@ async function main() {
         catch (error) {
             console.error('[SCRAPE] Booking.com scraping failed:', error);
         }
+        // 10. Scrape Reddit Travel Communities (Enhanced Community Data)
+        console.log('[SCRAPE] ===== ENHANCED REDDIT TRAVEL COMMUNITIES SCRAPING =====');
+        try {
+            const { crawlRedditEnhanced } = await Promise.resolve().then(() => __importStar(require('../crawlers/reddit-enhanced')));
+            const redditStats = await crawlRedditEnhanced();
+            console.log(`[SCRAPE] Enhanced Reddit crawl completed:`);
+            console.log(`  - Subreddits processed: ${redditStats.subredditsProcessed}`);
+            console.log(`  - Posts discovered: ${redditStats.postsDiscovered}`);
+            console.log(`  - Posts extracted: ${redditStats.postsExtracted}`);
+            console.log(`  - Comments extracted: ${redditStats.commentsExtracted}`);
+            console.log(`  - Total content: ${redditStats.postsExtracted + redditStats.commentsExtracted}`);
+            console.log(`  - Total requests: ${redditStats.totalRequests}`);
+            console.log(`  - Rate limit hits: ${redditStats.rateLimitHits}`);
+            console.log(`  - Errors: ${redditStats.errors.length}`);
+            console.log(`  - Skipped posts: ${redditStats.skippedPosts.length}`);
+        }
+        catch (error) {
+            console.error('[SCRAPE] Enhanced Reddit scraping failed:', error);
+        }
         console.log(`[SCRAPE] Total new articles to save: ${allNewArticles.length}`);
         // Save all new articles to database
         for (const article of allNewArticles) {

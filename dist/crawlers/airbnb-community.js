@@ -11,7 +11,7 @@ const parseHelpers_1 = require("../utils/parseHelpers");
 const languageDetection_1 = require("../utils/languageDetection");
 const slugify_1 = require("../utils/slugify");
 const prisma = new client_1.PrismaClient();
-// Airbnb Community specific configuration
+// Airbnb Community specific configuration - ENHANCED FOR EXPANSION
 const AIRBNB_COMMUNITY_CONFIG = {
     baseUrl: 'https://community.withairbnb.com',
     startUrl: 'https://community.withairbnb.com/t5/Community-Center/ct-p/community-center',
@@ -42,11 +42,29 @@ const AIRBNB_COMMUNITY_CONFIG = {
         nextPageLinks: 'a[rel="next"], .lia-paging-next a, .next a',
     },
     rateLimit: {
-        minDelay: 500, // More aggressive - reduced from 2000ms
-        maxDelay: 1500, // More aggressive - reduced from 5000ms
+        minDelay: 800, // Conservative rate limiting for safety
+        maxDelay: 2000, // Conservative rate limiting for safety
     },
-    maxThreadsPerCategory: 200, // Increased from 100 for more content
-    maxRepliesPerThread: 100, // Increased from 50 for more content
+    maxThreadsPerCategory: 500, // ENHANCED: Increased from 200 to 500
+    maxRepliesPerThread: 200, // ENHANCED: Increased from 100 to 200
+    maxPagesPerCategory: 50, // NEW: Pagination support for historical content
+    // Enhanced categories for expansion
+    categories: [
+        'https://community.withairbnb.com/t5/Community-Center/ct-p/community-center',
+        'https://community.withairbnb.com/t5/Hosting-Discussion/ct-p/hosting-discussion',
+        'https://community.withairbnb.com/t5/Help-Center/ct-p/help-center',
+        'https://community.withairbnb.com/t5/Community-Cafe/ct-p/community-cafe',
+        'https://community.withairbnb.com/t5/Ask-About-Your-Listing/ct-p/ask-about-your-listing',
+        // NEW: Additional categories for expansion
+        'https://community.withairbnb.com/t5/Experiences/ct-p/experiences',
+        'https://community.withairbnb.com/t5/Payments-Pricing/ct-p/payments-pricing',
+        'https://community.withairbnb.com/t5/Reservations/ct-p/reservations',
+    ],
+    // Safety and monitoring settings
+    retryAttempts: 3,
+    exponentialBackoff: true,
+    maxConcurrentRequests: 2,
+    requestTimeout: 30000,
 };
 class AirbnbCommunityCrawler {
     constructor() {
@@ -165,30 +183,48 @@ class AirbnbCommunityCrawler {
             const paginationUrls = await this.extractLinks(page, AIRBNB_COMMUNITY_CONFIG.selectors.paginationLinks);
             const nextPageUrls = await this.extractLinks(page, AIRBNB_COMMUNITY_CONFIG.selectors.nextPageLinks);
             const allPaginationUrls = [...paginationUrls, ...nextPageUrls];
-            // Process up to 5 pages to avoid infinite loops
+            // ENHANCED: Process up to maxPagesPerCategory pages for historical content
             let pageCount = 0;
-            const maxPages = 5;
+            const maxPages = AIRBNB_COMMUNITY_CONFIG.maxPagesPerCategory;
+            console.log(`[AIRBNB-COMMUNITY] Starting pagination crawl: up to ${maxPages} pages for historical content`);
             for (const paginationUrl of allPaginationUrls) {
-                if (pageCount >= maxPages)
+                if (pageCount >= maxPages) {
+                    console.log(`[AIRBNB-COMMUNITY] Reached maximum pages limit (${maxPages})`);
                     break;
+                }
                 try {
                     await this.delay();
-                    await page.goto(paginationUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+                    await page.goto(paginationUrl, { waitUntil: 'networkidle0', timeout: AIRBNB_COMMUNITY_CONFIG.requestTimeout });
                     const pageUrls = await this.extractLinks(page, AIRBNB_COMMUNITY_CONFIG.selectors.threadLinks);
-                    pageUrls.forEach(url => allUrls.add(url));
+                    const newUrls = pageUrls.filter(url => !allUrls.has(url));
+                    newUrls.forEach(url => allUrls.add(url));
                     pageCount++;
-                    console.log(`[AIRBNB-COMMUNITY] Processed pagination page ${pageCount}: ${paginationUrl}`);
+                    console.log(`[AIRBNB-COMMUNITY] Processed pagination page ${pageCount}/${maxPages}: ${paginationUrl} (+${newUrls.length} new threads)`);
+                    // Stop if we have enough threads
+                    if (allUrls.size >= AIRBNB_COMMUNITY_CONFIG.maxThreadsPerCategory) {
+                        console.log(`[AIRBNB-COMMUNITY] Reached maximum threads limit (${AIRBNB_COMMUNITY_CONFIG.maxThreadsPerCategory})`);
+                        break;
+                    }
                 }
                 catch (error) {
                     console.error(`[AIRBNB-COMMUNITY] Error processing pagination page: ${paginationUrl}`, error);
-                    break;
+                    // Implement exponential backoff on errors
+                    if (AIRBNB_COMMUNITY_CONFIG.exponentialBackoff) {
+                        const backoffDelay = Math.min(5000 * Math.pow(2, pageCount), 30000);
+                        console.log(`[AIRBNB-COMMUNITY] Exponential backoff: waiting ${backoffDelay}ms`);
+                        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+                    }
+                    // Continue to next page instead of breaking
+                    continue;
                 }
             }
         }
         catch (error) {
             console.error(`[AIRBNB-COMMUNITY] Error handling pagination for ${baseUrl}:`, error);
         }
-        return Array.from(allUrls);
+        const uniqueUrls = Array.from(allUrls);
+        console.log(`[AIRBNB-COMMUNITY] Pagination complete: ${uniqueUrls.length} total threads discovered`);
+        return uniqueUrls.slice(0, AIRBNB_COMMUNITY_CONFIG.maxThreadsPerCategory);
     }
     async extractThreadData(page, url) {
         try {
@@ -338,10 +374,15 @@ class AirbnbCommunityCrawler {
                     console.log(`[AIRBNB-COMMUNITY] Post already exists: ${post.url}`);
                     continue;
                 }
-                // Create unique slug from question + URL hash
+                // Create unique slug from question + URL hash + reply index for replies
                 const baseSlug = (0, slugify_1.slugify)(post.question);
                 const urlHash = this.extractThreadId(post.url) || Math.random().toString(36).substring(2, 8);
-                const uniqueSlug = `${baseSlug}-${urlHash}`;
+                let uniqueSlug = `${baseSlug}-${urlHash}`;
+                // For replies, add reply index to ensure uniqueness
+                if (!post.isThread && post.replyTo) {
+                    const replyIndex = post.url.match(/#reply-(\d+)/)?.[1] || '0';
+                    uniqueSlug = `${uniqueSlug}-reply-${replyIndex}`;
+                }
                 // Save to database
                 await prisma.article.create({
                     data: {
@@ -417,46 +458,72 @@ class AirbnbCommunityCrawler {
         }
     }
     async crawl() {
-        console.log('[AIRBNB-COMMUNITY] Starting comprehensive Airbnb Community crawl...');
+        console.log('[AIRBNB-COMMUNITY] Starting ENHANCED Airbnb Community crawl with expanded limits...');
+        console.log(`[AIRBNB-COMMUNITY] Configuration:`);
+        console.log(`  - Max threads per category: ${AIRBNB_COMMUNITY_CONFIG.maxThreadsPerCategory}`);
+        console.log(`  - Max replies per thread: ${AIRBNB_COMMUNITY_CONFIG.maxRepliesPerThread}`);
+        console.log(`  - Max pages per category: ${AIRBNB_COMMUNITY_CONFIG.maxPagesPerCategory}`);
+        console.log(`  - Rate limit: ${AIRBNB_COMMUNITY_CONFIG.rateLimit.minDelay}-${AIRBNB_COMMUNITY_CONFIG.rateLimit.maxDelay}ms`);
+        console.log(`  - Categories to crawl: ${AIRBNB_COMMUNITY_CONFIG.categories.length}`);
+        console.log('');
         try {
             await this.initialize();
-            const page = await this.createPage();
-            // Start from the main community page
-            console.log(`[AIRBNB-COMMUNITY] Starting from: ${AIRBNB_COMMUNITY_CONFIG.startUrl}`);
-            await this.delay();
-            await page.goto(AIRBNB_COMMUNITY_CONFIG.startUrl, { waitUntil: 'networkidle0', timeout: 30000 });
-            // Discover categories
-            const categoryUrls = await this.discoverCategories(page);
+            // ENHANCED: Use predefined categories for better coverage
+            const categoryUrls = AIRBNB_COMMUNITY_CONFIG.categories;
             this.stats.categoriesDiscovered = categoryUrls.length;
-            await page.close();
-            // Crawl each category
-            for (const categoryUrl of categoryUrls) {
+            console.log(`[AIRBNB-COMMUNITY] Using ${categoryUrls.length} predefined categories for comprehensive coverage`);
+            // Crawl each category with enhanced limits
+            for (let i = 0; i < categoryUrls.length; i++) {
+                const categoryUrl = categoryUrls[i];
+                const categoryName = this.extractCategoryFromUrl(categoryUrl);
+                console.log(`\n[AIRBNB-COMMUNITY] Processing category ${i + 1}/${categoryUrls.length}: ${categoryName}`);
+                console.log(`[AIRBNB-COMMUNITY] URL: ${categoryUrl}`);
                 if (this.processedUrls.has(categoryUrl)) {
+                    console.log(`[AIRBNB-COMMUNITY] Category already processed, skipping`);
                     continue;
                 }
-                await this.crawlCategory(categoryUrl);
-                this.processedUrls.add(categoryUrl);
+                try {
+                    await this.crawlCategory(categoryUrl);
+                    this.processedUrls.add(categoryUrl);
+                    // Log progress
+                    const progress = ((i + 1) / categoryUrls.length * 100).toFixed(1);
+                    console.log(`[AIRBNB-COMMUNITY] Progress: ${progress}% (${i + 1}/${categoryUrls.length} categories)`);
+                }
+                catch (error) {
+                    console.error(`[AIRBNB-COMMUNITY] Error processing category ${categoryName}:`, error);
+                    this.stats.errors.push(`Failed to process category ${categoryName}: ${error}`);
+                    // Continue with next category instead of stopping
+                    continue;
+                }
             }
-            console.log('[AIRBNB-COMMUNITY] Crawl completed successfully!');
+            console.log('\n[AIRBNB-COMMUNITY] Enhanced crawl completed successfully!');
         }
         catch (error) {
-            console.error('[AIRBNB-COMMUNITY] Error during crawl:', error);
-            this.stats.errors.push(`Crawl failed: ${error}`);
+            console.error('[AIRBNB-COMMUNITY] Error during enhanced crawl:', error);
+            this.stats.errors.push(`Enhanced crawl failed: ${error}`);
         }
         finally {
             await this.cleanup();
         }
-        // Log final stats
-        console.log('\n[AIRBNB-COMMUNITY] ===== CRAWL STATISTICS =====');
-        console.log(`Categories discovered: ${this.stats.categoriesDiscovered}`);
+        // Enhanced final stats
+        console.log('\n[AIRBNB-COMMUNITY] ===== ENHANCED CRAWL STATISTICS =====');
+        console.log(`Categories processed: ${this.stats.categoriesDiscovered}`);
         console.log(`Threads discovered: ${this.stats.threadsDiscovered}`);
         console.log(`Posts extracted: ${this.stats.postsExtracted}`);
         console.log(`Replies extracted: ${this.stats.repliesExtracted}`);
+        console.log(`Total content: ${this.stats.postsExtracted + this.stats.repliesExtracted}`);
         console.log(`Errors: ${this.stats.errors.length}`);
         console.log(`Skipped URLs: ${this.stats.skippedUrls.length}`);
+        // Calculate success rate
+        const totalAttempts = this.stats.postsExtracted + this.stats.repliesExtracted + this.stats.errors.length;
+        const successRate = totalAttempts > 0 ? ((this.stats.postsExtracted + this.stats.repliesExtracted) / totalAttempts * 100).toFixed(1) : '0';
+        console.log(`Success rate: ${successRate}%`);
         if (this.stats.errors.length > 0) {
             console.log('\n[AIRBNB-COMMUNITY] Errors encountered:');
-            this.stats.errors.forEach(error => console.log(`  - ${error}`));
+            this.stats.errors.slice(0, 10).forEach(error => console.log(`  - ${error}`));
+            if (this.stats.errors.length > 10) {
+                console.log(`  ... and ${this.stats.errors.length - 10} more errors`);
+            }
         }
         return this.stats;
     }
