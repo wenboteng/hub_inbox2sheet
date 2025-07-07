@@ -251,7 +251,7 @@ export default function SearchPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 flex flex-col items-center">
-      <h1 className="text-4xl font-bold mb-10 text-center">Search Knowledge Base</h1>
+      <h1 className="text-4xl font-bold mb-10 text-center">Search Help Center</h1>
       <form
         className="w-full flex flex-col items-center"
         onSubmit={e => {
@@ -406,7 +406,7 @@ export default function SearchPage() {
                 <p className="text-indigo-900">{gptResponseLayerAnswer}</p>
               </div>
               <p className="mt-4 text-sm text-indigo-700">
-                💡 This answer is based on the official documentation shown in the search results below.
+                💡 This answer is based on the official documentation and verified sources shown in the search results below.
               </p>
             </div>
           )}
@@ -421,7 +421,7 @@ export default function SearchPage() {
               </div>
               <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: gptFallbackAnswer }} />
               <p className="mt-4 text-sm text-gray-500">
-                This is a best-effort summary based on available articles. Please verify any critical information.
+                This is a helpful summary based on our help center. Please verify any critical information with the official platform.
               </p>
             </div>
           )}

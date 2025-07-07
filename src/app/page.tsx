@@ -29,7 +29,7 @@ export default async function Home() {
         </h1>
         <p className="mt-6 text-lg leading-8 text-gray-600">
           Search verified solutions from Airbnb, Viator, Booking.com, and other OTAs. 
-          Save time with our centralized knowledge base — built for tour vendors.
+          Save time with our comprehensive help center — built for tour vendors.
         </p>
         <div className="mt-10 flex items-center justify-center gap-x-6">
           <Link
@@ -94,7 +94,7 @@ export default async function Home() {
             Regular Updates
           </h3>
           <p className="mt-4 text-base leading-7 text-gray-600">
-            Our crawler automatically updates the knowledge base with new solutions.
+            We regularly update the platform with new insights from major OTAs.
           </p>
         </div>
       </div>

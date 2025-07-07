@@ -22,8 +22,8 @@ function TrustBox({ report }: { report: ReportMeta }) {
     <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 rounded">
       <div className="font-semibold text-blue-800 mb-1">Why trust this report?</div>
       <ul className="text-sm text-blue-900 space-y-1">
-        <li>🔍 <b>Where the data comes from:</b> We collect and combine information from top online travel agencies (OTAs) like GetYourGuide, Viator, and more.</li>
-        <li>🤝 <b>How we create these insights:</b> Our team reviews and updates the data regularly to make sure it's accurate and useful for your business.</li>
+        <li>🔍 <b>Where the data comes from:</b> We analyze publicly available information from top online travel agencies (OTAs) like GetYourGuide, Viator, and more.</li>
+        <li>🤝 <b>How we create these insights:</b> Our team monitors changes and updates our insights regularly to keep you ahead of the competition.</li>
         <li>🏢 <b>Who we are:</b> OTA Answers is an independent analytics provider focused on helping tour and activity operators grow.</li>
         <li>📅 <b>Last Updated:</b> {new Date(report.updatedAt).toLocaleDateString()}</li>
       </ul>
