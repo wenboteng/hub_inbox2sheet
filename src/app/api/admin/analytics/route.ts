@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { enrichAnalyticsReport } from '@/utils/openai';
+import { enrichReportWithGPT } from '@/utils/openai';
 import prisma from '@/lib/prisma';
 import { slugify } from '@/utils/slugify';
 
@@ -51,8 +51,12 @@ export async function POST(request: NextRequest) {
 
     // Enrich the analytics report using OpenAI GPT-4o
     let enrichedReport = '';
+    let shareSuggestions: string[] = [];
     try {
-      enrichedReport = await enrichAnalyticsReport(stdout);
+      const { enrichedContent, shareSuggestions: suggestions } = await enrichReportWithGPT(stdout, reportName);
+      enrichedReport = enrichedContent;
+      shareSuggestions = suggestions;
+      
       // Save enriched report to the database
       await prisma.report.upsert({
         where: { type: reportType },
@@ -78,6 +82,7 @@ export async function POST(request: NextRequest) {
       message: `${reportName} generated and enriched successfully!`,
       output: stdout,
       enrichedReport,
+      shareSuggestions,
       reportType
     });
     

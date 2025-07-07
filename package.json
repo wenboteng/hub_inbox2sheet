@@ -40,6 +40,7 @@
     "analytics:cancellation": "node dist/scripts/generate-cancellation-report.js",
     "analytics:smart-update": "node dist/scripts/smart-report-updater.js",
     "analytics:check-freshness": "node dist/scripts/check-report-freshness.js",
+    "deployment:check": "node dist/scripts/check-deployment-status.js",
     "test:dual-db": "node dist/scripts/test-dual-database.js",
     "extract:gyg": "node dist/scripts/extract-gyg-data.js",
     "process:gyg": "node dist/scripts/process-gyg-data.js",
@@ -51,7 +52,9 @@
     "monitor:gyg:quality": "node dist/scripts/data-quality-monitor.js",
     "test:reddit": "tsx scripts/test-reddit-crawler.ts",
     "test:reddit:enhanced": "tsx scripts/test-reddit-enhanced.ts",
-    "crawl:reddit": "tsx src/crawlers/reddit.ts"
+    "crawl:reddit": "tsx src/crawlers/reddit.ts",
+    "test:gpt-enrichment": "tsx scripts/test-gpt-enrichment.ts",
+    "test:gpt-enrichment:mock": "tsx scripts/test-gpt-enrichment-mock.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.0.0",

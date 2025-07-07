@@ -1,12 +1,12 @@
 # 🚨 Top Cancellation Reasons: What Tour Vendors Need to Know
 
-*Comprehensive Analysis Based on 100 Real Customer Interactions*
+*Comprehensive Analysis Based on 125 Real Customer Interactions*
 
 ---
 
 ## 📊 Executive Summary
 
-**100 cancellation-related interactions** were analyzed across **7 major travel platforms** to identify the most common reasons why guests cancel tours and activities. This report provides actionable insights to help tour vendors reduce cancellations and improve their business performance.
+**125 cancellation-related interactions** were analyzed across **7 major travel platforms** to identify the most common reasons why guests cancel tours and activities. This report provides actionable insights to help tour vendors reduce cancellations and improve their business performance.
 
 ### Key Findings:
 - **12.5% of bookings** result in cancellations
@@ -19,25 +19,8 @@
 ## 🎯 Top Cancellation Reasons Ranked by Frequency
 
 
-### 1. Financial Issues 
-**65 mentions** across 7 platforms
-
-**Category:** Financial  
-**Impact Level:** MEDIUM
-
-**Description:** Payment problems or financial constraints
-
-**Prevention Strategies:**
-- Offer flexible payment plans
-- Provide clear pricing information
-- Accept multiple payment methods
-- Offer early booking discounts
-
----
-
-
-### 2. Better Alternative Found 
-**65 mentions** across 7 platforms
+### 1. Better Alternative Found 
+**60 mentions** across 6 platforms
 
 **Category:** Competitive  
 **Impact Level:** LOW
@@ -53,42 +36,8 @@
 ---
 
 
-### 3. Personal Emergencies 
-**60 mentions** across 7 platforms
-
-**Category:** Personal  
-**Impact Level:** MEDIUM
-
-**Description:** Family emergencies or personal health issues
-
-**Prevention Strategies:**
-- Offer compassionate cancellation policies
-- Require documentation for emergency cancellations
-- Provide clear emergency contact procedures
-- Consider offering partial refunds
-
----
-
-
-### 4. Group Size Changes 
-**59 mentions** across 7 platforms
-
-**Category:** Logistical  
-**Impact Level:** MEDIUM
-
-**Description:** Changes in group size affecting tour viability
-
-**Prevention Strategies:**
-- Set clear minimum group requirements
-- Offer flexible group pricing
-- Provide group booking policies
-- Allow reasonable group size changes
-
----
-
-
-### 5. Transportation Issues 
-**54 mentions** across 7 platforms
+### 2. Transportation Issues 
+**52 mentions** across 5 platforms
 
 **Category:** Logistical  
 **Impact Level:** HIGH
@@ -104,8 +53,42 @@
 ---
 
 
-### 6. Booking Errors 
-**52 mentions** across 5 platforms
+### 3. Financial Issues 
+**48 mentions** across 6 platforms
+
+**Category:** Financial  
+**Impact Level:** MEDIUM
+
+**Description:** Payment problems or financial constraints
+
+**Prevention Strategies:**
+- Offer flexible payment plans
+- Provide clear pricing information
+- Accept multiple payment methods
+- Offer early booking discounts
+
+---
+
+
+### 4. Group Size Changes 
+**34 mentions** across 7 platforms
+
+**Category:** Logistical  
+**Impact Level:** MEDIUM
+
+**Description:** Changes in group size affecting tour viability
+
+**Prevention Strategies:**
+- Set clear minimum group requirements
+- Offer flexible group pricing
+- Provide group booking policies
+- Allow reasonable group size changes
+
+---
+
+
+### 5. Booking Errors 
+**33 mentions** across 3 platforms
 
 **Category:** Technical  
 **Impact Level:** MEDIUM
@@ -121,25 +104,25 @@
 ---
 
 
-### 7. Health & Safety Concerns 
-**48 mentions** across 7 platforms
+### 6. Personal Emergencies 
+**27 mentions** across 6 platforms
 
-**Category:** Safety  
-**Impact Level:** HIGH
+**Category:** Personal  
+**Impact Level:** MEDIUM
 
-**Description:** Health emergencies or safety-related cancellations
+**Description:** Family emergencies or personal health issues
 
 **Prevention Strategies:**
-- Implement clear health and safety protocols
-- Offer travel insurance options
-- Have emergency contact procedures
-- Provide safety guidelines to guests
+- Offer compassionate cancellation policies
+- Require documentation for emergency cancellations
+- Provide clear emergency contact procedures
+- Consider offering partial refunds
 
 ---
 
 
-### 8. Unclear Expectations 
-**37 mentions** across 5 platforms
+### 7. Unclear Expectations 
+**25 mentions** across 5 platforms
 
 **Category:** Communication  
 **Impact Level:** MEDIUM
@@ -155,25 +138,25 @@
 ---
 
 
-### 9. Travel Restrictions 
-**36 mentions** across 5 platforms
+### 8. Health & Safety Concerns 
+**23 mentions** across 5 platforms
 
-**Category:** External Factors  
+**Category:** Safety  
 **Impact Level:** HIGH
 
-**Description:** Government travel restrictions or border closures
+**Description:** Health emergencies or safety-related cancellations
 
 **Prevention Strategies:**
-- Stay updated on travel advisories
-- Offer flexible booking policies
-- Provide clear refund policies
-- Communicate policy changes promptly
+- Implement clear health and safety protocols
+- Offer travel insurance options
+- Have emergency contact procedures
+- Provide safety guidelines to guests
 
 ---
 
 
-### 10. Weather Conditions 
-**32 mentions** across 5 platforms
+### 9. Weather Conditions 
+**13 mentions** across 3 platforms
 
 **Category:** External Factors  
 **Impact Level:** HIGH
@@ -189,20 +172,37 @@
 ---
 
 
+### 10. Travel Restrictions 
+**4 mentions** across 3 platforms
+
+**Category:** External Factors  
+**Impact Level:** HIGH
+
+**Description:** Government travel restrictions or border closures
+
+**Prevention Strategies:**
+- Stay updated on travel advisories
+- Offer flexible booking policies
+- Provide clear refund policies
+- Communicate policy changes promptly
+
+---
+
+
 ## 📈 Platform-Specific Analysis
 
 ### Cancellation Mentions by Platform
-- **Airbnb**: 29 mentions (29%)
-- **GetYourGuide**: 18 mentions (18%)
-- **Booking.com**: 17 mentions (17%)
-- **TripAdvisor**: 14 mentions (14%)
-- **Viator**: 10 mentions (10%)
-- **Other**: 6 mentions (6%)
-- **Reddit**: 6 mentions (6%)
+- **TripAdvisor**: 50 mentions (40%)
+- **Airbnb**: 39 mentions (31%)
+- **GetYourGuide**: 17 mentions (14%)
+- **Viator**: 9 mentions (7%)
+- **Reddit**: 6 mentions (5%)
+- **Other**: 3 mentions (2%)
+- **StackOverflow**: 1 mentions (1%)
 
 ### Platform Insights:
-- **Airbnb** has the highest cancellation mentions (29%)
-- **Reddit** has the lowest cancellation rate (6%)
+- **TripAdvisor** has the highest cancellation mentions (40%)
+- **StackOverflow** has the lowest cancellation rate (1%)
 - **Multi-platform presence** shows consistent cancellation patterns across all major platforms
 
 ---
@@ -211,24 +211,24 @@
 
 ### Cancellation Frequency by Season
 
-**Summer (Jun-Aug)**: 35 cancellations
+**Summer (Jun-Aug)**: 44 cancellations
 *Top reasons: Weather Conditions, Transportation Issues, Health & Safety Concerns*
 
 
-**Winter (Dec-Feb)**: 25 cancellations
+**Winter (Dec-Feb)**: 31 cancellations
 *Top reasons: Weather Conditions, Travel Restrictions, Personal Emergencies*
 
 
-**Spring (Mar-May)**: 20 cancellations
+**Spring (Mar-May)**: 25 cancellations
 *Top reasons: Booking Errors, Better Alternative Found, Group Size Changes*
 
 
-**Fall (Sep-Nov)**: 20 cancellations
+**Fall (Sep-Nov)**: 25 cancellations
 *Top reasons: Financial Issues, Unclear Expectations, Transportation Issues*
 
 
 ### Seasonal Insights:
-- **Summer months** see the highest cancellation rates (35 cancellations)
+- **Summer months** see the highest cancellation rates (44 cancellations)
 - **Weather conditions** are the primary driver during peak seasons
 - **Winter cancellations** often relate to travel restrictions and weather
 - **Spring and Fall** show more booking errors and competitive factors
@@ -300,7 +300,7 @@
 ## 🔍 Data Methodology
 
 This report is based on analysis of:
-- **100 cancellation-related interactions** from major travel platforms
+- **125 cancellation-related interactions** from major travel platforms
 - **7 platforms** including Airbnb, Viator, GetYourGuide, Booking.com, and TripAdvisor
 - **Real customer questions and support interactions** from the past 6 months
 - **Industry-standard cancellation patterns** and financial impact estimates
@@ -350,10 +350,10 @@ Track these metrics to measure the effectiveness of your cancellation prevention
 
 *Report generated by OTA Answers - Your comprehensive travel industry intelligence platform*
 
-**Last Updated**: 7/4/2025  
+**Last Updated**: 7/6/2025  
 **Data Period**: Past 6 months  
-**Platforms Analyzed**: Airbnb, GetYourGuide, Booking.com, TripAdvisor, Viator, Other, Reddit  
-**Total Interactions**: 100
+**Platforms Analyzed**: TripAdvisor, Airbnb, GetYourGuide, Viator, Reddit, Other, StackOverflow  
+**Total Interactions**: 125
 
 ---
 
