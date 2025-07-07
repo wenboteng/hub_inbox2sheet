@@ -7,10 +7,11 @@ import path from 'path';
 
 // Helper to sanitize headings and remove invisible/unsupported characters
 function sanitizeHeadings(markdown: string): string {
-  // Remove invisible Unicode chars (e.g. \u200B, \u00A0, \uFEFF, \uFFFD, stray squares, etc.) from start of lines and before headings
+  // Remove all non-printable/control Unicode chars at start of lines and before headings
   return markdown
     .replace(/^[^\w#\-\*\d]*#+\s*/gm, match => match.replace(/^[^#]+/, '')) // Remove any non-heading chars before #
-    .replace(/^(#+)\s*[\u200B\u00A0\uFEFF\uFFFD]?/gm, '$1 ');
+    .replace(/^(#+)\s*[\u200B\u00A0\uFEFF\uFFFD\u202A-\u202E\u2060-\u206F\u0000-\u001F]?/gm, '$1 ')
+    .replace(/^[\u200B\u00A0\uFEFF\uFFFD\u202A-\u202E\u2060-\u206F\u0000-\u001F]+/gm, '');
 }
 
 // Helper to get SVG as data URI
@@ -97,9 +98,26 @@ export async function GET(request: NextRequest, { params }: { params: { filename
               margin-top: 2px;
             }
             .pdf-content {
-              padding: 32px 40px 0 40px;
+              padding: 32px 40px 100px 40px; /* extra bottom padding for footer */
               max-width: 900px;
               margin: 0 auto;
+              box-sizing: border-box;
+              /* Avoid page break inside content blocks */
+              page-break-inside: auto;
+            }
+            .pdf-content > * {
+              page-break-inside: avoid;
+            }
+            @media print {
+              .pdf-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+              }
+              .pdf-content {
+                padding-bottom: 120px;
+              }
             }
             h1, h2, h3, h4, h5, h6 {
               color: #0a2540;
