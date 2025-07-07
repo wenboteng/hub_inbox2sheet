@@ -151,43 +151,151 @@ export default function ReportDetailPage() {
 
   const handleDownloadPDF = async () => {
     if (!report) return;
-    // Find the main report content div
-    const contentDiv = document.querySelector(".report-pdf-content");
-    if (!contentDiv) {
-      alert("Could not find report content");
-      return;
+    
+    try {
+      // Show loading state
+      const downloadButton = document.querySelector('[title="Download full report as PDF"]') as HTMLButtonElement;
+      const originalText = downloadButton?.textContent;
+      if (downloadButton) {
+        downloadButton.textContent = '🔄 Generating PDF...';
+        downloadButton.disabled = true;
+      }
+
+      // Find the main report content div
+      const contentDiv = document.querySelector(".report-pdf-content");
+      if (!contentDiv) {
+        alert("Could not find report content");
+        return;
+      }
+
+      // Render the content to canvas with optimized settings
+      const canvas = await html2canvas(contentDiv as HTMLElement, { 
+        scale: 1.5, // Reduced from 2 to improve performance
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        logging: false, // Disable logging for production
+        width: contentDiv.scrollWidth,
+        height: contentDiv.scrollHeight
+      });
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.8); // Use JPEG with compression
+      
+      // Create PDF with optimized settings
+      const pdf = new jsPDF({ 
+        orientation: "portrait", 
+        unit: "pt", 
+        format: "a4",
+        compress: true
+      });
+
+      // Add header with text instead of SVG logo
+      pdf.setFontSize(20);
+      pdf.setTextColor("#1e3a8a");
+      pdf.text("OTA Answers", 40, 40);
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor("#2563eb");
+      pdf.text("Independent Analytics for Tour & Activity Vendors", 40, 60);
+      pdf.setFontSize(10);
+      pdf.text("www.otaanswers.com", 40, 80);
+
+      // Add trust message
+      pdf.setFontSize(12);
+      pdf.setTextColor("#1e3a8a");
+      pdf.text("Why trust this report?", 40, 110);
+      pdf.setFontSize(9);
+      pdf.setTextColor("#1e40af");
+      
+      const trustMessages = [
+        "• Where the data comes from: We collect and combine information from top online travel agencies (OTAs) like GetYourGuide, Viator, and more.",
+        "• How we create these insights: Our team reviews and updates the data regularly to make sure it's accurate and useful for your business.",
+        "• Who we are: OTA Answers is an independent analytics provider focused on helping tour and activity operators grow."
+      ];
+
+             let yPosition = 130;
+       trustMessages.forEach(message => {
+         const lines = pdf.splitTextToSize(message, 500);
+         lines.forEach((line: string) => {
+           pdf.text(line, 40, yPosition);
+           yPosition += 15;
+         });
+         yPosition += 5;
+       });
+
+       // Add report title
+       pdf.setFontSize(16);
+       pdf.setTextColor("#1e3a8a");
+       const titleLines = pdf.splitTextToSize(report.title, 500);
+       titleLines.forEach((line: string, index: number) => {
+         pdf.text(line, 40, yPosition + (index * 20));
+       });
+      yPosition += (titleLines.length * 20) + 20;
+
+      // Add the report content image
+      const imgWidth = 515;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Check if content is too long and split into multiple pages
+      const pageHeight = pdf.internal.pageSize.height;
+      const availableHeight = pageHeight - yPosition - 40; // Leave margin at bottom
+      
+      if (imgHeight <= availableHeight) {
+        // Content fits on one page
+        pdf.addImage(imgData, "JPEG", 40, yPosition, imgWidth, imgHeight);
+      } else {
+        // Content needs multiple pages
+        let remainingHeight = imgHeight;
+        let currentY = yPosition;
+        let sourceY = 0;
+        
+        while (remainingHeight > 0) {
+          const heightToAdd = Math.min(remainingHeight, availableHeight);
+          const sourceHeight = (heightToAdd * canvas.height) / imgHeight;
+          
+          // Create a temporary canvas for this page section
+          const tempCanvas = document.createElement('canvas');
+          const tempCtx = tempCanvas.getContext('2d');
+          tempCanvas.width = canvas.width;
+          tempCanvas.height = sourceHeight;
+          
+          if (tempCtx) {
+            tempCtx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
+            const tempImgData = tempCanvas.toDataURL("image/jpeg", 0.8);
+            pdf.addImage(tempImgData, "JPEG", 40, currentY, imgWidth, heightToAdd);
+          }
+          
+          remainingHeight -= heightToAdd;
+          sourceY += sourceHeight;
+          currentY = 40; // Reset to top of page for next page
+          
+          if (remainingHeight > 0) {
+            pdf.addPage();
+          }
+        }
+      }
+
+      // Generate filename
+      const filename = `${report.title.replace(/[^a-z0-9]/gi, "_")}_${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Save the PDF
+      pdf.save(filename);
+
+      // Show success message
+      setShareFeedback("PDF downloaded successfully!");
+      setTimeout(() => setShareFeedback(""), 3000);
+
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      alert('Failed to generate PDF. Please try again or contact support.');
+    } finally {
+      // Restore button state
+      const downloadButton = document.querySelector('[title="Download full report as PDF"]') as HTMLButtonElement;
+      if (downloadButton) {
+        downloadButton.textContent = 'Download PDF';
+        downloadButton.disabled = false;
+      }
     }
-    // Render the content to canvas
-    const canvas = await html2canvas(contentDiv as HTMLElement, { scale: 2, backgroundColor: '#f8fbff' });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
-    // Add logo
-    const logoImg = new Image();
-    logoImg.src = "/logo.svg";
-    await new Promise((resolve) => { logoImg.onload = resolve; });
-    pdf.addImage(logoImg, "SVG", 40, 30, 60, 60);
-    // Add website and tagline
-    pdf.setFontSize(18);
-    pdf.setTextColor("#1e3a8a");
-    pdf.text("OTA Answers", 110, 55);
-    pdf.setFontSize(12);
-    pdf.setTextColor("#2563eb");
-    pdf.text("Independent Analytics for Tour & Activity Vendors", 110, 75);
-    pdf.setFontSize(10);
-    pdf.setTextColor("#2563eb");
-    pdf.text("www.otaanswers.com", 110, 95);
-    // Add trust message
-    pdf.setFontSize(12);
-    pdf.setTextColor("#1e3a8a");
-    pdf.text("Why trust this report?", 40, 120);
-    pdf.setFontSize(10);
-    pdf.setTextColor("#1e40af");
-    pdf.text("- Where the data comes from: We collect and combine information from top online travel agencies (OTAs) like GetYourGuide, Viator, and more.", 40, 140, { maxWidth: 500 });
-    pdf.text("- How we create these insights: Our team reviews and updates the data regularly to make sure it's accurate and useful for your business.", 40, 160, { maxWidth: 500 });
-    pdf.text("- Who we are: OTA Answers is an independent analytics provider focused on helping tour and activity operators grow.", 40, 180, { maxWidth: 500 });
-    // Add the report image (below trust message)
-    pdf.addImage(imgData, "PNG", 40, 200, 515, 0);
-    pdf.save(`${report.title.replace(/[^a-z0-9]/gi, "_") || "report"}.pdf`);
   };
 
   if (loading) return <div className="max-w-3xl mx-auto py-16 text-blue-700 text-xl">Loading…</div>;
