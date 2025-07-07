@@ -54,7 +54,8 @@
     "test:reddit:enhanced": "tsx scripts/test-reddit-enhanced.ts",
     "crawl:reddit": "tsx src/crawlers/reddit.ts",
     "test:gpt-enrichment": "tsx scripts/test-gpt-enrichment.ts",
-    "test:gpt-enrichment:mock": "tsx scripts/test-gpt-enrichment-mock.ts"
+    "test:gpt-enrichment:mock": "tsx scripts/test-gpt-enrichment-mock.ts",
+    "admin:make-reports-private": "tsx scripts/make-internal-reports-private.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.0.0",

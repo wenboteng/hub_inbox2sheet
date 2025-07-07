@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { PrismaClient } from "@prisma/client";
 
 type SubmittedQuestion = {
   id: string;
