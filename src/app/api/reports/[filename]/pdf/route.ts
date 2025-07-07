@@ -2,11 +2,24 @@ import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { createBrowser } from '@/utils/puppeteer';
 import { marked } from 'marked';
+import fs from 'fs';
+import path from 'path';
 
 // Helper to sanitize headings and remove invisible/unsupported characters
 function sanitizeHeadings(markdown: string): string {
-  // Remove invisible Unicode chars (e.g. \u200B, \u00A0, etc.) from start of lines
-  return markdown.replace(/^(#+)\s*[\u200B\u00A0\uFEFF]?/gm, '$1 ');
+  // Remove invisible Unicode chars (e.g. \u200B, \u00A0, \uFEFF, \uFFFD, stray squares, etc.) from start of lines and before headings
+  return markdown
+    .replace(/^[^\w#\-\*\d]*#+\s*/gm, match => match.replace(/^[^#]+/, '')) // Remove any non-heading chars before #
+    .replace(/^(#+)\s*[\u200B\u00A0\uFEFF\uFFFD]?/gm, '$1 ');
+}
+
+// Helper to get SVG as data URI
+function getLogoDataUri() {
+  const logoPath = path.join(process.cwd(), 'public', 'logo.svg');
+  const svg = fs.readFileSync(logoPath, 'utf8');
+  // Remove newlines and quotes for embedding
+  const svgClean = svg.replace(/\r?\n|\r/g, '').replace(/"/g, "'");
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svgClean)}`;
 }
 
 export async function GET(request: NextRequest, { params }: { params: { filename: string } }) {
@@ -34,7 +47,7 @@ export async function GET(request: NextRequest, { params }: { params: { filename
     const reportHtml = marked.parse(cleanMarkdown);
 
     // Branding
-    const logoUrl = 'file:///public/logo.svg';
+    const logoDataUri = getLogoDataUri();
     const website = 'www.otaanswers.com';
     const slogan = 'Built to Help Tour Vendors Succeed';
     const brandName = 'OTAanswers';
@@ -65,6 +78,7 @@ export async function GET(request: NextRequest, { params }: { params: { filename
               height: 48px;
               width: 48px;
               margin-right: 24px;
+              display: block;
             }
             .pdf-header-brand {
               font-size: 2.1rem;
@@ -152,7 +166,7 @@ export async function GET(request: NextRequest, { params }: { params: { filename
         </head>
         <body>
           <div class="pdf-header">
-            <img src="${logoUrl}" class="pdf-header-logo" alt="${brandName} logo" />
+            <img src="${logoDataUri}" class="pdf-header-logo" alt="${brandName} logo" />
             <div>
               <div class="pdf-header-brand">${brandName}</div>
               <div class="pdf-header-slogan">${slogan}</div>
