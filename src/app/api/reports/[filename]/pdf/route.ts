@@ -3,6 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createBrowser } from '@/utils/puppeteer';
 import { marked } from 'marked';
 
+// Helper to sanitize headings and remove invisible/unsupported characters
+function sanitizeHeadings(markdown: string): string {
+  // Remove invisible Unicode chars (e.g. \u200B, \u00A0, etc.) from start of lines
+  return markdown.replace(/^(#+)\s*[\u200B\u00A0\uFEFF]?/gm, '$1 ');
+}
+
 export async function GET(request: NextRequest, { params }: { params: { filename: string } }) {
   try {
     const { filename } = params;
@@ -22,129 +28,170 @@ export async function GET(request: NextRequest, { params }: { params: { filename
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
+    // Sanitize headings in Markdown
+    const cleanMarkdown = sanitizeHeadings(report.content || '');
     // Convert Markdown to HTML
-    const reportHtml = marked.parse(report.content);
+    const reportHtml = marked.parse(cleanMarkdown);
 
-    // Generate PDF using Puppeteer with proper Chrome installation
-    const browser = await createBrowser();
+    // Branding
+    const logoUrl = 'file:///public/logo.svg';
+    const website = 'www.otaanswers.com';
+    const slogan = 'Built to Help Tour Vendors Succeed';
+    const brandName = 'OTAanswers';
 
-    const page = await browser.newPage();
-    
-    // Set viewport for consistent rendering
-    await page.setViewport({ width: 1200, height: 800 });
-
-    // Create HTML content for the PDF
-    const htmlContent = `
+    // PDF HTML template with branding and improved layout
+    const html = `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="UTF-8">
-          <title>${report.title}</title>
+          <title>${brandName} Report</title>
           <style>
             body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              line-height: 1.6;
-              color: #333;
-              max-width: 800px;
+              font-family: 'Segoe UI', Arial, sans-serif;
+              color: #222;
+              margin: 0;
+              padding: 0 0 60px 0;
+              background: #fff;
+            }
+            .pdf-header {
+              display: flex;
+              align-items: center;
+              border-bottom: 2px solid #eaeaea;
+              padding: 24px 40px 16px 40px;
+              background: #f8fafc;
+            }
+            .pdf-header-logo {
+              height: 48px;
+              width: 48px;
+              margin-right: 24px;
+            }
+            .pdf-header-brand {
+              font-size: 2.1rem;
+              font-weight: 700;
+              letter-spacing: 1px;
+              color: #0a2540;
+            }
+            .pdf-header-meta {
+              margin-left: auto;
+              text-align: right;
+            }
+            .pdf-header-slogan {
+              font-size: 1.1rem;
+              color: #3b82f6;
+              font-weight: 500;
+              margin-top: 2px;
+            }
+            .pdf-content {
+              padding: 32px 40px 0 40px;
+              max-width: 900px;
               margin: 0 auto;
-              padding: 40px 20px;
             }
             h1, h2, h3, h4, h5, h6 {
-              color: #1a365d;
-              margin-top: 2em;
-              margin-bottom: 1em;
+              color: #0a2540;
+              margin-top: 2.2em;
+              margin-bottom: 0.7em;
               font-weight: 700;
+              line-height: 1.2;
             }
-            h1 { font-size: 2.2em; border-bottom: 3px solid #3182ce; padding-bottom: 10px; }
-            h2 { font-size: 1.6em; border-bottom: 2px solid #3182ce; padding-bottom: 6px; }
-            h3 { font-size: 1.3em; }
+            h1 { font-size: 2.2rem; }
+            h2 { font-size: 1.6rem; }
+            h3 { font-size: 1.2rem; }
+            h4, h5, h6 { font-size: 1rem; }
+            p, ul, ol, table {
+              font-size: 1.05rem;
+              line-height: 1.7;
+              margin-bottom: 1.1em;
+            }
             ul, ol {
-              margin-bottom: 16px;
-              padding-left: 30px;
+              padding-left: 2em;
             }
             li {
-              margin-bottom: 8px;
-            }
-            blockquote {
-              border-left: 4px solid #3182ce;
-              padding-left: 20px;
-              margin: 20px 0;
-              font-style: italic;
-              color: #4a5568;
-              background: #f7fafc;
+              margin-bottom: 0.3em;
             }
             table {
-              width: 100%;
               border-collapse: collapse;
-              margin: 20px 0;
-              font-size: 0.98em;
+              width: 100%;
+              margin: 1.5em 0;
+              background: #f9fafb;
             }
             th, td {
-              border: 1px solid #e2e8f0;
-              padding: 12px;
+              border: 1px solid #d1d5db;
+              padding: 8px 12px;
               text-align: left;
             }
             th {
-              background-color: #f7fafc;
+              background: #e5e7eb;
               font-weight: 600;
             }
             code, pre {
-              background: #f7fafc;
+              font-family: 'Fira Mono', 'Consolas', monospace;
+              background: #f3f4f6;
               border-radius: 4px;
               padding: 2px 6px;
-              font-size: 0.95em;
-              color: #2d3748;
+              font-size: 0.98em;
             }
-            .footer {
-              margin-top: 40px;
-              padding-top: 20px;
-              border-top: 1px solid #e2e8f0;
-              font-size: 14px;
-              color: #718096;
+            .pdf-footer {
+              position: fixed;
+              left: 0; right: 0; bottom: 0;
+              width: 100%;
+              background: #f8fafc;
+              border-top: 1.5px solid #e5e7eb;
+              color: #64748b;
+              font-size: 1rem;
               text-align: center;
+              padding: 12px 0 10px 0;
+              z-index: 100;
+            }
+            .pdf-footer a {
+              color: #3b82f6;
+              text-decoration: none;
+              font-weight: 500;
             }
           </style>
         </head>
         <body>
-          <h1>${report.title}</h1>
-          <div class="content">
+          <div class="pdf-header">
+            <img src="${logoUrl}" class="pdf-header-logo" alt="${brandName} logo" />
+            <div>
+              <div class="pdf-header-brand">${brandName}</div>
+              <div class="pdf-header-slogan">${slogan}</div>
+            </div>
+            <div class="pdf-header-meta">
+              <div><a href="https://${website}">${website}</a></div>
+            </div>
+          </div>
+          <div class="pdf-content">
             ${reportHtml}
           </div>
-          <div class="footer">
-            <p>Generated by OTAAnswers Hub | ${new Date().toLocaleDateString()}</p>
+          <div class="pdf-footer">
+            <span>${brandName} &mdash; <a href="https://${website}">${website}</a> &mdash; ${slogan}</span>
           </div>
         </body>
       </html>
     `;
 
-    await page.setContent(htmlContent);
-
-    // Generate PDF
-    const pdf = await page.pdf({
+    // Generate PDF using Puppeteer
+    const browser = await createBrowser();
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf({
       format: 'A4',
-      margin: {
-        top: '20mm',
-        right: '20mm',
-        bottom: '20mm',
-        left: '20mm'
-      },
       printBackground: true,
-      displayHeaderFooter: false
+      margin: { top: '40px', bottom: '60px', left: '32px', right: '32px' },
+      displayHeaderFooter: false,
     });
-
     await browser.close();
 
-    // Return PDF with proper headers
-    return new NextResponse(pdf, {
+    return new NextResponse(pdfBuffer, {
+      status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${report.slug || report.type}.pdf"`,
-        'Content-Length': pdf.length.toString()
-      }
+        'Content-Disposition': `attachment; filename="${brandName}-report.pdf"`,
+      },
     });
-
   } catch (error) {
     console.error('PDF generation error:', error);
-    return NextResponse.json({ error: 'Failed to generate PDF' }, { status: 500 });
+    return NextResponse.json({ error: 'PDF generation failed', details: String(error) }, { status: 500 });
   }
 } 
