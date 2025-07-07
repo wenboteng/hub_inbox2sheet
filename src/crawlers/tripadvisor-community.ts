@@ -1,5 +1,6 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { PrismaClient } from '@prisma/client';
+import { createBrowser } from '../utils/puppeteer';
 
 const prisma = new PrismaClient();
 
@@ -373,21 +374,7 @@ export async function crawlTripAdvisorCommunity(): Promise<TripAdvisorPost[]> {
   const allPosts: TripAdvisorPost[] = [];
   
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-      ],
-    });
+    browser = await createBrowser();
     
     const page = await browser.newPage();
     await setupPage(page);
@@ -448,14 +435,7 @@ export async function testTripAdvisorCrawler(): Promise<void> {
   let browser: Browser | null = null;
   
   try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-      ],
-    });
+    browser = await createBrowser();
     
     const page = await browser.newPage();
     await setupPage(page);

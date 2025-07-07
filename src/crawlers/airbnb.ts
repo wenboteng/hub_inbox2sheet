@@ -1,5 +1,6 @@
 import puppeteer, { Browser } from 'puppeteer';
 import { cleanText } from '../utils/parseHelpers';
+import { createBrowser } from '../utils/puppeteer';
 
 const BASE_URL = 'https://www.airbnb.com/help';
 
@@ -139,18 +140,8 @@ export async function crawlAirbnbArticles(): Promise<AirbnbArticle[]> {
   const results: AirbnbArticle[] = [];
   const processedUrls = new Set<string>();
 
-  // Launch browser
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--disable-gpu',
-      '--window-size=1280,800'
-    ]
-  });
+  // Launch browser with proper Chrome installation
+  const browser = await createBrowser();
 
   try {
     // Crawl verified article URLs first

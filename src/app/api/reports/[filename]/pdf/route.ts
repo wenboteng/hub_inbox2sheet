@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
+import { createBrowser } from '@/utils/puppeteer';
 
 export async function GET(request: NextRequest, { params }: { params: { filename: string } }) {
   try {
@@ -21,11 +21,8 @@ export async function GET(request: NextRequest, { params }: { params: { filename
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
-    // Generate PDF using Puppeteer
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    // Generate PDF using Puppeteer with proper Chrome installation
+    const browser = await createBrowser();
 
     const page = await browser.newPage();
     

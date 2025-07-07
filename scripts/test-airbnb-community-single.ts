@@ -4,6 +4,7 @@ import puppeteer from 'puppeteer';
 import { PrismaClient } from '@prisma/client';
 import { cleanText } from '../src/utils/parseHelpers';
 import { detectLanguage } from '../src/utils/languageDetection';
+import { createBrowser } from '../src/utils/puppeteer';
 
 const prisma = new PrismaClient();
 
@@ -15,14 +16,7 @@ async function testSingleThread() {
   console.log('===================================');
   console.log(`🔗 Test URL: ${TEST_URL}`);
   
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-    ],
-  });
+  const browser = await createBrowser();
 
   try {
     const page = await browser.newPage();

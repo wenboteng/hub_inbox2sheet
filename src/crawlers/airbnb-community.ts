@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { cleanText } from '../utils/parseHelpers';
 import { detectLanguage } from '../utils/languageDetection';
 import { slugify } from '../utils/slugify';
+import { createBrowser } from '../utils/puppeteer';
 
 const prisma = new PrismaClient();
 
@@ -117,19 +118,7 @@ class AirbnbCommunityCrawler {
   async initialize(): Promise<void> {
     console.log('[AIRBNB-COMMUNITY] Initializing crawler...');
     
-    this.browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--disable-gpu',
-        '--window-size=1280,800',
-        '--disable-web-security',
-        '--disable-features=VizDisplayCompositor',
-      ],
-    });
+    this.browser = await createBrowser();
 
     // Set up request interception for performance
     const page = await this.browser.newPage();
