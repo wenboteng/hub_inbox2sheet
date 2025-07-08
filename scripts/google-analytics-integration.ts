@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
+import { BetaAnalyticsDataClient } from '@google-analytics/data';
 
 const prisma = new PrismaClient();
 
@@ -40,57 +41,121 @@ interface UserBehavior {
   avgSessionDuration: number;
 }
 
+async function fetchRealGoogleAnalyticsData(config: GoogleAnalyticsConfig) {
+  const client = new BetaAnalyticsDataClient({
+    credentials: {
+      client_email: config.clientEmail,
+      private_key: config.privateKey.replace(/\\n/g, '\n'),
+    },
+  });
+  const propertyId = config.propertyId;
+  // Standard GA4 metrics and dimensions
+  const [response] = await client.runReport({
+    property: `properties/${propertyId}`,
+    dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+    metrics: [
+      { name: 'totalUsers' },
+      { name: 'newUsers' },
+      { name: 'sessions' },
+      { name: 'screenPageViews' },
+      { name: 'averageSessionDuration' },
+      { name: 'bounceRate' },
+      { name: 'conversions' },
+      { name: 'userEngagementDuration' },
+    ],
+    dimensions: [
+      { name: 'pagePath' },
+      { name: 'sessionSource' },
+      { name: 'sessionMedium' },
+    ],
+    limit: 20,
+  });
+
+  // Parse the response into a dashboard-friendly format
+  const rows = response.rows || [];
+  const overview = {
+    totalUsers: 0,
+    newUsers: 0,
+    sessions: 0,
+    pageViews: 0,
+    avgSessionDuration: 0,
+    bounceRate: 0,
+    conversionRate: 0,
+  };
+  const topPages: any[] = [];
+  const trafficSources: any[] = [];
+
+  // Aggregate metrics
+  rows.forEach((row) => {
+    const pagePath = row.dimensionValues?.[0]?.value || '/';
+    const source = row.dimensionValues?.[1]?.value || 'unknown';
+    const medium = row.dimensionValues?.[2]?.value || 'unknown';
+    const totalUsers = parseInt(row.metricValues?.[0]?.value || '0', 10);
+    const newUsers = parseInt(row.metricValues?.[1]?.value || '0', 10);
+    const sessions = parseInt(row.metricValues?.[2]?.value || '0', 10);
+    const pageViews = parseInt(row.metricValues?.[3]?.value || '0', 10);
+    const avgSessionDuration = parseFloat(row.metricValues?.[4]?.value || '0');
+    const bounceRate = parseFloat(row.metricValues?.[5]?.value || '0');
+    const conversions = parseInt(row.metricValues?.[6]?.value || '0', 10);
+    // For overview, sum up
+    overview.totalUsers += totalUsers;
+    overview.newUsers += newUsers;
+    overview.sessions += sessions;
+    overview.pageViews += pageViews;
+    overview.avgSessionDuration += avgSessionDuration;
+    overview.bounceRate += bounceRate;
+    overview.conversionRate += conversions;
+    // Top pages
+    if (pageViews > 0) {
+      topPages.push({ pagePath, pageViews, avgSessionDuration, bounceRate });
+    }
+    // Traffic sources
+    if (sessions > 0) {
+      trafficSources.push({ source, medium, sessions });
+    }
+  });
+  // Average bounce rate and session duration
+  if (rows.length > 0) {
+    overview.avgSessionDuration = Math.round(overview.avgSessionDuration / rows.length);
+    overview.bounceRate = overview.bounceRate / rows.length;
+  }
+  return {
+    overview,
+    topPages: topPages.slice(0, 5),
+    trafficSources: trafficSources.slice(0, 5),
+    conversions: { total: overview.conversionRate },
+  };
+}
+
 async function googleAnalyticsIntegration() {
   console.log('📊 GOOGLE ANALYTICS INTEGRATION & INTELLIGENT MONITORING\n');
-
   try {
-    // Check if Google Analytics credentials are available
     const gaConfig = getGoogleAnalyticsConfig();
-    
     if (!gaConfig) {
       console.log('⚠️ Google Analytics credentials not found. Setting up integration...\n');
       await setupGoogleAnalyticsIntegration();
       return;
     }
-
     console.log('🔗 Connecting to Google Analytics...\n');
-    
-    // Simulate Google Analytics data (in real implementation, this would use GA4 API)
-    const analyticsData = await simulateGoogleAnalyticsData();
-    
-    // Analyze traffic patterns
-    const trafficInsights = analyzeTrafficPatterns(analyticsData);
-    
-    // Analyze page performance
-    const pagePerformance = analyzePagePerformance(analyticsData);
-    
-    // Analyze user behavior
-    const userBehavior = analyzeUserBehavior(analyticsData);
-    
-    // Generate intelligent insights
-    const intelligentInsights = generateIntelligentInsights(analyticsData, trafficInsights, pagePerformance, userBehavior);
-    
-    // Display comprehensive analytics report
-    displayAnalyticsReport(analyticsData, trafficInsights, pagePerformance, userBehavior, intelligentInsights);
-    
-    // Save detailed analytics report
+    // Fetch real data
+    const analyticsData = await fetchRealGoogleAnalyticsData(gaConfig);
+    // Generate intelligent insights (placeholder for now)
+    const intelligentInsights = [
+      'This is real data from your GA4 property.',
+      'Focus on top performing pages and sources.',
+      'Optimize for bounce rate and conversions.',
+    ];
+    // Save report
     const analyticsReport = {
       timestamp: new Date().toISOString(),
       analyticsData,
-      trafficInsights,
-      pagePerformance,
-      userBehavior,
       intelligentInsights,
-      recommendations: generateRecommendations(analyticsData, trafficInsights, pagePerformance, userBehavior)
     };
-
     writeFileSync(
       join(process.cwd(), 'google-analytics-report.json'),
       JSON.stringify(analyticsReport, null, 2)
     );
-
     console.log('✅ Google Analytics report saved to: google-analytics-report.json');
-
   } catch (error) {
     console.error('❌ Error in Google Analytics integration:', error);
   } finally {
@@ -99,23 +164,20 @@ async function googleAnalyticsIntegration() {
 }
 
 function getGoogleAnalyticsConfig(): GoogleAnalyticsConfig | null {
-  // Check for environment variables
   const propertyId = process.env.GA4_PROPERTY_ID;
   const measurementId = process.env.GA4_MEASUREMENT_ID;
   const apiKey = process.env.GA4_API_KEY;
   const clientEmail = process.env.GA4_CLIENT_EMAIL;
   const privateKey = process.env.GA4_PRIVATE_KEY;
-
   if (propertyId && measurementId && apiKey && clientEmail && privateKey) {
     return {
       propertyId,
       measurementId,
       apiKey,
       clientEmail,
-      privateKey
+      privateKey,
     };
   }
-
   return null;
 }
 
@@ -223,58 +285,6 @@ async function setupGoogleAnalyticsIntegration() {
   );
 
   console.log('✅ Setup guide saved to: google-analytics-setup-guide.json');
-}
-
-async function simulateGoogleAnalyticsData() {
-  // Simulate realistic Google Analytics data
-  return {
-    dateRange: {
-      start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      end: new Date().toISOString().split('T')[0]
-    },
-    overview: {
-      totalUsers: 1247,
-      newUsers: 892,
-      sessions: 2156,
-      pageViews: 8432,
-      avgSessionDuration: 127,
-      bounceRate: 0.42,
-      conversionRate: 0.023
-    },
-    trafficSources: [
-      { source: 'google', medium: 'organic', sessions: 1247, newUsers: 892, conversionRate: 0.028 },
-      { source: 'direct', medium: '(none)', sessions: 456, newUsers: 234, conversionRate: 0.015 },
-      { source: 'linkedin.com', medium: 'referral', sessions: 234, newUsers: 156, conversionRate: 0.019 },
-      { source: 'reddit.com', medium: 'referral', sessions: 123, newUsers: 89, conversionRate: 0.012 },
-      { source: 'facebook.com', medium: 'referral', sessions: 96, newUsers: 67, conversionRate: 0.008 }
-    ],
-    topPages: [
-      { pagePath: '/', pageViews: 1247, uniquePageViews: 892, avgSessionDuration: 145, bounceRate: 0.38 },
-      { pagePath: '/search', pageViews: 892, uniquePageViews: 567, avgSessionDuration: 234, bounceRate: 0.25 },
-      { pagePath: '/answers/airbnb-cancellation-policy', pageViews: 456, uniquePageViews: 234, avgSessionDuration: 189, bounceRate: 0.31 },
-      { pagePath: '/platform/airbnb', pageViews: 345, uniquePageViews: 234, avgSessionDuration: 167, bounceRate: 0.28 },
-      { pagePath: '/answers/tour-operator-payment', pageViews: 234, uniquePageViews: 156, avgSessionDuration: 203, bounceRate: 0.22 }
-    ],
-    userBehavior: {
-      deviceCategory: [
-        { device: 'desktop', sessions: 1247, conversionRate: 0.025 },
-        { device: 'mobile', sessions: 789, conversionRate: 0.018 },
-        { device: 'tablet', sessions: 120, conversionRate: 0.022 }
-      ],
-      userType: [
-        { type: 'new', sessions: 892, conversionRate: 0.015 },
-        { type: 'returning', sessions: 1264, conversionRate: 0.028 }
-      ]
-    },
-    conversions: {
-      total: 49,
-      byGoal: [
-        { goal: 'email_signup', conversions: 23, value: 0 },
-        { goal: 'article_view', conversions: 15, value: 0 },
-        { goal: 'search_query', conversions: 11, value: 0 }
-      ]
-    }
-  };
 }
 
 function analyzeTrafficPatterns(data: any): TrafficInsight[] {
