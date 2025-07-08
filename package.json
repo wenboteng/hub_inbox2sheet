@@ -66,6 +66,7 @@
     "automation:run-all": "tsx scripts/automated-traffic-system.ts"
   },
   "dependencies": {
+    "@google-analytics/data": "^5.1.0",
     "@headlessui/react": "^2.0.0",
     "@heroicons/react": "^2.1.1",
     "@meilisearch/instant-meilisearch": "^0.12.0",
