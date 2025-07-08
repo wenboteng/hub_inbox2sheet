@@ -132,6 +132,12 @@ export default function AdminLayout({
             >
               Generate Analytics
             </a>
+            <a
+              href="/admin/traffic"
+              className="text-gray-900 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+            >
+              Traffic & Analytics
+            </a>
           </nav>
         </div>
       </header>
