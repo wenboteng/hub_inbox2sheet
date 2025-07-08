@@ -1,0 +1,263 @@
+{
+  "schedule": [
+    {
+      "platform": "linkedin",
+      "content": "📊 New data shows Reddit leads with 48 articles. This insight reveals that Reddit is the most discussed platform among tour operators. Focus your content strategy on this platform for maximum impact. What's your experience with this trend?",
+      "hashtags": [
+        "#TourOperator",
+        "#Reddit",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-14",
+      "type": "insight",
+      "priority": "high"
+    },
+    {
+      "platform": "linkedin",
+      "content": "💡 Airbnb Tip: Did you know that optimizing your airbnb listing can increase bookings by up to 40%? Here are 3 quick wins: 1) Update photos monthly 2) Respond to reviews within 24 hours 3) Keep your calendar updated. Which tip has worked best for you?",
+      "hashtags": [
+        "#Airbnb",
+        "#TourOperator",
+        "#BookingTips"
+      ],
+      "scheduledDate": "2025-07-09",
+      "type": "tip",
+      "priority": "high"
+    },
+    {
+      "platform": "linkedin",
+      "content": "🎉 Success Story: A tour operator increased their bookings by 60% after implementing our platform optimization strategies. The key was focusing on tour operators prefer this type of content for problem-solving. Ready to transform your tour business?",
+      "hashtags": [
+        "#SuccessStory",
+        "#TourOperator",
+        "#BusinessGrowth"
+      ],
+      "scheduledDate": "2025-07-11",
+      "type": "story",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Quick tip: Update your tour photos monthly to keep listings fresh and engaging! 📸 #TourOperator #BookingTips",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-08",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Did you know? Responding to reviews within 24 hours can boost your booking rate by 25%! ⚡ #CustomerService #TourOperator",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-09",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Platform update: New features are rolling out this week. Stay ahead of the competition! 🚀 #TourIndustry #Updates",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-10",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Question for tour operators: What's your biggest challenge with online bookings? Let's discuss! 💭 #TourOperator #Community",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-11",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Industry insight: Tour operators who use multiple platforms see 40% more bookings. Are you maximizing your reach? 📈 #TourOperator #Growth",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-12",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Quick tip: Update your tour photos monthly to keep listings fresh and engaging! 📸 #TourOperator #BookingTips",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-13",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Did you know? Responding to reviews within 24 hours can boost your booking rate by 25%! ⚡ #CustomerService #TourOperator",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-14",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Platform update: New features are rolling out this week. Stay ahead of the competition! 🚀 #TourIndustry #Updates",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-15",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Question for tour operators: What's your biggest challenge with online bookings? Let's discuss! 💭 #TourOperator #Community",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-16",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Industry insight: Tour operators who use multiple platforms see 40% more bookings. Are you maximizing your reach? 📈 #TourOperator #Growth",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-17",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Quick tip: Update your tour photos monthly to keep listings fresh and engaging! 📸 #TourOperator #BookingTips",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-18",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Did you know? Responding to reviews within 24 hours can boost your booking rate by 25%! ⚡ #CustomerService #TourOperator",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-19",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Platform update: New features are rolling out this week. Stay ahead of the competition! 🚀 #TourIndustry #Updates",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-20",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "twitter",
+      "content": "Question for tour operators: What's your biggest challenge with online bookings? Let's discuss! 💭 #TourOperator #Community",
+      "hashtags": [
+        "#TourOperator",
+        "#TravelIndustry"
+      ],
+      "scheduledDate": "2025-07-21",
+      "type": "tip",
+      "priority": "medium"
+    },
+    {
+      "platform": "facebook",
+      "content": "🤔 Community Question: Tour operators, what's your biggest challenge with reddit leads with 48 articles? Share your experience in the comments below! Let's help each other grow. 💪",
+      "hashtags": [
+        "#TourOperator",
+        "#Community",
+        "#Support"
+      ],
+      "scheduledDate": "2025-07-08",
+      "type": "question",
+      "priority": "high"
+    },
+    {
+      "platform": "facebook",
+      "content": "📚 Educational Content: Understanding content preference analysis is crucial for tour operator success. Tour operators prefer this type of content for problem-solving Here's how you can apply this to your business...",
+      "hashtags": [
+        "#Education",
+        "#TourOperator",
+        "#Learning"
+      ],
+      "scheduledDate": "2025-07-10",
+      "type": "guide",
+      "priority": "medium"
+    }
+  ],
+  "insights": [
+    {
+      "title": "Platform Dominance in Tour Industry",
+      "data": "Reddit leads with 48 articles",
+      "insight": "Reddit is the most discussed platform among tour operators",
+      "action": "Focus your content strategy on this platform for maximum impact",
+      "hashtags": [
+        "#TourOperator",
+        "#Reddit",
+        "#TravelIndustry"
+      ]
+    },
+    {
+      "title": "Content Preference Analysis",
+      "data": "community content represents 100% of all content",
+      "insight": "Tour operators prefer this type of content for problem-solving",
+      "action": "Create more content in this format to better serve your audience",
+      "hashtags": [
+        "#ContentStrategy",
+        "#TourOperator",
+        "#DigitalMarketing"
+      ]
+    },
+    {
+      "title": "High Activity in Tour Industry",
+      "data": "50 new articles in the last 7 days",
+      "insight": "The tour operator industry is very active with new content",
+      "action": "Stay current with industry trends and respond quickly to changes",
+      "hashtags": [
+        "#TourIndustry",
+        "#TravelTrends",
+        "#TourOperator"
+      ]
+    }
+  ],
+  "summary": {
+    "totalPosts": 19,
+    "linkedinPosts": 3,
+    "twitterPosts": 14,
+    "facebookPosts": 2,
+    "highPriority": 3,
+    "mediumPriority": 16,
+    "lowPriority": 0
+  },
+  "timestamp": "2025-07-08T11:03:01.354Z"
+}

@@ -20,7 +20,7 @@ async function crawlAirHostsForum() {
         for (const categoryUrl of categories) {
             try {
                 console.log(`[AIRHOSTS] Crawling category: ${categoryUrl}`);
-                await page.goto(categoryUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+                await page.goto(categoryUrl, { waitUntil: 'networkidle0', timeout: 90000 });
                 // Get topic links
                 const topicLinks = await page.evaluate(() => {
                     const links = Array.from(document.querySelectorAll('a[href*="/t/"]'));
@@ -28,7 +28,7 @@ async function crawlAirHostsForum() {
                 });
                 for (const topicUrl of topicLinks) {
                     try {
-                        await page.goto(topicUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+                        await page.goto(topicUrl, { waitUntil: 'networkidle0', timeout: 90000 });
                         const postData = await page.evaluate(() => {
                             const titleElement = document.querySelector('h1, .topic-title');
                             const contentElement = document.querySelector('.post-content, .cooked');
@@ -55,18 +55,33 @@ async function crawlAirHostsForum() {
                         await new Promise(resolve => setTimeout(resolve, 2000));
                     }
                     catch (error) {
-                        console.error(`[AIRHOSTS] Error crawling topic ${topicUrl}:`, error);
+                        if (error instanceof Error) {
+                            console.error(`[AIRHOSTS] Error crawling topic ${topicUrl}:`, error.stack);
+                        }
+                        else {
+                            console.error(`[AIRHOSTS] Error crawling topic ${topicUrl}:`, error);
+                        }
                     }
                 }
             }
             catch (error) {
-                console.error(`[AIRHOSTS] Error crawling category ${categoryUrl}:`, error);
+                if (error instanceof Error) {
+                    console.error(`[AIRHOSTS] Error crawling category ${categoryUrl}:`, error.stack);
+                }
+                else {
+                    console.error(`[AIRHOSTS] Error crawling category ${categoryUrl}:`, error);
+                }
             }
         }
         await browser.close();
     }
     catch (error) {
-        console.error('[AIRHOSTS] Error in AirHosts Forum crawling:', error);
+        if (error instanceof Error) {
+            console.error('[AIRHOSTS] Error in AirHosts Forum crawling:', error.stack);
+        }
+        else {
+            console.error('[AIRHOSTS] Error in AirHosts Forum crawling:', error);
+        }
     }
     console.log(`[AIRHOSTS] Found ${posts.length} posts`);
     return posts;

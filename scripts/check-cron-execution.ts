@@ -3,16 +3,16 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function checkCronExecution() {
-  console.log('🔍 Checking cron job execution status...\n');
+  console.log('🔍 Checking cron job execution status (Last 12 hours)...\n');
   
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
   
   try {
     // Check crawl jobs
     const crawlJobs = await prisma.crawlJob.findMany({
       where: {
         createdAt: {
-          gte: twentyFourHoursAgo
+          gte: twelveHoursAgo
         }
       },
       orderBy: {
@@ -20,7 +20,7 @@ async function checkCronExecution() {
       }
     });
 
-    console.log(`📋 CRAWL JOBS (Last 24h): ${crawlJobs.length}`);
+    console.log(`📋 CRAWL JOBS (Last 12h): ${crawlJobs.length}`);
     if (crawlJobs.length === 0) {
       console.log('❌ No crawl jobs found - this suggests the cron job may not be running');
     } else {
@@ -37,7 +37,7 @@ async function checkCronExecution() {
     const queueItems = await prisma.crawlQueue.findMany({
       where: {
         updatedAt: {
-          gte: twentyFourHoursAgo
+          gte: twelveHoursAgo
         }
       },
       orderBy: {
@@ -45,7 +45,7 @@ async function checkCronExecution() {
       }
     });
 
-    console.log(`\n🔄 CRAWL QUEUE ACTIVITY (Last 24h): ${queueItems.length} items`);
+    console.log(`\n🔄 CRAWL QUEUE ACTIVITY (Last 12h): ${queueItems.length} items`);
     
     const statusCounts = new Map<string, number>();
     queueItems.forEach(item => {
@@ -81,7 +81,7 @@ async function checkCronExecution() {
     const recentlyUpdated = await prisma.article.findMany({
       where: {
         updatedAt: {
-          gte: twentyFourHoursAgo
+          gte: twelveHoursAgo
         }
       },
       orderBy: {
@@ -97,7 +97,7 @@ async function checkCronExecution() {
 
     console.log(`\n🔄 RECENTLY UPDATED ARTICLES:`);
     if (recentlyUpdated.length === 0) {
-      console.log('❌ No articles updated in the last 24 hours');
+      console.log('❌ No articles updated in the last 12 hours');
     } else {
       recentlyUpdated.forEach((article, index) => {
         const timeAgo = getTimeAgo(article.updatedAt);
@@ -152,7 +152,7 @@ async function checkCronExecution() {
       if (recentArticles.length > 0) {
         const lastArticleTime = getTimeAgo(recentArticles[0].createdAt);
         console.log(`   Last article added: ${lastArticleTime}`);
-        if (lastArticleTime.includes('hour') && parseInt(lastArticleTime.split(' ')[0]) > 12) {
+        if (lastArticleTime.includes('hour') && parseInt(lastArticleTime.split(' ')[0]) > 6) {
           console.log('⚠️ WARNING: No recent content - crawler may be failing to find new content');
         }
       }

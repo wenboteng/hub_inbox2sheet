@@ -1,0 +1,54 @@
+{
+  "title": "Google Analytics Integration Setup Guide",
+  "steps": [
+    {
+      "step": 1,
+      "title": "Google Analytics 4 Setup",
+      "actions": [
+        "Go to https://analytics.google.com/",
+        "Select your property (or create one)",
+        "Note your Property ID (format: 123456789)",
+        "Note your Measurement ID (format: G-XXXXXXXXXX)"
+      ]
+    },
+    {
+      "step": 2,
+      "title": "Google Cloud Console Setup",
+      "actions": [
+        "Go to https://console.cloud.google.com/",
+        "Create a new project or select existing",
+        "Enable Google Analytics Data API",
+        "Create a service account",
+        "Download the JSON key file"
+      ]
+    },
+    {
+      "step": 3,
+      "title": "Environment Variables",
+      "variables": [
+        "GA4_PROPERTY_ID=your_property_id",
+        "GA4_MEASUREMENT_ID=your_measurement_id",
+        "GA4_API_KEY=your_api_key",
+        "GA4_CLIENT_EMAIL=your_service_account_email",
+        "GA4_PRIVATE_KEY=your_private_key"
+      ]
+    },
+    {
+      "step": 4,
+      "title": "Permissions",
+      "actions": [
+        "Add your service account email to Google Analytics",
+        "Grant \"Viewer\" permissions",
+        "Ensure API access is enabled"
+      ]
+    }
+  ],
+  "benefits": [
+    "Real-time traffic monitoring",
+    "Intelligent insights and predictions",
+    "User behavior analysis",
+    "Conversion tracking",
+    "SEO performance correlation",
+    "Automated optimization recommendations"
+  ]
+}

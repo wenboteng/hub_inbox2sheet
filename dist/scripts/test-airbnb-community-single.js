@@ -1,13 +1,10 @@
 #!/usr/bin/env tsx
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const puppeteer_1 = __importDefault(require("puppeteer"));
 const client_1 = require("@prisma/client");
 const parseHelpers_1 = require("../src/utils/parseHelpers");
 const languageDetection_1 = require("../src/utils/languageDetection");
+const puppeteer_1 = require("../src/utils/puppeteer");
 const prisma = new client_1.PrismaClient();
 // Test URL - a known Airbnb Community thread
 const TEST_URL = 'https://community.withairbnb.com/t5/Hosting/When-does-Airbnb-pay-hosts/td-p/184758';
@@ -15,14 +12,7 @@ async function testSingleThread() {
     console.log('🧪 Testing Single Thread Extraction');
     console.log('===================================');
     console.log(`🔗 Test URL: ${TEST_URL}`);
-    const browser = await puppeteer_1.default.launch({
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-        ],
-    });
+    const browser = await (0, puppeteer_1.createBrowser)();
     try {
         const page = await browser.newPage();
         // Set viewport and user agent

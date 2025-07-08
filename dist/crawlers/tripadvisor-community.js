@@ -1,12 +1,9 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.crawlTripAdvisorCommunity = crawlTripAdvisorCommunity;
 exports.testTripAdvisorCrawler = testTripAdvisorCrawler;
-const puppeteer_1 = __importDefault(require("puppeteer"));
 const client_1 = require("@prisma/client");
+const puppeteer_1 = require("../utils/puppeteer");
 const prisma = new client_1.PrismaClient();
 // TripAdvisor Community configuration
 const TRIPADVISOR_CONFIG = {
@@ -331,21 +328,7 @@ async function crawlTripAdvisorCommunity() {
     let browser = null;
     const allPosts = [];
     try {
-        browser = await puppeteer_1.default.launch({
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--disable-gpu',
-                '--disable-background-timer-throttling',
-                '--disable-backgrounding-occluded-windows',
-                '--disable-renderer-backgrounding',
-            ],
-        });
+        browser = await (0, puppeteer_1.createBrowser)();
         const page = await browser.newPage();
         await setupPage(page);
         for (const categoryUrl of TRIPADVISOR_CONFIG.categories) {
@@ -395,14 +378,7 @@ async function testTripAdvisorCrawler() {
     const testPosts = [];
     let browser = null;
     try {
-        browser = await puppeteer_1.default.launch({
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-            ],
-        });
+        browser = await (0, puppeteer_1.createBrowser)();
         const page = await browser.newPage();
         await setupPage(page);
         for (const categoryUrl of testCategories) {

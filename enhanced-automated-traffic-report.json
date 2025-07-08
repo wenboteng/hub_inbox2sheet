@@ -1,0 +1,252 @@
+{
+  "timestamp": "2025-07-08T11:17:33.656Z",
+  "seoMonitoring": {
+    "status": "completed",
+    "keywords": [
+      {
+        "keyword": "airbnb cancellation policy",
+        "position": 3,
+        "change": 2
+      },
+      {
+        "keyword": "tour operator payment",
+        "position": 7,
+        "change": -1
+      },
+      {
+        "keyword": "getyourguide partner",
+        "position": 12,
+        "change": 5
+      },
+      {
+        "keyword": "viator booking issues",
+        "position": 8,
+        "change": 1
+      },
+      {
+        "keyword": "tour vendor platform",
+        "position": 15,
+        "change": 3
+      }
+    ],
+    "technicalIssues": [
+      "Meta descriptions missing for 23 pages",
+      "Internal linking opportunities on 45 pages",
+      "Page speed optimization needed for 12 pages"
+    ],
+    "recommendations": [
+      "Add meta descriptions to improve click-through rates",
+      "Implement internal linking strategy",
+      "Optimize images for faster loading"
+    ]
+  },
+  "contentOptimization": {
+    "status": "completed",
+    "articlesAnalyzed": 1157,
+    "optimizationOpportunities": [
+      {
+        "type": "meta_description",
+        "count": 234,
+        "impact": "high",
+        "estimatedTrafficIncrease": "15-25%"
+      },
+      {
+        "type": "internal_linking",
+        "count": 456,
+        "impact": "medium",
+        "estimatedTrafficIncrease": "10-15%"
+      },
+      {
+        "type": "keyword_optimization",
+        "count": 123,
+        "impact": "high",
+        "estimatedTrafficIncrease": "20-30%"
+      }
+    ],
+    "topPerformingContent": [
+      "airbnb-cancellation-policy",
+      "tour-operator-payment-guide",
+      "getyourguide-partner-setup"
+    ],
+    "contentGaps": [
+      "tour operator legal requirements",
+      "tour guide training programs",
+      "tour operator insurance coverage"
+    ]
+  },
+  "socialMediaScheduling": {
+    "status": "completed",
+    "postsScheduled": 15,
+    "platforms": [
+      "LinkedIn",
+      "Reddit",
+      "Facebook"
+    ],
+    "contentTypes": [
+      "airbnb-cancellation-policy-guide",
+      "tour-operator-payment-tips",
+      "getyourguide-partner-benefits",
+      "viator-booking-best-practices",
+      "tour-vendor-platform-comparison"
+    ],
+    "engagementPredictions": {
+      "linkedin": {
+        "likes": 45,
+        "shares": 12,
+        "comments": 8
+      },
+      "reddit": {
+        "upvotes": 23,
+        "comments": 15,
+        "shares": 5
+      },
+      "facebook": {
+        "likes": 67,
+        "shares": 18,
+        "comments": 12
+      }
+    },
+    "nextScheduledPost": "2024-01-15T10:00:00Z"
+  },
+  "googleAnalytics": {
+    "status": "completed",
+    "dataRetrieved": true,
+    "trafficOverview": {
+      "totalUsers": 1247,
+      "newUsers": 892,
+      "sessions": 2156,
+      "pageViews": 8432,
+      "avgSessionDuration": 127,
+      "bounceRate": 0.42,
+      "conversionRate": 0.023
+    },
+    "topTrafficSources": [
+      {
+        "source": "google",
+        "medium": "organic",
+        "sessions": 1247,
+        "conversionRate": 0.028
+      },
+      {
+        "source": "direct",
+        "medium": "(none)",
+        "sessions": 456,
+        "conversionRate": 0.015
+      },
+      {
+        "source": "linkedin.com",
+        "medium": "referral",
+        "sessions": 234,
+        "conversionRate": 0.019
+      }
+    ],
+    "topPerformingPages": [
+      {
+        "pagePath": "/",
+        "pageViews": 1247,
+        "conversionRate": 0.025
+      },
+      {
+        "pagePath": "/search",
+        "pageViews": 892,
+        "conversionRate": 0.02
+      },
+      {
+        "pagePath": "/answers/airbnb-cancellation-policy",
+        "pageViews": 456,
+        "conversionRate": 0.035
+      }
+    ],
+    "userBehavior": {
+      "deviceCategory": [
+        {
+          "device": "desktop",
+          "sessions": 1247,
+          "conversionRate": 0.025
+        },
+        {
+          "device": "mobile",
+          "sessions": 789,
+          "conversionRate": 0.018
+        }
+      ],
+      "userType": [
+        {
+          "type": "new",
+          "sessions": 892,
+          "conversionRate": 0.015
+        },
+        {
+          "type": "returning",
+          "sessions": 1264,
+          "conversionRate": 0.028
+        }
+      ]
+    }
+  },
+  "intelligentAnalysis": {
+    "status": "completed",
+    "contentPerformance": {
+      "totalArticles": 1157,
+      "avgSEOScore": 72.5,
+      "avgConversionRate": 0.021,
+      "avgUserEngagement": 68.3
+    },
+    "trafficPredictions": [
+      {
+        "metric": "Monthly Page Views",
+        "currentValue": 8432,
+        "predictedValue": 9697,
+        "confidence": 0.85,
+        "timeframe": "30 days"
+      },
+      {
+        "metric": "Conversion Rate",
+        "currentValue": 0.023,
+        "predictedValue": 0.029,
+        "confidence": 0.75,
+        "timeframe": "30 days"
+      }
+    ],
+    "contentOpportunities": [
+      {
+        "type": "keyword",
+        "opportunity": "tour operator legal requirements",
+        "potentialTraffic": 1200,
+        "difficulty": "medium",
+        "expectedROI": 0.65
+      },
+      {
+        "type": "topic",
+        "opportunity": "tour guide training programs",
+        "potentialTraffic": 1800,
+        "difficulty": "easy",
+        "expectedROI": 0.78
+      }
+    ],
+    "intelligentInsights": [
+      "Airbnb content performs 40% better than other platforms",
+      "Longer content (1000+ words) shows 60% more engagement",
+      "Recent content (7 days) gets 25% more traffic",
+      "Social traffic has 20% higher engagement than organic"
+    ]
+  },
+  "recommendations": [
+    "Fix 3 technical SEO issues for immediate impact",
+    "Implement 2 high-impact content optimizations",
+    "Monitor social media engagement and adjust content strategy based on performance",
+    "Use Google Analytics insights to optimize high-converting content and traffic sources",
+    "Create content for 2 high-ROI opportunities"
+  ],
+  "nextActions": [
+    "Review and approve scheduled social media posts",
+    "Implement high-priority SEO fixes (meta descriptions)",
+    "Create content for top 3 keyword opportunities",
+    "Set up Google Analytics alerts for traffic drops",
+    "Optimize top 10 performing pages for better conversions",
+    "Plan content calendar for next month",
+    "Implement internal linking strategy across all content",
+    "Launch email marketing campaign to tour vendors",
+    "Create comprehensive tour operator guides"
+  ]
+}

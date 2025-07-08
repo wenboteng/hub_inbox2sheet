@@ -27,4 +27,26 @@ export declare function findRelevantParagraphs(query: string, paragraphs: {
  * Generate a business-enriched report using OpenAI GPT-4o
  */
 export declare function enrichAnalyticsReport(rawText: string): Promise<string>;
+/**
+ * Enrich report title and introduction with emotional framing using GPT-4o
+ */
+export declare function enrichReportTitleAndIntro(title: string, intro: string): Promise<{
+    enrichedTitle: string;
+    enrichedIntro: string;
+}>;
+/**
+ * Generate "What This Means for You" summary boxes for report sections using GPT-4o
+ */
+export declare function generateSummaryBoxes(reportContent: string): Promise<string[]>;
+/**
+ * Generate tweet-style share suggestions from report content using GPT-4o
+ */
+export declare function generateShareSuggestions(reportContent: string): Promise<string[]>;
+/**
+ * Comprehensive report enrichment function that applies all GPT-4o enhancements
+ */
+export declare function enrichReportWithGPT(reportContent: string, originalTitle?: string): Promise<{
+    enrichedContent: string;
+    shareSuggestions: string[];
+}>;
 //# sourceMappingURL=openai.d.ts.map

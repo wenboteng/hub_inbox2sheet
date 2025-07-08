@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-07-08T11:02:50.691Z",
+  "seoMonitoring": {
+    "totalArticles": 1158,
+    "indexedPages": 1158,
+    "averageRanking": 22.3,
+    "topKeywords": 6,
+    "performanceIssues": 1
+  },
+  "contentOptimization": {
+    "totalArticles": 1158,
+    "highPriority": 1046,
+    "mediumPriority": 112,
+    "averageCurrentScore": 28.850604490500864,
+    "averagePotentialScore": 83.69516407599309,
+    "potentialImprovement": 63510
+  },
+  "socialMedia": {
+    "totalPosts": 19,
+    "linkedinPosts": 3,
+    "twitterPosts": 14,
+    "facebookPosts": 2,
+    "highPriority": 3
+  },
+  "recommendations": [
+    "Focus on improving keyword rankings - current average is above position 20",
+    "Optimize 1046 high-priority articles for immediate SEO impact",
+    "Content SEO scores are low - implement meta descriptions and keyword optimization",
+    "Increase high-priority social media posts for better engagement"
+  ],
+  "nextActions": [
+    "Create \"Airbnb Cancellation Policy for Hosts\" guide (2,000 words)",
+    "Set up LinkedIn company page and join 10 tour operator groups",
+    "Optimize 10 highest-priority articles with target keywords",
+    "Review and optimize 20 high-priority articles",
+    "Engage with scheduled social media posts and respond to comments",
+    "Join Reddit communities (r/AirBnBHosts, r/travelagents) and participate",
+    "Review automation reports weekly and adjust strategy based on performance",
+    "Set up Google Search Console alerts for ranking changes"
+  ]
+}

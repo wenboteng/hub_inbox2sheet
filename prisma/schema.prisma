@@ -195,3 +195,44 @@ model ImportedGYGActivity {
   @@index([city])
   @@index([country])
 }
+
+model ImportedMadridActivity {
+  id                String   @id @default(cuid())
+  originalId        String   @unique // Original ID from Madrid database
+  activityName      String
+  ratingText        String?  // Original rating text (e.g., "4.5")
+  ratingNumeric     Float?   // Parsed numeric rating (e.g., 4.5)
+  reviewCountText   String?  // Original review count text (e.g., "1,234")
+  reviewCountNumeric Int?    // Parsed numeric review count (e.g., 1234)
+  priceText         String?  // Original price text (e.g., "€25")
+  priceNumeric      Float?   // Parsed numeric price (e.g., 25.0)
+  activityUrl       String?  // Original activity URL
+  rawText           String?  @db.Text // Raw extracted text
+  extractionMethod  String?  // Method used for extraction (e.g., "OCR+GPT")
+  extractionQuality String?  // Quality of extraction (e.g., "high", "medium")
+  screenshotPath    String?  // Path to screenshot
+  timestamp         String?  // Original timestamp
+  sessionId         Int?     // Session ID from extraction
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  importedAt        DateTime @default(now()) // When this record was imported
+  
+  // Additional fields for data cleaning and quality monitoring
+  cleanedAt         DateTime? // When this record was last cleaned
+  qualityScore      Int?      // Quality score (0-100)
+  priceCurrency     String?   // Extracted currency (€, $, £, etc.)
+  city              String?   // Standardized city name (default: Madrid)
+  country           String?   // Standardized country name (default: Spain)
+  venue             String?   // Specific venue/location
+  durationHours     Int?      // Duration in hours (if extracted from activity name)
+  durationDays      Int?      // Duration in days (if extracted from activity name)
+
+  @@index([ratingNumeric])
+  @@index([priceNumeric])
+  @@index([extractionQuality])
+  @@index([importedAt])
+  @@index([cleanedAt])
+  @@index([qualityScore])
+  @@index([city])
+  @@index([country])
+}

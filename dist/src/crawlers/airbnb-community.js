@@ -1,15 +1,12 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AirbnbCommunityCrawler = void 0;
 exports.crawlAirbnbCommunity = crawlAirbnbCommunity;
-const puppeteer_1 = __importDefault(require("puppeteer"));
 const client_1 = require("@prisma/client");
 const parseHelpers_1 = require("../utils/parseHelpers");
 const languageDetection_1 = require("../utils/languageDetection");
 const slugify_1 = require("../utils/slugify");
+const puppeteer_1 = require("../utils/puppeteer");
 const prisma = new client_1.PrismaClient();
 // Airbnb Community specific configuration - ENHANCED FOR EXPANSION
 const AIRBNB_COMMUNITY_CONFIG = {
@@ -92,19 +89,7 @@ class AirbnbCommunityCrawler {
     }
     async initialize() {
         console.log('[AIRBNB-COMMUNITY] Initializing crawler...');
-        this.browser = await puppeteer_1.default.launch({
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--disable-gpu',
-                '--window-size=1280,800',
-                '--disable-web-security',
-                '--disable-features=VizDisplayCompositor',
-            ],
-        });
+        this.browser = await (0, puppeteer_1.createBrowser)();
         // Set up request interception for performance
         const page = await this.browser.newPage();
         await page.setRequestInterception(true);

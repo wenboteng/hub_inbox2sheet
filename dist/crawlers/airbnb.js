@@ -1,12 +1,9 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.crawlAirbnbArticle = crawlAirbnbArticle;
 exports.crawlAirbnbArticles = crawlAirbnbArticles;
-const puppeteer_1 = __importDefault(require("puppeteer"));
 const parseHelpers_1 = require("../utils/parseHelpers");
+const puppeteer_1 = require("../utils/puppeteer");
 const BASE_URL = 'https://www.airbnb.com/help';
 const AIRBNB_SELECTORS = {
     title: 'h1',
@@ -110,18 +107,8 @@ async function crawlAirbnbArticles() {
     console.log('[AIRBNB] Starting crawl of Airbnb help center articles');
     const results = [];
     const processedUrls = new Set();
-    // Launch browser
-    const browser = await puppeteer_1.default.launch({
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--disable-gpu',
-            '--window-size=1280,800'
-        ]
-    });
+    // Launch browser with proper Chrome installation
+    const browser = await (0, puppeteer_1.createBrowser)();
     try {
         // Crawl verified article URLs first
         for (const url of VERIFIED_URLS) {
