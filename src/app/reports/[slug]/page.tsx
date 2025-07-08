@@ -81,38 +81,99 @@ export default function ReportDetailPage() {
     if (slug) fetchReport();
   }, [slug]);
 
-  // SEO meta tags
+  // Enhanced SEO meta tags
   useEffect(() => {
     if (report) {
+      // Generate SEO-friendly description
+      const description = report.content 
+        ? report.content.replace(/[#*`]/g, '').substring(0, 160) + '...'
+        : `Read the latest analytics and insights: ${report.title}`;
+      
+      // Generate keywords based on title and content
+      const keywords = [
+        'airbnb ranking algorithm',
+        'airbnb host tips',
+        'airbnb optimization',
+        'airbnb search ranking',
+        'airbnb superhost',
+        'airbnb hosting guide',
+        'tour vendor analytics',
+        'OTA insights'
+      ].join(', ');
+
       document.title = `${report.title} | Analytics & Insights Reports | OTA Answers`;
+      
+      // Meta description
       const metaDesc = document.querySelector('meta[name="description"]');
       if (metaDesc) {
-        metaDesc.setAttribute('content', `Read the latest analytics and insights: ${report.title}`);
+        metaDesc.setAttribute('content', description);
       } else {
         const meta = document.createElement('meta');
         meta.name = 'description';
-        meta.content = `Read the latest analytics and insights: ${report.title}`;
+        meta.content = description;
         document.head.appendChild(meta);
       }
+
+      // Keywords
+      const metaKeywords = document.querySelector('meta[name="keywords"]');
+      if (metaKeywords) {
+        metaKeywords.setAttribute('content', keywords);
+      } else {
+        const meta = document.createElement('meta');
+        meta.name = 'keywords';
+        meta.content = keywords;
+        document.head.appendChild(meta);
+      }
+
+      // Canonical URL
+      const canonical = document.querySelector('link[rel="canonical"]');
+      if (canonical) {
+        canonical.setAttribute('href', `https://otaanswers.com/reports/${report.slug}`);
+      } else {
+        const link = document.createElement('link');
+        link.rel = 'canonical';
+        link.href = `https://otaanswers.com/reports/${report.slug}`;
+        document.head.appendChild(link);
+      }
+
       // Open Graph
       const ogTitle = document.querySelector('meta[property="og:title"]') || document.createElement('meta');
       ogTitle.setAttribute('property', 'og:title');
       ogTitle.setAttribute('content', report.title);
       document.head.appendChild(ogTitle);
+      
       const ogDesc = document.querySelector('meta[property="og:description"]') || document.createElement('meta');
       ogDesc.setAttribute('property', 'og:description');
-      ogDesc.setAttribute('content', report.summary || report.title);
+      ogDesc.setAttribute('content', description);
       document.head.appendChild(ogDesc);
+      
+      const ogUrl = document.querySelector('meta[property="og:url"]') || document.createElement('meta');
+      ogUrl.setAttribute('property', 'og:url');
+      ogUrl.setAttribute('content', `https://otaanswers.com/reports/${report.slug}`);
+      document.head.appendChild(ogUrl);
+      
+      const ogType = document.querySelector('meta[property="og:type"]') || document.createElement('meta');
+      ogType.setAttribute('property', 'og:type');
+      ogType.setAttribute('content', 'article');
+      document.head.appendChild(ogType);
+
       // Twitter
       const twTitle = document.querySelector('meta[name="twitter:title"]') || document.createElement('meta');
       twTitle.setAttribute('name', 'twitter:title');
       twTitle.setAttribute('content', report.title);
       document.head.appendChild(twTitle);
+      
       const twDesc = document.querySelector('meta[name="twitter:description"]') || document.createElement('meta');
       twDesc.setAttribute('name', 'twitter:description');
-      twDesc.setAttribute('content', report.summary || report.title);
+      twDesc.setAttribute('content', description);
       document.head.appendChild(twDesc);
-      // JSON-LD
+      
+      const twCard = document.querySelector('meta[name="twitter:card"]') || document.createElement('meta');
+      twCard.setAttribute('name', 'twitter:card');
+      twCard.setAttribute('content', 'summary_large_image');
+      document.head.appendChild(twCard);
+
+      // Enhanced JSON-LD structured data
       const scriptId = 'report-jsonld';
       let script = document.getElementById(scriptId) as HTMLScriptElement | null;
       if (script) script.remove();
@@ -123,15 +184,28 @@ export default function ReportDetailPage() {
         "@context": "https://schema.org",
         "@type": "Report",
         "name": report.title,
-        "description": report.summary || report.title,
-        "datePublished": report.createdAt,
-        "dateModified": report.updatedAt,
+        "description": description,
+        "datePublished": report.createdAt || new Date().toISOString(),
+        "dateModified": report.updatedAt || new Date().toISOString(),
         "headline": report.title,
         "inLanguage": "en",
+        "url": `https://otaanswers.com/reports/${report.slug}`,
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": `https://otaanswers.com/reports/${report.slug}`
+        },
         "publisher": {
           "@type": "Organization",
+          "name": "OTA Answers",
+          "url": "https://otaanswers.com"
+        },
+        "author": {
+          "@type": "Organization",
           "name": "OTA Answers"
-        }
+        },
+        "keywords": keywords,
+        "articleSection": "Analytics & Insights",
+        "wordCount": report.content ? report.content.split(' ').length : 0
       });
       document.head.appendChild(script);
     }
