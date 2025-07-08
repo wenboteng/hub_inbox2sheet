@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: { filename
     if (!report) {
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
-    return NextResponse.json({ content: report.content, title: report.title, slug: report.slug });
+    return NextResponse.json({ content: report.content, title: report.title, slug: report.slug, createdAt: report.createdAt, updatedAt: report.updatedAt });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch report' }, { status: 500 });
   }

@@ -40,6 +40,11 @@ function slugify(text: any) {
     .replace(/(^-|-$)+/g, "");
 }
 
+// Remove first H1 from markdown content if present
+function stripFirstH1(markdown: string) {
+  return markdown.replace(/^# .+\n?/, '');
+}
+
 export default function ReportDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -301,7 +306,7 @@ export default function ReportDetailPage() {
         )}
         {/* Main content */}
         <main className="flex-1 min-w-0">
-          <h1 className="text-3xl font-bold mb-2 text-blue-900">{report.title}</h1>
+          {/* Remove duplicate title: do not render <h1> here */}
           <div className="flex flex-wrap gap-2 mb-4">
             <button
               className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition"
@@ -319,12 +324,15 @@ export default function ReportDetailPage() {
             </button>
             {shareFeedback && <span className="text-blue-700 ml-2 text-sm">{shareFeedback}</span>}
           </div>
-          <div className="text-xs text-gray-500 mb-4">Last updated: {new Date(report.updatedAt).toLocaleDateString()}</div>
+          {/* Only show date if valid */}
+          {report.updatedAt && !isNaN(new Date(report.updatedAt).getTime()) && (
+            <div className="text-xs text-gray-500 mb-4">Last updated: {new Date(report.updatedAt).toLocaleDateString()}</div>
+          )}
           <div className="bg-white border rounded p-4 max-w-none text-gray-900 report-pdf-content">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={markdownComponents}
-            >{report.content}</ReactMarkdown>
+            >{stripFirstH1(report.content)}</ReactMarkdown>
           </div>
           {/* Related Reports */}
           {related.length > 0 && (
