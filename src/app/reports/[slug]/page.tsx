@@ -306,7 +306,7 @@ export default function ReportDetailPage() {
         )}
         {/* Main content */}
         <main className="flex-1 min-w-0">
-          {/* Remove duplicate title: do not render <h1> here */}
+          <h1 className="text-3xl font-bold mb-2 text-blue-900">{report.title}</h1>
           <div className="flex flex-wrap gap-2 mb-4">
             <button
               className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition"
