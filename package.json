@@ -63,7 +63,8 @@
     "automation:seo-monitoring": "tsx scripts/automated-seo-monitoring.ts",
     "automation:content-optimization": "tsx scripts/automated-content-optimization.ts",
     "automation:social-scheduler": "tsx scripts/automated-social-media-scheduler.ts",
-    "automation:run-all": "tsx scripts/automated-traffic-system.ts"
+    "automation:run-all": "tsx scripts/automated-traffic-system.ts",
+    "test:crawler-fixes": "tsx scripts/test-crawler-fixes.ts"
   },
   "dependencies": {
     "@google-analytics/data": "^5.1.0",

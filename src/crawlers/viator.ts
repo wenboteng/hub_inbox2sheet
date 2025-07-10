@@ -8,6 +8,36 @@ const VIATOR_SELECTORS = {
   content: '.article-content, .help-center-content, .article-body, .content, .article-text, [data-testid="article-content"]',
 };
 
+// Enhanced configuration with better error handling
+const VIATOR_CONFIG = {
+  rateLimit: {
+    minDelay: 3000,  // Increased from 1500ms
+    maxDelay: 6000,  // Increased from 4000ms
+  },
+  retryAttempts: 3,
+  exponentialBackoff: true,
+  userAgents: [
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+  ],
+  headers: {
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'DNT': '1',
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-User': '?1',
+    'Cache-Control': 'max-age=0',
+  },
+};
+
 // Comprehensive list of discovered Viator article URLs
 const VIATOR_ARTICLE_URLS = [
   // From main help page discovery
@@ -67,11 +97,89 @@ export interface ViatorArticle {
   rawHtml?: string;
 }
 
+// Helper function to get random delay
+function getRandomDelay(): number {
+  return Math.floor(
+    Math.random() * 
+    (VIATOR_CONFIG.rateLimit.maxDelay - VIATOR_CONFIG.rateLimit.minDelay) + 
+    VIATOR_CONFIG.rateLimit.minDelay
+  );
+}
+
+// Helper function to get random user agent
+function getRandomUserAgent(): string {
+  return VIATOR_CONFIG.userAgents[Math.floor(Math.random() * VIATOR_CONFIG.userAgents.length)];
+}
+
+// Helper function to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Enhanced fetch function with retry logic
+async function fetchHtmlWithRetry(url: string, attempt = 1): Promise<string> {
+  try {
+    const userAgent = getRandomUserAgent();
+    const headers = {
+      ...VIATOR_CONFIG.headers,
+      'User-Agent': userAgent,
+    };
+
+    console.log(`[VIATOR] Fetching ${url} (attempt ${attempt}) with User-Agent: ${userAgent.substring(0, 50)}...`);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    const response = await fetch(url, {
+      headers,
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+
+    if (response.status === 403) {
+      console.log(`[VIATOR] 403 Forbidden for ${url} - likely anti-bot protection`);
+      if (attempt < VIATOR_CONFIG.retryAttempts) {
+        const backoffDelay = VIATOR_CONFIG.exponentialBackoff ? 
+          Math.min(5000 * Math.pow(2, attempt), 30000) : 5000;
+        console.log(`[VIATOR] Retrying in ${backoffDelay}ms...`);
+        await delay(backoffDelay);
+        return fetchHtmlWithRetry(url, attempt + 1);
+      }
+      throw new Error('403 Forbidden - anti-bot protection');
+    }
+
+    if (response.status === 429) {
+      console.log(`[VIATOR] 429 Rate limited for ${url}`);
+      if (attempt < VIATOR_CONFIG.retryAttempts) {
+        const backoffDelay = 30000; // Wait 30 seconds for rate limits
+        console.log(`[VIATOR] Retrying in ${backoffDelay}ms...`);
+        await delay(backoffDelay);
+        return fetchHtmlWithRetry(url, attempt + 1);
+      }
+      throw new Error('429 Rate limited');
+    }
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return await response.text();
+  } catch (error) {
+    if (attempt < VIATOR_CONFIG.retryAttempts) {
+      const backoffDelay = VIATOR_CONFIG.exponentialBackoff ? 
+        Math.min(2000 * Math.pow(2, attempt), 15000) : 2000;
+      console.log(`[VIATOR] Error fetching ${url} (attempt ${attempt}): ${error}. Retrying in ${backoffDelay}ms...`);
+      await delay(backoffDelay);
+      return fetchHtmlWithRetry(url, attempt + 1);
+    }
+    throw error;
+  }
+}
+
 export async function crawlViatorArticle(url: string): Promise<ViatorArticle> {
   console.log(`[VIATOR] Crawling ${url}`);
   
   try {
-    const html = await fetchHtml(url);
+    const html = await fetchHtmlWithRetry(url);
     const parsed = parseContent(html, VIATOR_SELECTORS);
     
     // Enhanced debugging
@@ -199,7 +307,7 @@ export async function crawlViatorArticles(): Promise<ViatorArticle[]> {
   const discoveredUrls = new Set<string>();
 
   try {
-    const mainHtml = await fetchHtml(helpCenterUrl);
+    const mainHtml = await fetchHtmlWithRetry(helpCenterUrl);
     const $ = cheerio.load(mainHtml);
     
     console.log(`[VIATOR] Main page HTML length: ${mainHtml.length}`);
@@ -269,8 +377,8 @@ export async function crawlViatorArticles(): Promise<ViatorArticle[]> {
         errorCount++;
       }
       
-      // Add a small delay between requests to avoid being blocked
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Add a delay between requests to avoid being blocked
+      await delay(getRandomDelay());
     } catch (error) {
       console.error(`[VIATOR] Failed to crawl article ${url}:`, error);
       errorCount++;

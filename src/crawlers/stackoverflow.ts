@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Stack Overflow API configuration
+// Stack Overflow API configuration with enhanced rate limiting
 const STACK_OVERFLOW_CONFIG = {
   baseUrl: 'https://api.stackexchange.com/2.3',
   site: 'stackoverflow',
@@ -20,11 +20,16 @@ const STACK_OVERFLOW_CONFIG = {
     'travel-website'
   ],
   rateLimit: {
-    minDelay: 1000,
-    maxDelay: 2000,
+    minDelay: 2000,  // Increased from 1000ms
+    maxDelay: 4000,  // Increased from 2000ms
+    maxRequestsPerHour: 100, // Conservative limit
+    maxRequestsPerDay: 1000, // Conservative limit
   },
-  maxQuestionsPerTag: 50,
-  maxAnswersPerQuestion: 10,
+  maxQuestionsPerTag: 30,  // Reduced from 50 to avoid rate limits
+  maxAnswersPerQuestion: 5, // Reduced from 10 to avoid rate limits
+  retryAttempts: 2,
+  exponentialBackoff: true,
+  respectThrottleHeaders: true,
 };
 
 export interface StackOverflowPost {
@@ -48,15 +53,11 @@ interface StackOverflowQuestion {
   body: string;
   score: number;
   answer_count: number;
-  accepted_answer_id?: number;
-  creation_date: number;
-  last_activity_date: number;
-  owner: {
-    display_name: string;
-    user_id: number;
-  };
   tags: string[];
-  link: string;
+  creation_date: number;
+  owner?: {
+    display_name: string;
+  };
 }
 
 interface StackOverflowAnswer {
@@ -65,16 +66,15 @@ interface StackOverflowAnswer {
   score: number;
   is_accepted: boolean;
   creation_date: number;
-  owner: {
+  owner?: {
     display_name: string;
-    user_id: number;
   };
 }
 
-// Helper function to delay between requests
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+// Rate limiting state
+let requestCount = 0;
+let lastRequestTime = 0;
+let throttleUntil = 0;
 
 // Helper function to get random delay within range
 function getRandomDelay(): number {
@@ -83,6 +83,110 @@ function getRandomDelay(): number {
     (STACK_OVERFLOW_CONFIG.rateLimit.maxDelay - STACK_OVERFLOW_CONFIG.rateLimit.minDelay) + 
     STACK_OVERFLOW_CONFIG.rateLimit.minDelay
   );
+}
+
+// Helper function to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Enhanced rate limiting function
+async function enforceRateLimit(): Promise<void> {
+  const now = Date.now();
+  
+  // Check if we're currently throttled
+  if (now < throttleUntil) {
+    const waitTime = throttleUntil - now;
+    console.log(`[STACKOVERFLOW] Throttled until ${new Date(throttleUntil).toISOString()}, waiting ${waitTime}ms...`);
+    await delay(waitTime);
+  }
+  
+  // Check hourly limit
+  if (requestCount >= STACK_OVERFLOW_CONFIG.rateLimit.maxRequestsPerHour) {
+    const timeSinceFirstRequest = now - lastRequestTime;
+    if (timeSinceFirstRequest < 3600000) { // 1 hour in ms
+      const waitTime = 3600000 - timeSinceFirstRequest;
+      console.log(`[STACKOVERFLOW] Hourly limit reached, waiting ${waitTime}ms...`);
+      await delay(waitTime);
+      requestCount = 0;
+    } else {
+      requestCount = 0;
+    }
+  }
+  
+  // Ensure minimum delay between requests
+  const timeSinceLastRequest = now - lastRequestTime;
+  const minDelay = getRandomDelay();
+  if (timeSinceLastRequest < minDelay) {
+    const waitTime = minDelay - timeSinceLastRequest;
+    await delay(waitTime);
+  }
+  
+  lastRequestTime = Date.now();
+  requestCount++;
+}
+
+// Enhanced API request function with better error handling
+async function makeApiRequest(endpoint: string, params: any, attempt = 1): Promise<any> {
+  try {
+    await enforceRateLimit();
+    
+    console.log(`[STACKOVERFLOW] Making API request to ${endpoint} (attempt ${attempt})`);
+    
+    const response = await axios.get(`${STACK_OVERFLOW_CONFIG.baseUrl}${endpoint}`, {
+      params,
+      timeout: 30000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+      },
+    });
+    
+    // Check for throttle headers
+    if (STACK_OVERFLOW_CONFIG.respectThrottleHeaders) {
+      const throttleRemaining = response.headers['x-ratelimit-remaining'];
+      const throttleReset = response.headers['x-ratelimit-reset'];
+      
+      if (throttleRemaining === '0' && throttleReset) {
+        const resetTime = parseInt(throttleReset) * 1000; // Convert to milliseconds
+        throttleUntil = Date.now() + resetTime;
+        console.log(`[STACKOVERFLOW] Rate limit reset in ${resetTime}ms`);
+      }
+    }
+    
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 429) {
+      console.log(`[STACKOVERFLOW] Rate limited (429) for ${endpoint}`);
+      
+      // Parse throttle information from response
+      const throttleMessage = error.response.headers['x-error-message'];
+      const throttleName = error.response.headers['x-error-name'];
+      
+      if (throttleMessage && throttleName === 'throttle_violation') {
+        // Extract wait time from message (e.g., "more requests available in 14385 seconds")
+        const match = throttleMessage.match(/(\d+) seconds/);
+        if (match) {
+          const waitSeconds = parseInt(match[1]);
+          throttleUntil = Date.now() + (waitSeconds * 1000);
+          console.log(`[STACKOVERFLOW] Throttle violation, waiting ${waitSeconds} seconds...`);
+        }
+      }
+      
+      if (attempt < STACK_OVERFLOW_CONFIG.retryAttempts) {
+        const backoffDelay = STACK_OVERFLOW_CONFIG.exponentialBackoff ? 
+          Math.min(30000 * Math.pow(2, attempt), 300000) : 30000; // Max 5 minutes
+        console.log(`[STACKOVERFLOW] Retrying in ${backoffDelay}ms...`);
+        await delay(backoffDelay);
+        return makeApiRequest(endpoint, params, attempt + 1);
+      }
+    }
+    
+    if (error.response?.status === 400) {
+      console.log(`[STACKOVERFLOW] Bad request (400) for ${endpoint}: ${error.response.data?.error_message || 'Unknown error'}`);
+      return { items: [] }; // Return empty result instead of throwing
+    }
+    
+    throw error;
+  }
 }
 
 // Clean HTML content from Stack Overflow
@@ -103,7 +207,6 @@ async function getQuestionsForTag(tag: string): Promise<StackOverflowQuestion[]>
   console.log(`[STACKOVERFLOW] Fetching questions for tag: ${tag}`);
   
   try {
-    const url = `${STACK_OVERFLOW_CONFIG.baseUrl}/questions`;
     const params = {
       site: STACK_OVERFLOW_CONFIG.site,
       tagged: tag,
@@ -113,11 +216,11 @@ async function getQuestionsForTag(tag: string): Promise<StackOverflowQuestion[]>
       filter: 'withbody', // Include question body
     };
 
-    const response = await axios.get(url, { params });
+    const data = await makeApiRequest('/questions', params);
     
-    if (response.data && response.data.items) {
-      console.log(`[STACKOVERFLOW] Found ${response.data.items.length} questions for tag: ${tag}`);
-      return response.data.items;
+    if (data && data.items) {
+      console.log(`[STACKOVERFLOW] Found ${data.items.length} questions for tag: ${tag}`);
+      return data.items;
     }
     
     return [];
@@ -132,7 +235,6 @@ async function getAnswersForQuestion(questionId: number): Promise<StackOverflowA
   console.log(`[STACKOVERFLOW] Fetching answers for question: ${questionId}`);
   
   try {
-    const url = `${STACK_OVERFLOW_CONFIG.baseUrl}/questions/${questionId}/answers`;
     const params = {
       site: STACK_OVERFLOW_CONFIG.site,
       sort: 'votes',
@@ -141,11 +243,11 @@ async function getAnswersForQuestion(questionId: number): Promise<StackOverflowA
       filter: 'withbody', // Include answer body
     };
 
-    const response = await axios.get(url, { params });
+    const data = await makeApiRequest(`/questions/${questionId}/answers`, params);
     
-    if (response.data && response.data.items) {
-      console.log(`[STACKOVERFLOW] Found ${response.data.items.length} answers for question: ${questionId}`);
-      return response.data.items;
+    if (data && data.items) {
+      console.log(`[STACKOVERFLOW] Found ${data.items.length} answers for question: ${questionId}`);
+      return data.items;
     }
     
     return [];
@@ -156,83 +258,73 @@ async function getAnswersForQuestion(questionId: number): Promise<StackOverflowA
 }
 
 // Convert Stack Overflow data to our format
-function convertToStackOverflowPost(
-  question: StackOverflowQuestion,
-  answers: StackOverflowAnswer[]
-): StackOverflowPost[] {
+function convertToStackOverflowPost(question: StackOverflowQuestion, answers: StackOverflowAnswer[]): StackOverflowPost[] {
   const posts: StackOverflowPost[] = [];
   
-  // Create main question post
+  // Convert question to post
   const questionPost: StackOverflowPost = {
     platform: 'StackOverflow',
-    url: question.link,
-    question: cleanHtmlContent(question.title),
-    answer: cleanHtmlContent(question.body),
+    url: `https://stackoverflow.com/questions/${question.question_id}`,
+    question: question.title,
+    answer: question.body,
     author: question.owner?.display_name,
     date: new Date(question.creation_date * 1000).toISOString(),
-    category: question.tags.join(', '),
+    category: 'StackOverflow',
     contentType: 'community',
     source: 'community',
     score: question.score,
     tags: question.tags,
-    isAccepted: false,
   };
-  
   posts.push(questionPost);
   
-  // Add answer posts
-  answers.forEach(answer => {
+  // Convert answers to posts
+  for (const answer of answers) {
     const answerPost: StackOverflowPost = {
       platform: 'StackOverflow',
-      url: `${question.link}#${answer.answer_id}`,
-      question: cleanHtmlContent(question.title),
-      answer: cleanHtmlContent(answer.body),
+      url: `https://stackoverflow.com/a/${answer.answer_id}`,
+      question: question.title, // Use question title for context
+      answer: answer.body,
       author: answer.owner?.display_name,
       date: new Date(answer.creation_date * 1000).toISOString(),
-      category: question.tags.join(', '),
+      category: 'StackOverflow',
       contentType: 'community',
       source: 'community',
       score: answer.score,
-      tags: question.tags,
       isAccepted: answer.is_accepted,
     };
-    
     posts.push(answerPost);
-  });
+  }
   
   return posts;
 }
 
 // Save posts to database
 async function saveToDatabase(posts: StackOverflowPost[]): Promise<void> {
-  console.log(`[STACKOVERFLOW] Saving ${posts.length} posts to database`);
-  
   for (const post of posts) {
     try {
-      // Check if post already exists
-      const existing = await prisma.article.findFirst({
-        where: { url: post.url }
-      });
-      
-      if (!existing) {
-        await prisma.article.create({
-          data: {
-            url: post.url,
-            question: post.question,
-            answer: post.answer,
-            slug: post.question.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50),
-            author: post.author || 'Unknown',
-            category: post.category || 'StackOverflow',
-            contentType: post.contentType,
-            source: post.source,
-            platform: post.platform,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }
-        });
-      }
+             await prisma.article.upsert({
+         where: { url: post.url },
+         create: {
+           url: post.url,
+           question: post.question,
+           answer: post.answer,
+           slug: post.question.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50),
+           platform: post.platform,
+           category: post.category || 'StackOverflow',
+           contentType: post.contentType,
+           source: post.source,
+           author: post.author,
+           votes: post.score || 0,
+         },
+         update: {
+           question: post.question,
+           answer: post.answer,
+           author: post.author,
+           votes: post.score || 0,
+         },
+       });
     } catch (error) {
-      console.error(`[STACKOVERFLOW][ERROR] Failed to save post:`, error);
+      console.error(`[STACKOVERFLOW] Failed to save post ${post.url}:`, error);
     }
   }
 }
