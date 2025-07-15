@@ -47,6 +47,7 @@ services:
     buildCommand: |
       npm install
       npx prisma generate
+      npx prisma migrate deploy
       npm run build
     startCommand: npm start
     healthCheckPath: /
@@ -73,6 +74,7 @@ services:
       echo "Build started for main crawler (Reddit + Airbnb)..."
       npm install
       npx prisma generate
+      npx prisma migrate deploy
       npm run build:scripts
       echo "Main crawler build completed successfully."
     startCommand: npm run scrape:main
@@ -99,6 +101,7 @@ services:
       echo "Build started for secondary crawler (TripAdvisor + StackOverflow)..."
       npm install
       npx prisma generate
+      npx prisma migrate deploy
       npm run build:scripts
       echo "Secondary crawler build completed successfully."
     startCommand: npm run scrape:secondary
@@ -125,6 +128,7 @@ services:
       echo "Build started for tertiary crawler (Viator, GetYourGuide, Expedia, Booking)..."
       npm install
       npx prisma generate
+      npx prisma migrate deploy
       npm run build:scripts
       echo "Tertiary crawler build completed successfully."
     startCommand: npm run scrape:tertiary
@@ -151,9 +155,37 @@ services:
       echo "Build started for weekly comprehensive crawler..."
       npm install
       npx prisma generate
+      npx prisma migrate deploy
       npm run build:scripts
       echo "Weekly crawler build completed successfully."
     startCommand: npm run scrape:all
+    envVars:
+      - fromGroup: ota-hub-secrets
+    buildFilter:
+      paths:
+        - package.json
+        - src/**
+        - prisma/**
+        - VERSION
+        - render.yaml
+        - tsconfig.json
+        - tsconfig.scripts.json
+
+  # Weekly SEO optimization pipeline (every Sunday at 4 AM)
+  - type: cron
+    name: ota-answer-hub-seo-pipeline
+    runtime: node
+    plan: starter
+    schedule: "0 4 * * 0" # Runs every Sunday at 4 AM
+    autoDeploy: true
+    buildCommand: |
+      echo "Build started for SEO optimization pipeline..."
+      npm install
+      npx prisma generate
+      npx prisma migrate deploy
+      npm run build:scripts
+      echo "SEO pipeline build completed successfully."
+    startCommand: npm run seo:pipeline
     envVars:
       - fromGroup: ota-hub-secrets
     buildFilter:
