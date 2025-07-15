@@ -1,6 +1,6 @@
 # Render Blueprint for ota-answer-hub
 # This file defines the infrastructure for the application, including a web
-# service and a daily cron job. It uses an Environment Group to securely
+# service and multiple cron jobs for different platforms. It uses an Environment Group to securely
 # manage and share environment variables between the services.
 # See https://render.com/docs/blueprint-spec for a detailed reference.
 
@@ -62,35 +62,97 @@ services:
     envVars:
       - fromGroup: ota-hub-secrets
 
-  # Daily cron job to scrape all configured data sources
+  # Main scraping cron job (every hour) - Reddit and Airbnb
   - type: cron
-    name: ota-answer-hub-crawler
+    name: ota-answer-hub-main-crawler
     runtime: node
     plan: starter
     schedule: "0 * * * *" # Runs every hour
     autoDeploy: true
     buildCommand: |
-      # Build timestamp: 2025-06-26-10:20:00 - Enhanced with database retry logic
-      echo "Build started for enhanced scraper with database retry logic..."
+      echo "Build started for main crawler (Reddit + Airbnb)..."
       npm install
       npx prisma generate
       npm run build:scripts
-      
-      echo "Testing database connection..."
-      npm run test:db || {
-        echo "Database connection test failed. This might be expected in build environment."
-        echo "The actual connection will be tested during runtime."
-      }
-      
-      echo "Installing Chrome for Puppeteer..."
-      npx puppeteer browsers install chrome || {
-        echo "Failed to install Chrome via puppeteer. Trying system install..."
-        apt-get update && apt-get install -y google-chrome-stable || echo "System Chrome installation failed. The script will rely on the bundled version."
-      }
-      
-      echo "Verifying Chrome installation location..."
-      ls -la /opt/render/.cache/puppeteer/chrome/ || echo "Puppeteer cache directory not found, which may be expected on first build."
-      echo "Build scripts completed successfully."
+      echo "Main crawler build completed successfully."
+    startCommand: npm run scrape:main
+    envVars:
+      - fromGroup: ota-hub-secrets
+    buildFilter:
+      paths:
+        - package.json
+        - src/**
+        - prisma/**
+        - VERSION
+        - render.yaml
+        - tsconfig.json
+        - tsconfig.scripts.json
+
+  # Secondary scraping cron job (every 2 hours) - TripAdvisor and StackOverflow
+  - type: cron
+    name: ota-answer-hub-secondary-crawler
+    runtime: node
+    plan: starter
+    schedule: "0 */2 * * *" # Runs every 2 hours
+    autoDeploy: true
+    buildCommand: |
+      echo "Build started for secondary crawler (TripAdvisor + StackOverflow)..."
+      npm install
+      npx prisma generate
+      npm run build:scripts
+      echo "Secondary crawler build completed successfully."
+    startCommand: npm run scrape:secondary
+    envVars:
+      - fromGroup: ota-hub-secrets
+    buildFilter:
+      paths:
+        - package.json
+        - src/**
+        - prisma/**
+        - VERSION
+        - render.yaml
+        - tsconfig.json
+        - tsconfig.scripts.json
+
+  # Tertiary scraping cron job (every 4 hours) - Viator, GetYourGuide, Expedia, Booking
+  - type: cron
+    name: ota-answer-hub-tertiary-crawler
+    runtime: node
+    plan: starter
+    schedule: "0 */4 * * *" # Runs every 4 hours
+    autoDeploy: true
+    buildCommand: |
+      echo "Build started for tertiary crawler (Viator, GetYourGuide, Expedia, Booking)..."
+      npm install
+      npx prisma generate
+      npm run build:scripts
+      echo "Tertiary crawler build completed successfully."
+    startCommand: npm run scrape:tertiary
+    envVars:
+      - fromGroup: ota-hub-secrets
+    buildFilter:
+      paths:
+        - package.json
+        - src/**
+        - prisma/**
+        - VERSION
+        - render.yaml
+        - tsconfig.json
+        - tsconfig.scripts.json
+
+  # Weekly comprehensive scraping (every Sunday at 2 AM)
+  - type: cron
+    name: ota-answer-hub-weekly-crawler
+    runtime: node
+    plan: starter
+    schedule: "0 2 * * 0" # Runs every Sunday at 2 AM
+    autoDeploy: true
+    buildCommand: |
+      echo "Build started for weekly comprehensive crawler..."
+      npm install
+      npx prisma generate
+      npm run build:scripts
+      echo "Weekly crawler build completed successfully."
     startCommand: npm run scrape:all
     envVars:
       - fromGroup: ota-hub-secrets

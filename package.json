@@ -13,6 +13,9 @@
     "crawl": "ts-node src/crawl.ts",
     "scrape": "tsx src/scripts/scrape.ts",
     "scrape:all": "node dist/scripts/scrape.js",
+    "scrape:main": "node dist/scripts/scrape-main.js",
+    "scrape:secondary": "node dist/scripts/scrape-secondary.js",
+    "scrape:tertiary": "node dist/scripts/scrape-tertiary.js",
     "scrape:with-retry": "node dist/scripts/scrape-with-retry.js",
     "diagnose:db": "node dist/scripts/diagnose-database.js",
     "test:db": "node dist/scripts/test-db-connection.js",
@@ -64,7 +67,9 @@
     "automation:content-optimization": "tsx scripts/automated-content-optimization.ts",
     "automation:social-scheduler": "tsx scripts/automated-social-media-scheduler.ts",
     "automation:run-all": "tsx scripts/automated-traffic-system.ts",
-    "test:crawler-fixes": "tsx scripts/test-crawler-fixes.ts"
+    "test:crawler-fixes": "tsx scripts/test-crawler-fixes.ts",
+    "check:content-stats": "tsx scripts/check-content-stats.ts",
+    "analyze:reports": "tsx scripts/analyze-content-for-reports.ts"
   },
   "dependencies": {
     "@google-analytics/data": "^5.1.0",
