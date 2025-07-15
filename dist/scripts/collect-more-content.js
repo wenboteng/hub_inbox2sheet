@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const airbnb_1 = require("@/scripts/scrapers/airbnb");
 const getyourguide_1 = require("../src/crawlers/getyourguide");
-const viator_1 = require("@/crawlers/viator");
+const viator_1 = require("../src/crawlers/viator");
 const scrape_1 = require("./scrape");
 const openai_1 = require("../src/utils/openai");
 const contentDeduplication_1 = require("../src/utils/contentDeduplication");

@@ -10,38 +10,30 @@ datasource db {
 }
 
 model Article {
-  id          String   @id @default(cuid())
-  url         String   @unique
-  question    String
-  slug        String   @unique
-  answer      String
-  category    String
-  platform    String
-  lastUpdated DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  paragraphs  ArticleParagraph[]
-  
-  // New fields for user-generated content
-  contentType String   @default("official") // "official" | "community" | "user_generated"
-  source      String   @default("help_center") // "help_center" | "community" | "reddit" | "quora" | "blog"
-  author      String?  // For user-generated content
-  votes       Int      @default(0) // For community content with voting
-  isVerified  Boolean  @default(false) // For community content verification
-  
-  // Content-based deduplication
-  contentHash String?  // SHA-256 hash of the main content for deduplication
-  isDuplicate Boolean  @default(false) // Flag for near-duplicate content
-
-  // New fields for refactored crawling system
-  lastCheckedAt DateTime? // When this article was last checked for updates
-  etag          String?   // ETag header for change detection
-  lastModified  String?   // Last-Modified header for change detection
-  crawlMode     String    @default("discovery") // "discovery" | "recheck"
-  crawlStatus   String    @default("active") // "active" | "archived" | "error"
-
-  // Language detection
-  language     String    @default("en") // ISO 639-1 language code (e.g., "en", "es", "it", "fr")
+  id            String             @id @default(cuid())
+  url           String             @unique
+  question      String
+  answer        String
+  category      String
+  platform      String
+  lastUpdated   DateTime           @default(now())
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  contentType   String             @default("official")
+  source        String             @default("help_center")
+  author        String?
+  votes         Int                @default(0)
+  isVerified    Boolean            @default(false)
+  contentHash   String?
+  isDuplicate   Boolean            @default(false)
+  crawlMode     String             @default("discovery")
+  crawlStatus   String             @default("active")
+  etag          String?
+  lastCheckedAt DateTime?
+  lastModified  String?
+  language      String             @default("en")
+  slug          String             @unique
+  paragraphs    ArticleParagraph[]
 
   @@index([platform])
   @@index([category])
@@ -110,29 +102,29 @@ model SubmittedQuestion {
 }
 
 model ArticleParagraph {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   articleId String
-  text      String   @db.Text
-  embedding Json     // Store embeddings as JSON array
-  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  text      String
+  embedding Json
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
   @@index([articleId])
 }
 
 model CrawlQueue {
-  id          String   @id @default(cuid())
-  url         String   @unique
+  id          String    @id @default(cuid())
+  url         String    @unique
   platform    String
-  type        String   // "article" | "thread" | "category"
-  status      String   @default("pending") // "pending" | "processing" | "completed" | "failed" | "skipped"
-  priority    Int      @default(5) // 1-10, higher = more important
-  firstSeen   DateTime @default(now())
+  type        String
+  status      String    @default("pending")
+  priority    Int       @default(5)
+  firstSeen   DateTime  @default(now())
   lastChecked DateTime?
-  retryCount  Int      @default(0)
+  retryCount  Int       @default(0)
   error       String?
-  metadata    Json?    // Additional platform-specific data
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([platform])
   @@index([type])
@@ -143,46 +135,44 @@ model CrawlQueue {
 }
 
 model Report {
-  id         String   @id @default(uuid())
-  type       String   @unique // e.g. 'demo', 'vendor', etc.
-  title      String
-  slug       String   @unique // SEO-friendly URL slug (e.g., 'airbnb-ranking-guide')
-  content    String   // The enriched report (Markdown or HTML)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  isPublic   Boolean  @default(true) // Whether this report is visible to end users
+  id        String   @id @default(uuid())
+  type      String   @unique
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isPublic  Boolean  @default(true)
+  slug      String   @unique
 }
 
 model ImportedGYGActivity {
-  id                String   @id @default(cuid())
-  originalId        String   @unique // Original ID from GYG database
-  activityName      String
-  providerName      String
-  location          String
-  priceText         String?  // Original price text (e.g., "€43")
-  priceNumeric      Float?   // Parsed numeric price (e.g., 43.0)
-  ratingText        String?  // Original rating text (e.g., "4.4")
-  ratingNumeric     Float?   // Parsed numeric rating (e.g., 4.4)
-  reviewCountText   String?  // Original review count text (e.g., "63,652")
-  reviewCountNumeric Int?    // Parsed numeric review count (e.g., 63652)
-  duration          String?
-  description       String?  @db.Text
-  extractionQuality String?
-  tags              String[] // Array of tags
-  url               String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  importedAt        DateTime @default(now()) // When this record was imported
-  
-  // Additional fields for data cleaning and quality monitoring
-  cleanedAt         DateTime? // When this record was last cleaned
-  qualityScore      Int?      // Quality score (0-100)
-  city              String?   // Standardized city name
-  country           String?   // Standardized country name
-  venue             String?   // Specific venue/location
-  priceCurrency     String?   // Extracted currency (€, $, £, etc.)
-  durationHours     Int?      // Duration in hours
-  durationDays      Int?      // Duration in days
+  id                 String    @id @default(cuid())
+  originalId         String    @unique
+  activityName       String
+  providerName       String
+  location           String
+  priceText          String?
+  priceNumeric       Float?
+  ratingText         String?
+  ratingNumeric      Float?
+  reviewCountText    String?
+  reviewCountNumeric Int?
+  duration           String?
+  description        String?
+  extractionQuality  String?
+  tags               String[]
+  url                String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  importedAt         DateTime  @default(now())
+  city               String?
+  cleanedAt          DateTime?
+  country            String?
+  durationDays       Int?
+  durationHours      Int?
+  priceCurrency      String?
+  qualityScore       Int?
+  venue              String?
 
   @@index([providerName])
   @@index([location])
@@ -197,35 +187,33 @@ model ImportedGYGActivity {
 }
 
 model ImportedMadridActivity {
-  id                String   @id @default(cuid())
-  originalId        String   @unique // Original ID from Madrid database
-  activityName      String
-  ratingText        String?  // Original rating text (e.g., "4.5")
-  ratingNumeric     Float?   // Parsed numeric rating (e.g., 4.5)
-  reviewCountText   String?  // Original review count text (e.g., "1,234")
-  reviewCountNumeric Int?    // Parsed numeric review count (e.g., 1234)
-  priceText         String?  // Original price text (e.g., "€25")
-  priceNumeric      Float?   // Parsed numeric price (e.g., 25.0)
-  activityUrl       String?  // Original activity URL
-  rawText           String?  @db.Text // Raw extracted text
-  extractionMethod  String?  // Method used for extraction (e.g., "OCR+GPT")
-  extractionQuality String?  // Quality of extraction (e.g., "high", "medium")
-  screenshotPath    String?  // Path to screenshot
-  timestamp         String?  // Original timestamp
-  sessionId         Int?     // Session ID from extraction
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  importedAt        DateTime @default(now()) // When this record was imported
-  
-  // Additional fields for data cleaning and quality monitoring
-  cleanedAt         DateTime? // When this record was last cleaned
-  qualityScore      Int?      // Quality score (0-100)
-  priceCurrency     String?   // Extracted currency (€, $, £, etc.)
-  city              String?   // Standardized city name (default: Madrid)
-  country           String?   // Standardized country name (default: Spain)
-  venue             String?   // Specific venue/location
-  durationHours     Int?      // Duration in hours (if extracted from activity name)
-  durationDays      Int?      // Duration in days (if extracted from activity name)
+  id                 String    @id @default(cuid())
+  originalId         String    @unique
+  activityName       String
+  ratingText         String?
+  ratingNumeric      Float?
+  reviewCountText    String?
+  reviewCountNumeric Int?
+  priceText          String?
+  priceNumeric       Float?
+  activityUrl        String?
+  rawText            String?
+  extractionMethod   String?
+  extractionQuality  String?
+  screenshotPath     String?
+  timestamp          String?
+  sessionId          Int?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  importedAt         DateTime  @default(now())
+  cleanedAt          DateTime?
+  qualityScore       Int?
+  priceCurrency      String?
+  city               String?
+  country            String?
+  venue              String?
+  durationHours      Int?
+  durationDays       Int?
 
   @@index([ratingNumeric])
   @@index([priceNumeric])
@@ -235,4 +223,23 @@ model ImportedMadridActivity {
   @@index([qualityScore])
   @@index([city])
   @@index([country])
+}
+
+model ImportedGYGProvider {
+  id          String   @id @default(cuid())
+  originalId  String   @unique
+  name        String
+  description String?
+  location    String?
+  rating      Float?
+  reviewCount Int?
+  url         String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  importedAt  DateTime @default(now())
+
+  @@index([name])
+  @@index([location])
+  @@index([rating])
+  @@index([importedAt])
 }

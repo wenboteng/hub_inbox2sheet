@@ -41,7 +41,7 @@ const contentDeduplication_1 = require("../src/utils/contentDeduplication");
 const featureFlags_1 = require("@/utils/featureFlags");
 const languageDetection_1 = require("../src/utils/languageDetection");
 const slugify_1 = require("../src/utils/slugify");
-const viator_1 = require("@/crawlers/viator");
+const viator_1 = require("../src/crawlers/viator");
 const crypto_1 = require("crypto");
 const prisma = new client_1.PrismaClient();
 // Helper function to setup a page

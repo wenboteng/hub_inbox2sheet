@@ -75,9 +75,11 @@ export default function ReportDetailPage() {
             setRelated(related);
           }
         } else {
+          console.error('API Error:', data);
           setError(data.error || "Report not found");
         }
       } catch (err) {
+        console.error('Fetch Error:', err);
         setError("Failed to load report");
       } finally {
         setLoading(false);

@@ -4,7 +4,7 @@ const client_1 = require("@prisma/client");
 const featureFlags_1 = require("@/utils/featureFlags");
 const airbnb_1 = require("@/scripts/scrapers/airbnb");
 const getyourguide_1 = require("../src/crawlers/getyourguide");
-const viator_1 = require("@/crawlers/viator");
+const viator_1 = require("../src/crawlers/viator");
 const scrape_1 = require("./scrape");
 const prisma = new client_1.PrismaClient();
 async function getExistingArticleUrls() {

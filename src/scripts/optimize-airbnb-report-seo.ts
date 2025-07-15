@@ -15,20 +15,22 @@ interface SEOOptimization {
   internalLinking: string[];
   socialMediaContent: string[];
   seoScore: number;
+  indexingIssues: string[];
+  fixes: string[];
 }
 
-async function optimizeDigitalTransformationSEO(): Promise<void> {
-  console.log('🚀 OPTIMIZING DIGITAL TRANSFORMATION REPORT SEO');
-  console.log('===============================================\n');
+async function optimizeAirbnbReportSEO(): Promise<void> {
+  console.log('🏠 OPTIMIZING AIRBNB RANKING ALGORITHM REPORT SEO');
+  console.log('================================================\n');
 
   try {
-    // Get the Digital Transformation report
+    // Get the Airbnb Ranking Algorithm report
     const report = await prisma.report.findUnique({
-      where: { type: 'digital-transformation' }
+      where: { type: 'airbnb-ranking-algorithm' }
     });
 
     if (!report) {
-      console.log('❌ Digital Transformation report not found');
+      console.log('❌ Airbnb Ranking Algorithm report not found');
       return;
     }
 
@@ -36,7 +38,7 @@ async function optimizeDigitalTransformationSEO(): Promise<void> {
     console.log(`🔗 URL: https://otaanswers.com/reports/${report.slug}`);
     console.log(`📝 Word Count: ${report.content.split(' ').length.toLocaleString()}\n`);
 
-    // Analyze current SEO status
+    // Analyze current SEO status and indexing issues
     const seoAnalysis = await analyzeCurrentSEO(report);
     
     // Generate optimization recommendations
@@ -47,12 +49,12 @@ async function optimizeDigitalTransformationSEO(): Promise<void> {
     
     // Save optimization report
     const optimizationReport = createOptimizationReport(optimization, seoStrategy);
-    const reportPath = join(process.cwd(), 'digital-transformation-seo-optimization.md');
+    const reportPath = join(process.cwd(), 'airbnb-report-seo-optimization.md');
     writeFileSync(reportPath, optimizationReport, 'utf-8');
 
     console.log('🎉 SEO OPTIMIZATION ANALYSIS COMPLETE!');
     console.log('=====================================');
-    console.log(`📁 Report saved: digital-transformation-seo-optimization.md`);
+    console.log(`📁 Report saved: airbnb-report-seo-optimization.md`);
     console.log(`📊 SEO Score: ${optimization.seoScore}/100`);
     console.log(`🎯 Target Keywords: ${optimization.suggestedKeywords.length}`);
     console.log(`🔗 Internal Links: ${optimization.internalLinking.length}`);
@@ -65,6 +67,19 @@ async function optimizeDigitalTransformationSEO(): Promise<void> {
     console.log(`2. Meta Description: ${optimization.metaDescription.substring(0, 100)}...`);
     console.log(`3. Internal Linking: Add ${optimization.internalLinking.length} internal links`);
     console.log(`4. Social Media: Create ${optimization.socialMediaContent.length} content pieces`);
+
+    // Display indexing issues and fixes
+    console.log('\n🚨 INDEXING ISSUES FOUND:');
+    console.log('=========================');
+    optimization.indexingIssues.forEach((issue, index) => {
+      console.log(`${index + 1}. ${issue}`);
+    });
+
+    console.log('\n🔧 IMMEDIATE FIXES:');
+    console.log('===================');
+    optimization.fixes.forEach((fix, index) => {
+      console.log(`${index + 1}. ${fix}`);
+    });
 
   } catch (error) {
     console.error('❌ Error optimizing SEO:', error);
@@ -79,37 +94,45 @@ async function analyzeCurrentSEO(report: any): Promise<any> {
   const hasInternalLinks = (report.content.match(/\[.*?\]\(.*?\)/g) || []).length;
   const hasKeywords = extractKeywords(report.content);
   
+  // Check for common indexing issues
+  const indexingIssues = [];
+  if (wordCount < 1500) indexingIssues.push('Content too short for comprehensive guide');
+  if (!hasStructuredData) indexingIssues.push('Missing structured data markup');
+  if (hasInternalLinks < 3) indexingIssues.push('Insufficient internal linking');
+  if (hasKeywords.length < 10) indexingIssues.push('Low keyword density');
+  
   return {
     wordCount,
     hasStructuredData,
     hasInternalLinks,
     currentKeywords: hasKeywords,
-    seoScore: calculateSEOScore(wordCount, hasStructuredData, hasInternalLinks, hasKeywords.length)
+    seoScore: calculateSEOScore(wordCount, hasStructuredData, hasInternalLinks, hasKeywords.length),
+    indexingIssues
   };
 }
 
 function extractKeywords(content: string): string[] {
   const keywords = [
-    'digital transformation',
-    'tour operators',
-    'technology adoption',
-    'booking systems',
-    'channel managers',
-    'property management systems',
-    'automation',
-    'integration',
-    'revenue optimization',
-    'customer experience',
-    'operational efficiency',
-    'competitive advantage',
-    'OTA platforms',
-    'online travel agencies',
-    'digital marketing',
-    'analytics',
-    'business intelligence',
-    'cloud computing',
-    'mobile apps',
-    'API integration'
+    'airbnb ranking algorithm',
+    'airbnb host tips',
+    'airbnb optimization',
+    'airbnb search ranking',
+    'airbnb superhost',
+    'airbnb hosting guide',
+    'airbnb response rate',
+    'airbnb acceptance rate',
+    'airbnb review score',
+    'airbnb listing optimization',
+    'airbnb pricing strategy',
+    'airbnb instant book',
+    'airbnb calendar management',
+    'airbnb guest communication',
+    'airbnb algorithm 2025',
+    'airbnb host success',
+    'airbnb visibility tips',
+    'airbnb booking optimization',
+    'airbnb host dashboard',
+    'airbnb cancellation policy'
   ];
 
   const foundKeywords = keywords.filter(keyword => 
@@ -123,8 +146,9 @@ function calculateSEOScore(wordCount: number, hasStructuredData: boolean, hasInt
   let score = 0;
   
   // Word count (max 30 points)
-  if (wordCount >= 1500) score += 30;
-  else if (wordCount >= 1000) score += 20;
+  if (wordCount >= 2000) score += 30;
+  else if (wordCount >= 1500) score += 25;
+  else if (wordCount >= 1000) score += 15;
   else if (wordCount >= 500) score += 10;
   
   // Structured data (max 20 points)
@@ -144,32 +168,32 @@ function calculateSEOScore(wordCount: number, hasStructuredData: boolean, hasInt
 }
 
 async function generateOptimizationPlan(report: any, analysis: any): Promise<SEOOptimization> {
-  // High-value keywords for digital transformation
+  // High-value keywords for Airbnb ranking
   const suggestedKeywords = [
-    'digital transformation tour operators',
-    'technology adoption travel industry',
-    'booking system integration',
-    'channel manager tour operators',
-    'property management system travel',
-    'automation tour operators',
-    'revenue optimization travel',
-    'customer experience digital',
-    'operational efficiency tour operators',
-    'competitive advantage technology',
-    'OTA platform integration',
-    'online travel agency technology',
-    'digital marketing tour operators',
-    'analytics travel industry',
-    'business intelligence tour operators',
-    'cloud computing travel',
-    'mobile app tour operators',
-    'API integration travel',
-    'digital transformation guide',
-    'tour operator technology trends'
+    'airbnb ranking algorithm 2025',
+    'airbnb host tips ranking',
+    'airbnb optimization guide',
+    'airbnb search ranking factors',
+    'airbnb superhost ranking',
+    'airbnb hosting guide 2025',
+    'airbnb response rate ranking',
+    'airbnb acceptance rate algorithm',
+    'airbnb review score importance',
+    'airbnb listing optimization tips',
+    'airbnb pricing strategy ranking',
+    'airbnb instant book ranking',
+    'airbnb calendar management',
+    'airbnb guest communication tips',
+    'airbnb algorithm changes 2025',
+    'airbnb host success ranking',
+    'airbnb visibility tips 2025',
+    'airbnb booking optimization guide',
+    'airbnb host dashboard ranking',
+    'airbnb cancellation policy ranking'
   ];
 
   // Generate optimized meta description
-  const metaDescription = `Comprehensive guide to digital transformation for tour operators. Learn about technology adoption, booking systems, automation, and competitive advantages. Based on analysis of ${analysis.wordCount.toLocaleString()}+ industry insights.`;
+  const metaDescription = `Master Airbnb's ranking algorithm in 2025! Discover the 10 key factors that determine your listing's visibility. Based on analysis of 266+ host experiences. Boost your bookings today!`;
 
   // Structured data for the report
   const structuredData = {
@@ -196,46 +220,71 @@ async function generateOptimizationPlan(report: any, analysis: any): Promise<SEO
       "name": "OTA Answers"
     },
     "keywords": suggestedKeywords.join(', '),
-    "articleSection": "Digital Transformation",
+    "articleSection": "Airbnb Hosting Guide",
     "wordCount": analysis.wordCount,
     "about": [
       {
         "@type": "Thing",
-        "name": "Digital Transformation"
+        "name": "Airbnb Ranking Algorithm"
       },
       {
         "@type": "Thing", 
-        "name": "Tour Operators"
+        "name": "Airbnb Hosting"
       },
       {
         "@type": "Thing",
-        "name": "Technology Adoption"
+        "name": "Vacation Rental Optimization"
       }
-    ]
+    ],
+    "audience": {
+      "@type": "Audience",
+      "audienceType": "Airbnb Hosts"
+    }
   };
 
   // Internal linking opportunities
   const internalLinking = [
-    'https://otaanswers.com/reports/airbnb-ranking-algorithm-complete-guide-for-hosts-2025',
+    'https://otaanswers.com/reports/digital-transformation-for-tour-operators',
     'https://otaanswers.com/reports/top-cancellation-reasons-what-tour-vendors-need-to-know',
     'https://otaanswers.com/reports/vendor',
     'https://otaanswers.com/platform/airbnb',
     'https://otaanswers.com/platform/viator',
-    'https://otaanswers.com/platform/getyourguide'
+    'https://otaanswers.com/platform/getyourguide',
+    'https://otaanswers.com/answers/airbnb-cancellation-policy-hosts',
+    'https://otaanswers.com/answers/airbnb-payout-schedule-hosts'
   ];
 
   // Social media content ideas
   const socialMediaContent = [
-    '🚀 Digital Transformation for Tour Operators: 924 mentions across 8 platforms reveal critical insights for competitive advantage. Learn what technology adoption means for your business.',
-    '💻 Technology adoption is no longer optional for tour operators. Our analysis of 1,236+ articles shows the key digital transformation trends you need to know.',
-    '📊 74% of tour operator content mentions digital transformation topics. Are you keeping up with the competition?',
-    '🔧 Booking systems, channel managers, and automation: The top 3 technologies tour operators are investing in for 2025.',
-    '📈 Digital transformation can deliver 200-400% ROI for tour operators. Discover the implementation roadmap in our comprehensive guide.',
-    '🎯 CTOs and operations managers: Digital transformation is critical for competitive advantage. Get the data-driven insights you need.',
-    '💡 From Reddit discussions to official help centers: How 8 platforms are shaping digital transformation in the travel industry.',
-    '📱 Mobile apps, API integration, and cloud computing: The technology stack that is transforming tour operations.',
-    '🏆 Top platforms for digital transformation insights: Reddit (333 mentions), TripAdvisor (261), Airbnb (182).',
-    '📋 Implementation roadmap: 30-day, 90-day, and 6-month strategies for digital transformation success.'
+    '🚀 Airbnb Ranking Algorithm 2025: 10 Factors That Determine Your Success! Based on analysis of 266+ host experiences. Master the algorithm and boost your bookings!',
+    '💡 Did you know? Response rate & speed are now the #1 ranking factor on Airbnb. Our comprehensive guide shows you exactly how to optimize for 2025.',
+    '📊 266+ Airbnb host experiences analyzed: Here are the 10 ranking factors that matter most in 2025. Don\'t miss out on bookings!',
+    '🎯 Airbnb Superhost status provides major ranking benefits. Learn the exact strategies to achieve and maintain it in our 2025 guide.',
+    '📈 High acceptance rates improve search visibility significantly. Discover how to optimize your acceptance rate for better rankings.',
+    '🔧 Airbnb algorithm changes 2025: What hosts need to know. Stay ahead of the competition with our data-driven insights.',
+    '💻 From Reddit discussions to official help centers: How 266+ sources reveal the secrets of Airbnb\'s ranking algorithm.',
+    '📱 Mobile optimization, instant book, and calendar management: The technical factors that boost your Airbnb ranking.',
+    '🏆 Top ranking factors for Airbnb hosts in 2025: Response rate, acceptance rate, review scores, and more. Get the complete guide!',
+    '📋 Implementation roadmap: 30-day, 90-day, and 6-month strategies for Airbnb ranking success. Start optimizing today!'
+  ];
+
+  // Identify indexing issues and fixes
+  const indexingIssues = [
+    'Page shows "Loading..." - JavaScript error preventing content display',
+    'No referring sitemaps detected in Google Search Console',
+    'Missing structured data markup for rich snippets',
+    'Insufficient internal linking from other pages',
+    'No social media promotion driving traffic',
+    'Limited backlinks from relevant sites'
+  ];
+
+  const fixes = [
+    'Fix JavaScript error in report page component',
+    'Submit sitemap to Google Search Console',
+    'Add JSON-LD structured data markup',
+    'Create internal linking strategy from related content',
+    'Launch social media promotion campaign',
+    'Build backlinks from Airbnb host communities'
   ];
 
   return {
@@ -248,21 +297,23 @@ async function generateOptimizationPlan(report: any, analysis: any): Promise<SEO
     structuredData,
     internalLinking,
     socialMediaContent,
-    seoScore: analysis.seoScore
+    seoScore: analysis.seoScore,
+    indexingIssues,
+    fixes
   };
 }
 
 function createSEOStrategy(optimization: SEOOptimization): any {
   return {
     immediate: [
-      'Update meta description with target keywords',
-      'Add structured data markup',
-      'Implement internal linking strategy',
-      'Create social media content calendar',
-      'Submit to Google Search Console'
+      'Fix JavaScript loading error in report page',
+      'Submit sitemap to Google Search Console',
+      'Add structured data markup to page',
+      'Create social media promotion campaign',
+      'Build internal linking from related content'
     ],
     shortTerm: [
-      'Guest blog on travel industry sites',
+      'Guest blog on Airbnb host sites',
       'Create LinkedIn infographic',
       'Develop Twitter thread series',
       'Record video summary',
@@ -272,7 +323,7 @@ function createSEOStrategy(optimization: SEOOptimization): any {
       'Build backlinks from industry publications',
       'Create related content cluster',
       'Develop email marketing campaign',
-      'Host webinar on digital transformation',
+      'Host webinar on Airbnb optimization',
       'Create case study series'
     ],
     technical: [
@@ -286,7 +337,7 @@ function createSEOStrategy(optimization: SEOOptimization): any {
 }
 
 function createOptimizationReport(optimization: SEOOptimization, strategy: any): string {
-  return `# 🚀 Digital Transformation Report - SEO Optimization Strategy
+  return `# 🏠 Airbnb Ranking Algorithm Report - SEO Optimization Strategy
 
 *Generated on ${new Date().toLocaleDateString()}*
 
@@ -302,6 +353,18 @@ function createOptimizationReport(optimization: SEOOptimization, strategy: any):
 
 ### Current Keywords Found
 ${optimization.currentKeywords.map(kw => `- ${kw}`).join('\n')}
+
+---
+
+## 🚨 INDEXING ISSUES IDENTIFIED
+
+${optimization.indexingIssues.map((issue, index) => `${index + 1}. ${issue}`).join('\n')}
+
+---
+
+## 🔧 IMMEDIATE FIXES REQUIRED
+
+${optimization.fixes.map((fix, index) => `${index + 1}. ${fix}`).join('\n')}
 
 ---
 
@@ -355,7 +418,7 @@ ${optimization.socialMediaContent.slice(0, 3).map((content, i) => `${i + 1}. ${c
 ### Twitter/X Threads (Industry Community)
 ${optimization.socialMediaContent.slice(3, 6).map((content, i) => `${i + 1}. ${content}`).join('\n\n')}
 
-### Facebook Groups (Tour Operator Communities)
+### Facebook Groups (Airbnb Host Communities)
 ${optimization.socialMediaContent.slice(6, 9).map((content, i) => `${i + 1}. ${content}`).join('\n\n')}
 
 ---
@@ -363,49 +426,49 @@ ${optimization.socialMediaContent.slice(6, 9).map((content, i) => `${i + 1}. ${c
 ## 🚀 Implementation Strategy
 
 ### Immediate Actions (This Week)
-${strategy.immediate.map(action => `- [ ] ${action}`).join('\n')}
+${strategy.immediate.map((action: string) => `- [ ] ${action}`).join('\n')}
 
 ### Short-Term Goals (Next 30 Days)
-${strategy.shortTerm.map(action => `- [ ] ${action}`).join('\n')}
+${strategy.shortTerm.map((action: string) => `- [ ] ${action}`).join('\n')}
 
 ### Long-Term Strategy (Next 90 Days)
-${strategy.longTerm.map(action => `- [ ] ${action}`).join('\n')}
+${strategy.longTerm.map((action: string) => `- [ ] ${action}`).join('\n')}
 
 ### Technical Optimizations
-${strategy.technical.map(action => `- [ ] ${action}`).join('\n')}
+${strategy.technical.map((action: string) => `- [ ] ${action}`).join('\n')}
 
 ---
 
 ## 📈 Expected Results
 
 ### Traffic Projections
-- **Month 1**: 500-1,000 organic visitors
-- **Month 3**: 2,000-5,000 organic visitors
-- **Month 6**: 5,000-10,000 organic visitors
+- **Month 1**: 1,000-2,000 organic visitors
+- **Month 3**: 5,000-10,000 organic visitors
+- **Month 6**: 10,000-20,000 organic visitors
 
 ### Ranking Targets
-- **Primary Keywords**: Top 10 positions
-- **Secondary Keywords**: Top 20 positions
-- **Long-tail Keywords**: Top 5 positions
+- **Primary Keywords**: Top 5 positions
+- **Secondary Keywords**: Top 10 positions
+- **Long-tail Keywords**: Top 3 positions
 
 ### Engagement Metrics
-- **Time on Page**: 3-5 minutes
-- **Bounce Rate**: <40%
-- **Social Shares**: 50+ per month
+- **Time on Page**: 5-8 minutes
+- **Bounce Rate**: <30%
+- **Social Shares**: 100+ per month
 
 ---
 
 ## 🎯 Competitive Analysis
 
 ### Target Competitors
-- Digital transformation guides for travel industry
-- Technology adoption reports for tour operators
-- OTA platform integration guides
-- Travel industry automation content
+- Airbnb host guides and tutorials
+- Vacation rental optimization content
+- Property management blogs
+- Real estate investment sites
 
 ### Differentiation Strategy
-- Data-driven insights (924 mentions analyzed)
-- Multi-platform perspective (8 platforms)
+- Data-driven insights (266+ experiences analyzed)
+- 2025 algorithm updates included
 - Actionable implementation roadmap
 - ROI-focused recommendations
 
@@ -439,7 +502,7 @@ ${strategy.technical.map(action => `- [ ] ${action}`).join('\n')}
 - Develop related content cluster
 
 ### Link Building
-- Guest posting on travel industry blogs
+- Guest posting on Airbnb host blogs
 - HARO (Help a Reporter Out) responses
 - Industry directory submissions
 - Podcast interviews
@@ -452,12 +515,36 @@ ${strategy.technical.map(action => `- [ ] ${action}`).join('\n')}
 
 ---
 
-*This SEO optimization strategy is designed to maximize the discoverability and impact of the Digital Transformation for Tour Operators report.*
+## 🚨 CRITICAL FIXES FOR INDEXING
+
+### 1. Fix JavaScript Loading Error
+**Issue**: Page shows "Loading..." indefinitely
+**Solution**: Debug and fix the report page component
+
+### 2. Submit Sitemap to Google Search Console
+**Issue**: No referring sitemaps detected
+**Solution**: Submit sitemap and request indexing
+
+### 3. Add Structured Data
+**Issue**: Missing rich snippet markup
+**Solution**: Implement JSON-LD structured data
+
+### 4. Build Internal Links
+**Issue**: Insufficient internal linking
+**Solution**: Add contextual links from related content
+
+### 5. Launch Promotion Campaign
+**Issue**: No traffic driving to the page
+**Solution**: Execute social media and content marketing campaign
+
+---
+
+*This SEO optimization strategy is designed to fix indexing issues and maximize the discoverability of the Airbnb Ranking Algorithm report.*
 
 **Generated by OTA Answers SEO Optimization System**
 `;
 }
 
 if (require.main === module) {
-  optimizeDigitalTransformationSEO();
+  optimizeAirbnbReportSEO();
 } 

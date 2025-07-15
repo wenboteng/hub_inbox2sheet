@@ -223,7 +223,7 @@ async function main() {
         const { deepScrapeAirbnb, scrapeTripAdvisor, scrapeBooking, scrapeReddit, scrapeQuora } = await Promise.resolve().then(() => __importStar(require('./comprehensive-discovery')));
         const { scrapeAirbnb } = await Promise.resolve().then(() => __importStar(require('./scrapers/airbnb')));
         const { crawlGetYourGuideArticlesWithPagination } = await Promise.resolve().then(() => __importStar(require('../src/crawlers/getyourguide')));
-        const { crawlViatorArticles } = await Promise.resolve().then(() => __importStar(require('@/crawlers/viator')));
+        const { crawlViatorArticles } = await Promise.resolve().then(() => __importStar(require('../src/crawlers/viator')));
         let allArticles = [];
         // Deep scraping of existing platforms
         console.log('\n[SCRAPE] === DEEP CONTENT DISCOVERY ===');
