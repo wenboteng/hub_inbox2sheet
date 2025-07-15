@@ -285,17 +285,28 @@ class OAuthRedditCrawler {
       const endpoint = `/comments/${postId}.json?limit=${REDDIT_CONFIG.maxCommentsPerPost}`;
       const data = await this.makeRedditRequest(endpoint);
       
-      if (!data || !data[1] || !data[1].data || !data[1].data.children) {
+      // Validate the response structure
+      if (!data || !Array.isArray(data) || data.length < 2) {
+        console.log(`[REDDIT-OAUTH] No comments data for post ${postId}`);
+        return [];
+      }
+      
+      if (!data[1] || !data[1].data || !data[1].data.children) {
+        console.log(`[REDDIT-OAUTH] Invalid comments structure for post ${postId}`);
         return [];
       }
       
       const extractComments = (comments: any[], depth = 0): RedditComment[] => {
         if (depth > 3) return []; // Limit comment depth
         
+        if (!comments || !Array.isArray(comments)) {
+          return [];
+        }
+        
         return comments
-          .map((child: any) => child.data)
+          .map((child: any) => child?.data)
           .filter((comment: any) => {
-            if (!comment || comment.body === '[deleted]' || comment.body === '[removed]') return false;
+            if (!comment || !comment.body || comment.body === '[deleted]' || comment.body === '[removed]') return false;
             if (comment.score < 1) return false; // Only positive comments
             if (comment.body.length < REDDIT_CONFIG.minCommentLength) return false;
             return true;
@@ -308,7 +319,9 @@ class OAuthRedditCrawler {
             created_utc: comment.created_utc,
             depth: depth,
             isDeleted: false,
-            replies: comment.replies ? extractComments(comment.replies.data.children, depth + 1) : [],
+            replies: comment.replies && comment.replies.data && comment.replies.data.children 
+              ? extractComments(comment.replies.data.children, depth + 1) 
+              : [],
           }));
       };
       
