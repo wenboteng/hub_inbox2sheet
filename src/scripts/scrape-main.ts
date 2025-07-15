@@ -65,8 +65,8 @@ async function scrapeRedditEnhanced(): Promise<Article[]> {
   console.log('[MAIN] Starting Enhanced Reddit scraping...');
   
   try {
-    const { crawlRedditEnhanced } = await import('../crawlers/reddit-enhanced');
-    const redditStats = await crawlRedditEnhanced();
+    const { crawlRedditOAuth } = await import('../crawlers/reddit-oauth');
+    const redditStats = await crawlRedditOAuth();
     
     console.log(`[MAIN] Enhanced Reddit crawl completed:`);
     console.log(`  - Subreddits processed: ${redditStats.subredditsProcessed}`);

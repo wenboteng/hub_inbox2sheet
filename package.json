@@ -69,7 +69,8 @@
     "automation:run-all": "tsx scripts/automated-traffic-system.ts",
     "test:crawler-fixes": "tsx scripts/test-crawler-fixes.ts",
     "check:content-stats": "tsx scripts/check-content-stats.ts",
-    "analyze:reports": "tsx scripts/analyze-content-for-reports.ts"
+    "analyze:reports": "tsx scripts/analyze-content-for-reports.ts",
+    "seo:pipeline": "tsx src/scripts/automated-report-seo-pipeline.ts"
   },
   "dependencies": {
     "@google-analytics/data": "^5.1.0",

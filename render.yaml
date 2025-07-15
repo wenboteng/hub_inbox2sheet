@@ -38,6 +38,10 @@ envVarGroups:
         sync: false
       - key: AIRBNB_PASSWORD
         sync: false
+      - key: REDDIT_CLIENT_ID
+        sync: false
+      - key: REDDIT_CLIENT_SECRET
+        sync: false
 
 services:
   # Main Next.js Web Application

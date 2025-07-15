@@ -198,20 +198,24 @@ async function main() {
     console.log(`StackOverflow articles: ${newStackOverflowArticles.length}`);
     
   } catch (error) {
-    console.error('[SECONDARY] Error in secondary scraping function:', error);
+    console.error('[SECONDARY] Secondary scraping failed:', error);
     throw error;
   } finally {
     await prisma.$disconnect();
   }
 }
 
-// Run the main function if this file is executed directly
+// Run the script
 if (require.main === module) {
-  main().then(() => {
-    console.log('[SECONDARY] Secondary scraping completed successfully');
-    process.exit(0);
-  }).catch((error) => {
-    console.error('[SECONDARY] Secondary scraping failed:', error);
-    process.exit(1);
-  });
-} 
+  main()
+    .then(() => {
+      console.log('[SECONDARY] Secondary scraping completed successfully!');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('[SECONDARY] Secondary scraping failed:', error);
+      process.exit(1);
+    });
+}
+
+export { main as scrapeSecondary }; 
