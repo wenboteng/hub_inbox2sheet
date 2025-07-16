@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { PrismaClient } from '@prisma/client';
+import ShareButton from './ShareButton';
 
 const prisma = new PrismaClient();
 
@@ -170,18 +171,7 @@ export default async function ReportDetailPage({ params }: { params: { slug: str
           <main className="flex-1 min-w-0">
             <h1 className="text-3xl font-bold mb-2 text-blue-900">{report.title}</h1>
             <div className="flex flex-wrap gap-2 mb-4">
-              <button
-                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition"
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    navigator.clipboard.writeText(window.location.href);
-                    alert('Link copied!');
-                  }
-                }}
-                title="Copy link to this report"
-              >
-                Share
-              </button>
+              <ShareButton url={`https://otaanswers.com/reports/${report.slug}`} />
               <a
                 href={`/api/reports/${report.slug}/pdf`}
                 className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700 transition"
