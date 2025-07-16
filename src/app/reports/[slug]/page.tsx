@@ -1,68 +1,9 @@
-import { PrismaClient } from '@prisma/client';
-import { notFound } from 'next/navigation';
-import { Metadata } from 'next';
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-
-const prisma = new PrismaClient();
-
-// Generate metadata for SEO
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  try {
-    const report = await prisma.report.findFirst({
-      where: { 
-        slug: params.slug,
-        isPublic: true 
-      }
-    });
-
-    if (!report) {
-      return {
-        title: 'Report Not Found | OTA Answers',
-        description: 'The requested report could not be found.'
-      };
-    }
-
-    const description = report.content 
-      ? report.content.replace(/[#*`]/g, '').substring(0, 160) + '...'
-      : `Read the latest analytics and insights: ${report.title}`;
-
-    return {
-      title: `${report.title} | Analytics & Insights Reports | OTA Answers`,
-      description,
-      keywords: [
-        'airbnb ranking algorithm',
-        'airbnb host tips',
-        'airbnb optimization',
-        'airbnb search ranking',
-        'airbnb superhost',
-        'airbnb hosting guide',
-        'tour vendor analytics',
-        'OTA insights'
-      ].join(', '),
-      openGraph: {
-        title: report.title,
-        description,
-        url: `https://otaanswers.com/reports/${report.slug}`,
-        type: 'article',
-      },
-      twitter: {
-        card: 'summary_large_image',
-        title: report.title,
-        description,
-      },
-      alternates: {
-        canonical: `https://otaanswers.com/reports/${report.slug}`,
-      },
-    };
-  } catch (error) {
-    console.error('Error generating metadata:', error);
-    return {
-      title: 'Report | OTA Answers',
-      description: 'Analytics and insights for tour vendors.'
-    };
-  }
-}
+import { useParams } from "next/navigation";
 
 const markdownComponents = {
   h1: (props: any) => <h1 id={slugify(props.children)} className="text-3xl font-bold mt-6 mb-4 text-blue-900 scroll-mt-24" {...props} />,
@@ -104,57 +45,201 @@ function stripFirstH1(markdown: string) {
   return markdown.replace(/^# .+\n?/, '');
 }
 
-// Server-side data fetching
-async function getReport(slug: string) {
-  try {
-    const report = await prisma.report.findFirst({
-      where: { 
-        slug: slug,
-        isPublic: true 
+export default function ReportDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const slug = params?.slug as string;
+  const [report, setReport] = useState<any>(null);
+  const [related, setRelated] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchReport() {
+      setLoading(true);
+      setError(null);
+      try {
+        console.log('🔍 Fetching report for slug:', slug);
+        const res = await fetch(`/api/reports/${slug}`);
+        console.log('🔍 API response status:', res.status);
+        
+        const data = await res.json();
+        console.log('🔍 API response data:', { title: data.title, contentLength: data.content?.length });
+        
+        if (res.ok) {
+          setReport(data);
+          // Fetch related reports
+          const allRes = await fetch("/api/reports");
+          const allData = await allRes.json();
+          if (allRes.ok) {
+            const related = allData.reports.filter((r: any) =>
+              r.slug !== slug &&
+              (r.platform === data.platform || r.type === data.type)
+            ).slice(0, 3);
+            setRelated(related);
+          }
+        } else {
+          console.error('API Error:', data);
+          setError(data.error || "Report not found");
+        }
+      } catch (err) {
+        console.error('Fetch Error:', err);
+        setError("Failed to load report");
+      } finally {
+        setLoading(false);
       }
-    });
-
-    if (!report) {
-      return null;
     }
+    if (slug) fetchReport();
+  }, [slug]);
 
-    // Get related reports
-    const related = await prisma.report.findMany({
-      where: { 
-        isPublic: true,
-        slug: { not: slug },
-        OR: [
-          { type: report.type },
-          { title: { contains: report.type.split('-')[0] } }
-        ]
-      },
-      take: 3,
-      orderBy: { updatedAt: 'desc' }
-    });
+  // Enhanced SEO meta tags
+  useEffect(() => {
+    if (report) {
+      // Generate SEO-friendly description
+      const description = report.content 
+        ? report.content.replace(/[#*`]/g, '').substring(0, 160) + '...'
+        : `Read the latest analytics and insights: ${report.title}`;
+      
+      // Generate keywords based on title and content
+      const keywords = [
+        'airbnb ranking algorithm',
+        'airbnb host tips',
+        'airbnb optimization',
+        'airbnb search ranking',
+        'airbnb superhost',
+        'airbnb hosting guide',
+        'tour vendor analytics',
+        'OTA insights'
+      ].join(', ');
 
-    return { report, related };
-  } catch (error) {
-    console.error('Error fetching report:', error);
-    return null;
-  }
-}
+      document.title = `${report.title} | Analytics & Insights Reports | OTA Answers`;
+      
+      // Meta description
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute('content', description);
+      } else {
+        const meta = document.createElement('meta');
+        meta.name = 'description';
+        meta.content = description;
+        document.head.appendChild(meta);
+      }
 
-export default async function ReportDetailPage({ params }: { params: { slug: string } }) {
-  const { slug } = params;
-  
-  let data;
-  try {
-    data = await getReport(slug);
-  } catch (error) {
-    console.error('Error in ReportDetailPage:', error);
-    notFound();
-  }
-  
-  if (!data) {
-    notFound();
-  }
+      // Keywords
+      const metaKeywords = document.querySelector('meta[name="keywords"]');
+      if (metaKeywords) {
+        metaKeywords.setAttribute('content', keywords);
+      } else {
+        const meta = document.createElement('meta');
+        meta.name = 'keywords';
+        meta.content = keywords;
+        document.head.appendChild(meta);
+      }
 
-  const { report, related } = data;
+      // Canonical URL
+      const canonical = document.querySelector('link[rel="canonical"]');
+      if (canonical) {
+        canonical.setAttribute('href', `https://otaanswers.com/reports/${report.slug}`);
+      } else {
+        const link = document.createElement('link');
+        link.rel = 'canonical';
+        link.href = `https://otaanswers.com/reports/${report.slug}`;
+        document.head.appendChild(link);
+      }
+
+      // Open Graph
+      const ogTitle = document.querySelector('meta[property="og:title"]') || document.createElement('meta');
+      ogTitle.setAttribute('property', 'og:title');
+      ogTitle.setAttribute('content', report.title);
+      document.head.appendChild(ogTitle);
+      
+      const ogDesc = document.querySelector('meta[property="og:description"]') || document.createElement('meta');
+      ogDesc.setAttribute('property', 'og:description');
+      ogDesc.setAttribute('content', description);
+      document.head.appendChild(ogDesc);
+      
+      const ogUrl = document.querySelector('meta[property="og:url"]') || document.createElement('meta');
+      ogUrl.setAttribute('property', 'og:url');
+      ogUrl.setAttribute('content', `https://otaanswers.com/reports/${report.slug}`);
+      document.head.appendChild(ogUrl);
+      
+      const ogType = document.querySelector('meta[property="og:type"]') || document.createElement('meta');
+      ogType.setAttribute('property', 'og:type');
+      ogType.setAttribute('content', 'article');
+      document.head.appendChild(ogType);
+
+      // Twitter
+      const twTitle = document.querySelector('meta[name="twitter:title"]') || document.createElement('meta');
+      twTitle.setAttribute('name', 'twitter:title');
+      twTitle.setAttribute('content', report.title);
+      document.head.appendChild(twTitle);
+      
+      const twDesc = document.querySelector('meta[name="twitter:description"]') || document.createElement('meta');
+      twDesc.setAttribute('name', 'twitter:description');
+      twDesc.setAttribute('content', description);
+      document.head.appendChild(twDesc);
+      
+      const twCard = document.querySelector('meta[name="twitter:card"]') || document.createElement('meta');
+      twCard.setAttribute('name', 'twitter:card');
+      twCard.setAttribute('content', 'summary_large_image');
+      document.head.appendChild(twCard);
+
+      // Enhanced JSON-LD structured data
+      const scriptId = 'report-jsonld';
+      let script = document.getElementById(scriptId) as HTMLScriptElement | null;
+      if (script) script.remove();
+      script = document.createElement('script') as HTMLScriptElement;
+      script.type = 'application/ld+json';
+      script.id = scriptId;
+      script.innerHTML = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Report",
+        "name": report.title,
+        "description": description,
+        "datePublished": report.createdAt || new Date().toISOString(),
+        "dateModified": report.updatedAt || new Date().toISOString(),
+        "headline": report.title,
+        "inLanguage": "en",
+        "url": `https://otaanswers.com/reports/${report.slug}`,
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": `https://otaanswers.com/reports/${report.slug}`
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "OTA Answers",
+          "url": "https://otaanswers.com"
+        },
+        "author": {
+          "@type": "Organization",
+          "name": "OTA Answers"
+        },
+        "keywords": keywords,
+        "articleSection": "Analytics & Insights",
+        "wordCount": report.content ? report.content.split(' ').length : 0
+      });
+      document.head.appendChild(script);
+    }
+  }, [report]);
+
+  if (loading) return (
+    <div className="max-w-3xl mx-auto py-16 text-blue-700 text-xl">
+      <div>Loading…</div>
+      <div className="text-sm text-gray-500 mt-2">Loading the report content...</div>
+    </div>
+  );
+  if (error) return (
+    <div className="max-w-3xl mx-auto py-16 text-red-600 text-xl">
+      <div>{error}</div>
+      <div className="text-sm text-gray-500 mt-2">Please try refreshing the page or contact support.</div>
+    </div>
+  );
+  if (!report) return (
+    <div className="max-w-3xl mx-auto py-16 text-red-600 text-xl">
+      <div>Report not found</div>
+      <div className="text-sm text-gray-500 mt-2">The requested report could not be loaded.</div>
+    </div>
+  );
 
   // Extract headings for sidebar navigation
   const headings = Array.from(report.content.matchAll(/^##?\s+(.+)$/gm))
@@ -163,7 +248,7 @@ export default async function ReportDetailPage({ params }: { params: { slug: str
 
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-4 py-8">
-      <a href="/reports" className="mb-6 text-blue-700 hover:underline inline-block">← Back to Reports</a>
+      <button className="mb-6 text-blue-700 hover:underline" onClick={() => router.push("/reports")}>← Back to Reports</button>
       <div className="flex flex-col md:flex-row gap-8">
         {/* Sticky sidebar for jump-to-section */}
         {headings.length > 0 && (
@@ -225,7 +310,7 @@ export default async function ReportDetailPage({ params }: { params: { slug: str
                   >
                     <div className="font-semibold text-blue-900 group-hover:underline">{r.title}</div>
                     <div className="text-xs text-gray-500 mb-1">Last updated: {new Date(r.updatedAt).toLocaleDateString()}</div>
-                    <div className="text-gray-600 text-sm line-clamp-2">{r.content.replace(/[#*`]/g, '').substring(0, 200)}</div>
+                    <div className="text-gray-600 text-sm line-clamp-2">{r.summary}</div>
                   </a>
                 ))}
               </div>
