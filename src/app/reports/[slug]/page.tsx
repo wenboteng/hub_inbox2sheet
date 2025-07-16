@@ -60,8 +60,13 @@ export default function ReportDetailPage() {
       setLoading(true);
       setError(null);
       try {
+        console.log('🔍 Fetching report for slug:', slug);
         const res = await fetch(`/api/reports/${slug}`);
+        console.log('🔍 API response status:', res.status);
+        
         const data = await res.json();
+        console.log('🔍 API response data:', { title: data.title, contentLength: data.content?.length });
+        
         if (res.ok) {
           setReport(data);
           // Fetch related reports
@@ -280,9 +285,24 @@ export default function ReportDetailPage() {
     }
   };
 
-  if (loading) return <div className="max-w-3xl mx-auto py-16 text-blue-700 text-xl">Loading…</div>;
-  if (error) return <div className="max-w-3xl mx-auto py-16 text-red-600 text-xl">{error}</div>;
-  if (!report) return null;
+  if (loading) return (
+    <div className="max-w-3xl mx-auto py-16 text-blue-700 text-xl">
+      <div>Loading…</div>
+      <div className="text-sm text-gray-500 mt-2">If this takes too long, please refresh the page.</div>
+    </div>
+  );
+  if (error) return (
+    <div className="max-w-3xl mx-auto py-16 text-red-600 text-xl">
+      <div>{error}</div>
+      <div className="text-sm text-gray-500 mt-2">Please try refreshing the page or contact support.</div>
+    </div>
+  );
+  if (!report) return (
+    <div className="max-w-3xl mx-auto py-16 text-red-600 text-xl">
+      <div>Report not found</div>
+      <div className="text-sm text-gray-500 mt-2">The requested report could not be loaded.</div>
+    </div>
+  );
 
   // Extract headings for sidebar navigation
   const headings = Array.from(report.content.matchAll(/^##?\s+(.+)$/gm))
