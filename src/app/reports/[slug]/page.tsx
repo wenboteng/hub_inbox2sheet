@@ -8,52 +8,60 @@ const prisma = new PrismaClient();
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const report = await prisma.report.findFirst({
-    where: { 
-      slug: params.slug,
-      isPublic: true 
-    }
-  });
+  try {
+    const report = await prisma.report.findFirst({
+      where: { 
+        slug: params.slug,
+        isPublic: true 
+      }
+    });
 
-  if (!report) {
+    if (!report) {
+      return {
+        title: 'Report Not Found | OTA Answers',
+        description: 'The requested report could not be found.'
+      };
+    }
+
+    const description = report.content 
+      ? report.content.replace(/[#*`]/g, '').substring(0, 160) + '...'
+      : `Read the latest analytics and insights: ${report.title}`;
+
     return {
-      title: 'Report Not Found | OTA Answers',
-      description: 'The requested report could not be found.'
+      title: `${report.title} | Analytics & Insights Reports | OTA Answers`,
+      description,
+      keywords: [
+        'airbnb ranking algorithm',
+        'airbnb host tips',
+        'airbnb optimization',
+        'airbnb search ranking',
+        'airbnb superhost',
+        'airbnb hosting guide',
+        'tour vendor analytics',
+        'OTA insights'
+      ].join(', '),
+      openGraph: {
+        title: report.title,
+        description,
+        url: `https://otaanswers.com/reports/${report.slug}`,
+        type: 'article',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: report.title,
+        description,
+      },
+      alternates: {
+        canonical: `https://otaanswers.com/reports/${report.slug}`,
+      },
+    };
+  } catch (error) {
+    console.error('Error generating metadata:', error);
+    return {
+      title: 'Report | OTA Answers',
+      description: 'Analytics and insights for tour vendors.'
     };
   }
-
-  const description = report.content 
-    ? report.content.replace(/[#*`]/g, '').substring(0, 160) + '...'
-    : `Read the latest analytics and insights: ${report.title}`;
-
-  return {
-    title: `${report.title} | Analytics & Insights Reports | OTA Answers`,
-    description,
-    keywords: [
-      'airbnb ranking algorithm',
-      'airbnb host tips',
-      'airbnb optimization',
-      'airbnb search ranking',
-      'airbnb superhost',
-      'airbnb hosting guide',
-      'tour vendor analytics',
-      'OTA insights'
-    ].join(', '),
-    openGraph: {
-      title: report.title,
-      description,
-      url: `https://otaanswers.com/reports/${report.slug}`,
-      type: 'article',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: report.title,
-      description,
-    },
-    alternates: {
-      canonical: `https://otaanswers.com/reports/${report.slug}`,
-    },
-  };
 }
 
 const markdownComponents = {
@@ -134,24 +142,19 @@ async function getReport(slug: string) {
 export default async function ReportDetailPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
   
-  const data = await getReport(slug);
+  let data;
+  try {
+    data = await getReport(slug);
+  } catch (error) {
+    console.error('Error in ReportDetailPage:', error);
+    notFound();
+  }
   
   if (!data) {
     notFound();
   }
 
   const { report, related } = data;
-
-  // Derive platform from type or title
-  let platform = '';
-  const lower = (report.type + ' ' + report.title).toLowerCase();
-  if (lower.includes('airbnb')) platform = 'Airbnb';
-  else if (lower.includes('viator')) platform = 'Viator';
-  else if (lower.includes('getyourguide') || lower.includes('gyg')) platform = 'GetYourGuide';
-  else if (lower.includes('booking')) platform = 'Booking.com';
-  else if (lower.includes('expedia')) platform = 'Expedia';
-  else if (lower.includes('tripadvisor')) platform = 'Tripadvisor';
-  else platform = 'Other';
 
   // Extract headings for sidebar navigation
   const headings = Array.from(report.content.matchAll(/^##?\s+(.+)$/gm))
