@@ -22,6 +22,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
+  // Check if content is SEO-quality
+  const wordCount = article.answer.split(' ').length;
+  const charCount = article.answer.length;
+  const hasSubstantialContent = wordCount >= 100 || charCount >= 500;
+  const isNotCodeSnippet = !article.answer.includes('```') && !article.answer.includes('function(');
+  const isNotVeryShort = wordCount >= 50;
+  
+  const isSEOQuality = hasSubstantialContent && isNotCodeSnippet && isNotVeryShort;
+
   // Extract platform and category for better SEO
   const platform = article.platform;
   const category = article.category.replace(/\[.*?\]/g, '').trim(); // Remove priority tags
@@ -41,7 +50,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     'policy'
   ].filter(Boolean).join(', ');
 
-  return {
+  const baseMetadata = {
     title: `${question} | ${platform} Help & Solutions | OTA Answers`,
     description: `${description} Get expert help with ${platform} issues. Find solutions for tour vendors and hosts.`,
     keywords: keywords,
@@ -49,7 +58,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${question} - ${platform} Help`,
       description: description,
       type: 'article',
-      url: `https://ota-answers.com/answers/${article.slug}`,
+      url: `https://otaanswers.com/answers/${article.slug}`,
       siteName: 'OTA Answers',
       locale: 'en_US',
       publishedTime: article.createdAt.toISOString(),
@@ -62,20 +71,39 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       site: '@otaanswers', // Replace with actual Twitter handle
     },
     alternates: {
-      canonical: `https://ota-answers.com/answers/${article.slug}`,
-    },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-      },
+      canonical: `https://otaanswers.com/answers/${article.slug}`,
     },
   };
+
+  // Add robots meta tag based on content quality
+  if (isSEOQuality) {
+    return {
+      ...baseMetadata,
+      robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          'max-video-preview': -1,
+          'max-image-preview': 'large',
+          'max-snippet': -1,
+        },
+      },
+    };
+  } else {
+    return {
+      ...baseMetadata,
+      robots: {
+        index: false,
+        follow: false,
+        googleBot: {
+          index: false,
+          follow: false,
+        },
+      },
+    };
+  }
 }
 
 export default async function AnswerPage({ params }: Props) {

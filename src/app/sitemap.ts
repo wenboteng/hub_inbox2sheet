@@ -11,11 +11,12 @@ interface ArticleSitemapData {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
-  // Get all articles
-  const articles: { slug: string | null; updatedAt: Date }[] = await prisma.article.findMany({
+  // Get all articles with content length filter
+  const articles: { slug: string | null; updatedAt: Date; answer: string }[] = await prisma.article.findMany({
     select: {
       slug: true,
       updatedAt: true,
+      answer: true,
     },
   });
 
@@ -40,9 +41,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   });
 
-  // Create URLs for each article
-  const articleUrls = articles
-    .filter((article) => article.slug)
+  // Filter articles for SEO quality - only include articles with substantial content
+  const seoQualityArticles = articles
+    .filter((article) => {
+      if (!article.slug) return false;
+      
+      // Calculate word count
+      const wordCount = article.answer.split(' ').length;
+      const charCount = article.answer.length;
+      
+      // SEO quality criteria:
+      // 1. At least 100 words OR 500 characters
+      // 2. Not just a code snippet or very short comment
+      const hasSubstantialContent = wordCount >= 100 || charCount >= 500;
+      const isNotCodeSnippet = !article.answer.includes('```') && !article.answer.includes('function(');
+      const isNotVeryShort = wordCount >= 50;
+      
+      return hasSubstantialContent && isNotCodeSnippet && isNotVeryShort;
+    })
     .map((article) => ({
       url: `${baseUrl}/answers/${article.slug}`,
       lastModified: article.updatedAt,
@@ -108,5 +124,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   ];
 
-  return [...staticPages, ...platformUrls, ...articleUrls, ...reportUrls];
+  console.log(`🔍 Sitemap generation: ${articles.length} total articles, ${seoQualityArticles.length} SEO-quality articles included`);
+
+  return [...staticPages, ...platformUrls, ...seoQualityArticles, ...reportUrls];
 } 
