@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+
+# Allow Google to access report API endpoints for SEO
+Allow: /api/reports/
+Allow: /api/reports/*/pdf
+
+# Block admin and internal API endpoints
+Disallow: /api/admin/
+Disallow: /api/crawl/
+Disallow: /api/gpt-response-layer/
+Disallow: /api/gpt-search/
+Disallow: /api/outreach/
+Disallow: /api/submit-question/
+
+# Block admin pages
+Disallow: /admin/
+
+# Allow sitemap
+Sitemap: https://otaanswers.com/sitemap.xml 
