@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.scrapeSecondary = main;
 const client_1 = require("@prisma/client");
 const languageDetection_1 = require("../utils/languageDetection");
 const openai_1 = require("../utils/openai");
@@ -196,19 +197,21 @@ async function main() {
         console.log(`StackOverflow articles: ${newStackOverflowArticles.length}`);
     }
     catch (error) {
-        console.error('[SECONDARY] Error in secondary scraping function:', error);
+        console.error('[SECONDARY] Secondary scraping failed:', error);
         throw error;
     }
     finally {
         await prisma.$disconnect();
     }
 }
-// Run the main function if this file is executed directly
+// Run the script
 if (require.main === module) {
-    main().then(() => {
-        console.log('[SECONDARY] Secondary scraping completed successfully');
+    main()
+        .then(() => {
+        console.log('[SECONDARY] Secondary scraping completed successfully!');
         process.exit(0);
-    }).catch((error) => {
+    })
+        .catch((error) => {
         console.error('[SECONDARY] Secondary scraping failed:', error);
         process.exit(1);
     });

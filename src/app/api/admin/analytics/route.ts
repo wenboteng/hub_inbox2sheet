@@ -35,6 +35,10 @@ export async function POST(request: NextRequest) {
         command = 'npm run analytics:all';
         reportName = 'Complete Analytics Suite';
         break;
+      case 'seasonal-pricing':
+        command = 'npm run analytics:seasonal-pricing';
+        reportName = 'Seasonal Demand & Pricing Intelligence Report';
+        break;
       default:
         return NextResponse.json(
           { error: 'Invalid report type' },
@@ -128,6 +132,12 @@ export async function GET() {
         name: 'Complete Suite',
         description: 'All reports with executive summary',
         command: 'npm run analytics:all'
+      },
+      {
+        id: 'seasonal-pricing',
+        name: 'Seasonal Pricing Intelligence',
+        description: 'Seasonal demand patterns and pricing optimization insights',
+        command: 'npm run analytics:seasonal-pricing'
       }
     ];
     

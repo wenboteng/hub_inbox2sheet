@@ -79,8 +79,8 @@ async function scrapeAirbnbCommunity() {
 async function scrapeRedditEnhanced() {
     console.log('[MAIN] Starting Enhanced Reddit scraping...');
     try {
-        const { crawlRedditEnhanced } = await Promise.resolve().then(() => __importStar(require('../crawlers/reddit-enhanced')));
-        const redditStats = await crawlRedditEnhanced();
+        const { crawlRedditOAuth } = await Promise.resolve().then(() => __importStar(require('../crawlers/reddit-oauth')));
+        const redditStats = await crawlRedditOAuth();
         console.log(`[MAIN] Enhanced Reddit crawl completed:`);
         console.log(`  - Subreddits processed: ${redditStats.subredditsProcessed}`);
         console.log(`  - Posts discovered: ${redditStats.postsDiscovered}`);
