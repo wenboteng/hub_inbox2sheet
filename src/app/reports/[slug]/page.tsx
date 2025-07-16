@@ -1,9 +1,60 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { PrismaClient } from '@prisma/client';
+import { notFound } from 'next/navigation';
+import { Metadata } from 'next';
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useParams } from "next/navigation";
+
+const prisma = new PrismaClient();
+
+// Generate metadata for SEO
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const report = await prisma.report.findFirst({
+    where: { 
+      slug: params.slug,
+      isPublic: true 
+    }
+  });
+
+  if (!report) {
+    return {
+      title: 'Report Not Found | OTA Answers',
+      description: 'The requested report could not be found.'
+    };
+  }
+
+  const description = report.content 
+    ? report.content.replace(/[#*`]/g, '').substring(0, 160) + '...'
+    : `Read the latest analytics and insights: ${report.title}`;
+
+  return {
+    title: `${report.title} | Analytics & Insights Reports | OTA Answers`,
+    description,
+    keywords: [
+      'airbnb ranking algorithm',
+      'airbnb host tips',
+      'airbnb optimization',
+      'airbnb search ranking',
+      'airbnb superhost',
+      'airbnb hosting guide',
+      'tour vendor analytics',
+      'OTA insights'
+    ].join(', '),
+    openGraph: {
+      title: report.title,
+      description,
+      url: `https://otaanswers.com/reports/${report.slug}`,
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: report.title,
+      description,
+    },
+    alternates: {
+      canonical: `https://otaanswers.com/reports/${report.slug}`,
+    },
+  };
+}
 
 const markdownComponents = {
   h1: (props: any) => <h1 id={slugify(props.children)} className="text-3xl font-bold mt-6 mb-4 text-blue-900 scroll-mt-24" {...props} />,
@@ -45,264 +96,62 @@ function stripFirstH1(markdown: string) {
   return markdown.replace(/^# .+\n?/, '');
 }
 
-export default function ReportDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const slug = params?.slug as string;
-  const [report, setReport] = useState<any>(null);
-  const [related, setRelated] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [shareFeedback, setShareFeedback] = useState("");
-
-  useEffect(() => {
-    async function fetchReport() {
-      setLoading(true);
-      setError(null);
-      try {
-        console.log('🔍 Fetching report for slug:', slug);
-        const res = await fetch(`/api/reports/${slug}`);
-        console.log('🔍 API response status:', res.status);
-        
-        const data = await res.json();
-        console.log('🔍 API response data:', { title: data.title, contentLength: data.content?.length });
-        
-        if (res.ok) {
-          setReport(data);
-          // Fetch related reports
-          const allRes = await fetch("/api/reports");
-          const allData = await allRes.json();
-          if (allRes.ok) {
-            const related = allData.reports.filter((r: any) =>
-              r.slug !== slug &&
-              (r.platform === data.platform || r.type === data.type)
-            ).slice(0, 3);
-            setRelated(related);
-          }
-        } else {
-          console.error('API Error:', data);
-          setError(data.error || "Report not found");
-        }
-      } catch (err) {
-        console.error('Fetch Error:', err);
-        setError("Failed to load report");
-      } finally {
-        setLoading(false);
+// Server-side data fetching
+async function getReport(slug: string) {
+  try {
+    const report = await prisma.report.findFirst({
+      where: { 
+        slug: slug,
+        isPublic: true 
       }
+    });
+
+    if (!report) {
+      return null;
     }
-    if (slug) fetchReport();
-  }, [slug]);
 
-  // Enhanced SEO meta tags
-  useEffect(() => {
-    if (report) {
-      // Generate SEO-friendly description
-      const description = report.content 
-        ? report.content.replace(/[#*`]/g, '').substring(0, 160) + '...'
-        : `Read the latest analytics and insights: ${report.title}`;
-      
-      // Generate keywords based on title and content
-      const keywords = [
-        'airbnb ranking algorithm',
-        'airbnb host tips',
-        'airbnb optimization',
-        'airbnb search ranking',
-        'airbnb superhost',
-        'airbnb hosting guide',
-        'tour vendor analytics',
-        'OTA insights'
-      ].join(', ');
+    // Get related reports
+    const related = await prisma.report.findMany({
+      where: { 
+        isPublic: true,
+        slug: { not: slug },
+        OR: [
+          { type: report.type },
+          { title: { contains: report.type.split('-')[0] } }
+        ]
+      },
+      take: 3,
+      orderBy: { updatedAt: 'desc' }
+    });
 
-      document.title = `${report.title} | Analytics & Insights Reports | OTA Answers`;
-      
-      // Meta description
-      const metaDesc = document.querySelector('meta[name="description"]');
-      if (metaDesc) {
-        metaDesc.setAttribute('content', description);
-      } else {
-        const meta = document.createElement('meta');
-        meta.name = 'description';
-        meta.content = description;
-        document.head.appendChild(meta);
-      }
+    return { report, related };
+  } catch (error) {
+    console.error('Error fetching report:', error);
+    return null;
+  }
+}
 
-      // Keywords
-      const metaKeywords = document.querySelector('meta[name="keywords"]');
-      if (metaKeywords) {
-        metaKeywords.setAttribute('content', keywords);
-      } else {
-        const meta = document.createElement('meta');
-        meta.name = 'keywords';
-        meta.content = keywords;
-        document.head.appendChild(meta);
-      }
+export default async function ReportDetailPage({ params }: { params: { slug: string } }) {
+  const { slug } = params;
+  
+  const data = await getReport(slug);
+  
+  if (!data) {
+    notFound();
+  }
 
-      // Canonical URL
-      const canonical = document.querySelector('link[rel="canonical"]');
-      if (canonical) {
-        canonical.setAttribute('href', `https://otaanswers.com/reports/${report.slug}`);
-      } else {
-        const link = document.createElement('link');
-        link.rel = 'canonical';
-        link.href = `https://otaanswers.com/reports/${report.slug}`;
-        document.head.appendChild(link);
-      }
+  const { report, related } = data;
 
-      // Open Graph
-      const ogTitle = document.querySelector('meta[property="og:title"]') || document.createElement('meta');
-      ogTitle.setAttribute('property', 'og:title');
-      ogTitle.setAttribute('content', report.title);
-      document.head.appendChild(ogTitle);
-      
-      const ogDesc = document.querySelector('meta[property="og:description"]') || document.createElement('meta');
-      ogDesc.setAttribute('property', 'og:description');
-      ogDesc.setAttribute('content', description);
-      document.head.appendChild(ogDesc);
-      
-      const ogUrl = document.querySelector('meta[property="og:url"]') || document.createElement('meta');
-      ogUrl.setAttribute('property', 'og:url');
-      ogUrl.setAttribute('content', `https://otaanswers.com/reports/${report.slug}`);
-      document.head.appendChild(ogUrl);
-      
-      const ogType = document.querySelector('meta[property="og:type"]') || document.createElement('meta');
-      ogType.setAttribute('property', 'og:type');
-      ogType.setAttribute('content', 'article');
-      document.head.appendChild(ogType);
-
-      // Twitter
-      const twTitle = document.querySelector('meta[name="twitter:title"]') || document.createElement('meta');
-      twTitle.setAttribute('name', 'twitter:title');
-      twTitle.setAttribute('content', report.title);
-      document.head.appendChild(twTitle);
-      
-      const twDesc = document.querySelector('meta[name="twitter:description"]') || document.createElement('meta');
-      twDesc.setAttribute('name', 'twitter:description');
-      twDesc.setAttribute('content', description);
-      document.head.appendChild(twDesc);
-      
-      const twCard = document.querySelector('meta[name="twitter:card"]') || document.createElement('meta');
-      twCard.setAttribute('name', 'twitter:card');
-      twCard.setAttribute('content', 'summary_large_image');
-      document.head.appendChild(twCard);
-
-      // Enhanced JSON-LD structured data
-      const scriptId = 'report-jsonld';
-      let script = document.getElementById(scriptId) as HTMLScriptElement | null;
-      if (script) script.remove();
-      script = document.createElement('script') as HTMLScriptElement;
-      script.type = 'application/ld+json';
-      script.id = scriptId;
-      script.innerHTML = JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "Report",
-        "name": report.title,
-        "description": description,
-        "datePublished": report.createdAt || new Date().toISOString(),
-        "dateModified": report.updatedAt || new Date().toISOString(),
-        "headline": report.title,
-        "inLanguage": "en",
-        "url": `https://otaanswers.com/reports/${report.slug}`,
-        "mainEntityOfPage": {
-          "@type": "WebPage",
-          "@id": `https://otaanswers.com/reports/${report.slug}`
-        },
-        "publisher": {
-          "@type": "Organization",
-          "name": "OTA Answers",
-          "url": "https://otaanswers.com"
-        },
-        "author": {
-          "@type": "Organization",
-          "name": "OTA Answers"
-        },
-        "keywords": keywords,
-        "articleSection": "Analytics & Insights",
-        "wordCount": report.content ? report.content.split(' ').length : 0
-      });
-      document.head.appendChild(script);
-    }
-  }, [report]);
-
-  const handleShare = () => {
-    if (report) {
-      const url = window.location.origin + `/reports/${report.slug}`;
-      navigator.clipboard.writeText(url).then(() => {
-        setShareFeedback("Link copied!");
-        setTimeout(() => setShareFeedback(""), 1500);
-      });
-    }
-  };
-
-  const handleDownloadPDF = async () => {
-    if (!report) return;
-    
-    try {
-      // Show loading state
-      const downloadButton = document.querySelector('[title="Download full report as PDF"]') as HTMLButtonElement;
-      if (downloadButton) {
-        downloadButton.textContent = '🔄 Generating PDF...';
-        downloadButton.disabled = true;
-      }
-
-      // Call server-side PDF generation endpoint
-      const response = await fetch(`/api/reports/${report.slug || report.id}/pdf`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Get the PDF blob
-      const pdfBlob = await response.blob();
-      
-      // Create download link
-      const url = window.URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${report.title.replace(/[^a-z0-9]/gi, "_")}_${new Date().toISOString().split('T')[0]}.pdf`;
-      
-      // Trigger download
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Clean up
-      window.URL.revokeObjectURL(url);
-
-      // Show success message
-      setShareFeedback("PDF downloaded successfully!");
-      setTimeout(() => setShareFeedback(""), 3000);
-
-    } catch (error) {
-      console.error('PDF generation error:', error);
-      alert('Failed to generate PDF. Please try again or contact support.');
-    } finally {
-      // Restore button state
-      const downloadButton = document.querySelector('[title="Download full report as PDF"]') as HTMLButtonElement;
-      if (downloadButton) {
-        downloadButton.textContent = 'Download PDF';
-        downloadButton.disabled = false;
-      }
-    }
-  };
-
-  if (loading) return (
-    <div className="max-w-3xl mx-auto py-16 text-blue-700 text-xl">
-      <div>Loading…</div>
-      <div className="text-sm text-gray-500 mt-2">If this takes too long, please refresh the page.</div>
-    </div>
-  );
-  if (error) return (
-    <div className="max-w-3xl mx-auto py-16 text-red-600 text-xl">
-      <div>{error}</div>
-      <div className="text-sm text-gray-500 mt-2">Please try refreshing the page or contact support.</div>
-    </div>
-  );
-  if (!report) return (
-    <div className="max-w-3xl mx-auto py-16 text-red-600 text-xl">
-      <div>Report not found</div>
-      <div className="text-sm text-gray-500 mt-2">The requested report could not be loaded.</div>
-    </div>
-  );
+  // Derive platform from type or title
+  let platform = '';
+  const lower = (report.type + ' ' + report.title).toLowerCase();
+  if (lower.includes('airbnb')) platform = 'Airbnb';
+  else if (lower.includes('viator')) platform = 'Viator';
+  else if (lower.includes('getyourguide') || lower.includes('gyg')) platform = 'GetYourGuide';
+  else if (lower.includes('booking')) platform = 'Booking.com';
+  else if (lower.includes('expedia')) platform = 'Expedia';
+  else if (lower.includes('tripadvisor')) platform = 'Tripadvisor';
+  else platform = 'Other';
 
   // Extract headings for sidebar navigation
   const headings = Array.from(report.content.matchAll(/^##?\s+(.+)$/gm))
@@ -311,7 +160,7 @@ export default function ReportDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-4 py-8">
-      <button className="mb-6 text-blue-700 hover:underline" onClick={() => router.push("/reports")}>← Back to Reports</button>
+      <a href="/reports" className="mb-6 text-blue-700 hover:underline inline-block">← Back to Reports</a>
       <div className="flex flex-col md:flex-row gap-8">
         {/* Sticky sidebar for jump-to-section */}
         {headings.length > 0 && (
@@ -332,19 +181,23 @@ export default function ReportDetailPage() {
           <div className="flex flex-wrap gap-2 mb-4">
             <button
               className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition"
-              onClick={handleShare}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert('Link copied!');
+                }
+              }}
               title="Copy link to this report"
             >
               Share
             </button>
-            <button
+            <a
+              href={`/api/reports/${report.slug}/pdf`}
               className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700 transition"
-              onClick={handleDownloadPDF}
               title="Download full report as PDF"
             >
               Download PDF
-            </button>
-            {shareFeedback && <span className="text-blue-700 ml-2 text-sm">{shareFeedback}</span>}
+            </a>
           </div>
           {/* Only show date if valid */}
           {report.updatedAt && !isNaN(new Date(report.updatedAt).getTime()) && (
@@ -369,7 +222,7 @@ export default function ReportDetailPage() {
                   >
                     <div className="font-semibold text-blue-900 group-hover:underline">{r.title}</div>
                     <div className="text-xs text-gray-500 mb-1">Last updated: {new Date(r.updatedAt).toLocaleDateString()}</div>
-                    <div className="text-gray-600 text-sm line-clamp-2">{r.summary}</div>
+                    <div className="text-gray-600 text-sm line-clamp-2">{r.content.replace(/[#*`]/g, '').substring(0, 200)}</div>
                   </a>
                 ))}
               </div>

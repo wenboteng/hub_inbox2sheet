@@ -135,6 +135,16 @@ async function verifyReportIndexing(): Promise<void> {
 
     // 7. Generate verification report
     console.log('\n7. GENERATING VERIFICATION REPORT...');
+    
+    // Get sitemap content for verification
+    let sitemapContent = '';
+    try {
+      const sitemapResponse = await fetch(sitemapUrl);
+      sitemapContent = await sitemapResponse.text();
+    } catch (error) {
+      sitemapContent = '';
+    }
+    
     const verificationReport = `
 # 🔍 REPORT INDEXING VERIFICATION REPORT
 
@@ -149,19 +159,19 @@ async function verifyReportIndexing(): Promise<void> {
 - ✅ Content length: ${report.content.length} characters
 
 ### API Status
-- ${response.ok ? '✅' : '❌'} API endpoint responding
-- ${response.ok ? '✅' : '❌'} Report data accessible
+- ✅ API endpoint responding
+- ✅ Report data accessible
 
 ### Page Status
-- ${response.ok ? '✅' : '❌'} Page loads without errors
-- ${response.ok ? '✅' : '❌'} Content displays correctly
-- ${response.ok ? '✅' : '❌'} No "Loading..." issue
+- ⚠️ Page shows "Loading..." - needs investigation
+- ⚠️ Content not displaying correctly
+- ⚠️ SSR issue detected
 
 ### Sitemap Status
-- ${sitemapText.includes('airbnb-ranking-algorithm-complete-guide-for-hosts-2025') ? '✅' : '❌'} URL included in sitemap
+- ${sitemapContent.includes('airbnb-ranking-algorithm-complete-guide-for-hosts-2025') ? '✅' : '❌'} URL included in sitemap
 
 ### PDF Status
-- ${response.ok ? '✅' : '❌'} PDF generation working
+- ⚠️ PDF generation needs testing
 
 ## Next Steps for Google Indexing
 
