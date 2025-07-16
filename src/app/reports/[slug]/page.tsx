@@ -138,10 +138,7 @@ export default async function ReportDetailPage({ params }: { params: { slug: str
       where: {
         isPublic: true,
         slug: { not: params.slug },
-        OR: [
-          { platform: report.platform },
-          { type: report.type }
-        ]
+        type: { not: report.type } // Get reports with different types
       },
       take: 3,
       orderBy: { updatedAt: 'desc' }
@@ -216,7 +213,9 @@ export default async function ReportDetailPage({ params }: { params: { slug: str
                     >
                       <div className="font-semibold text-blue-900 group-hover:underline">{r.title}</div>
                       <div className="text-xs text-gray-500 mb-1">Last updated: {new Date(r.updatedAt).toLocaleDateString()}</div>
-                      <div className="text-gray-600 text-sm line-clamp-2">{r.summary}</div>
+                      <div className="text-gray-600 text-sm line-clamp-2">
+                        {r.content.substring(0, 150)}...
+                      </div>
                     </a>
                   ))}
                 </div>
