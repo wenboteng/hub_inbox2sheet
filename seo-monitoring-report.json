@@ -1,311 +1,304 @@
 {
   "seoReport": {
-    "date": "2025-07-08",
-    "totalArticles": 1158,
-    "indexedPages": 1158,
-    "averageRanking": 22.3,
+    "date": "2025-07-20",
+    "totalArticles": 1484,
+    "indexedPages": 1474,
+    "averageRanking": 25,
     "topKeywords": [
       {
-        "keyword": "tour operator marketing strategies",
+        "keyword": "tour operator contract terms",
         "position": 1,
-        "clicks": 40
+        "clicks": 22
       },
       {
-        "keyword": "tour operator pricing strategies",
-        "position": 2,
-        "clicks": 71
-      },
-      {
-        "keyword": "airbnb host dashboard guide",
+        "keyword": "tour operator marketing strategies",
         "position": 3,
-        "clicks": 20
+        "clicks": 81
       },
       {
-        "keyword": "tour operator insurance",
-        "position": 5,
-        "clicks": 2
+        "keyword": "tour operator compliance checklist",
+        "position": 7,
+        "clicks": 69
       },
       {
-        "keyword": "getyourguide partner dashboard",
-        "position": 6,
-        "clicks": 17
-      },
-      {
-        "keyword": "tour operator safety regulations",
-        "position": 9,
-        "clicks": 100
+        "keyword": "how to handle tour cancellations",
+        "position": 10,
+        "clicks": 14
       }
     ],
     "performanceIssues": [
-      "15 keywords are ranking below position 20"
+      "17 keywords are ranking below position 20",
+      "10 articles are not indexed"
     ],
     "recommendations": [
-      "Focus on content for improving keywords: airbnb cancellation policy for hosts, tour operator no-show policy, viator payment processing time",
-      "Update content for declining keywords: getyourguide partner dashboard, airbnb host dashboard guide, viator supplier portal tips",
+      "Focus on content for improving keywords: airbnb cancellation policy for hosts, getyourguide partner dashboard, tour operator no-show policy",
+      "Update content for declining keywords: getyourguide cancellation policy, airbnb payout schedule hosts, viator supplier portal tips",
       "Address performance issues to improve overall SEO"
     ]
   },
   "keywordTracking": [
     {
       "keyword": "airbnb cancellation policy for hosts",
-      "currentPosition": 21,
-      "previousPosition": 22,
-      "change": -1,
+      "currentPosition": 43,
+      "previousPosition": 45,
+      "change": -2,
       "searchVolume": "high",
       "difficulty": "hard"
     },
     {
       "keyword": "getyourguide partner dashboard",
-      "currentPosition": 6,
-      "previousPosition": 2,
-      "change": 4,
+      "currentPosition": 29,
+      "previousPosition": 31,
+      "change": -2,
       "searchVolume": "low",
       "difficulty": "easy"
     },
     {
       "keyword": "tour operator no-show policy",
-      "currentPosition": 18,
-      "previousPosition": 19,
+      "currentPosition": 38,
+      "previousPosition": 39,
       "change": -1,
       "searchVolume": "high",
       "difficulty": "hard"
     },
     {
       "keyword": "viator payment processing time",
-      "currentPosition": 14,
-      "previousPosition": 19,
-      "change": -5,
+      "currentPosition": 44,
+      "previousPosition": 48,
+      "change": -4,
       "searchVolume": "low",
       "difficulty": "hard"
     },
     {
       "keyword": "airbnb host dashboard guide",
-      "currentPosition": 3,
-      "previousPosition": 2,
-      "change": 1,
+      "currentPosition": 39,
+      "previousPosition": 39,
+      "change": 0,
       "searchVolume": "high",
       "difficulty": "easy"
     },
     {
       "keyword": "getyourguide cancellation policy",
-      "currentPosition": 19,
-      "previousPosition": 20,
-      "change": -1,
+      "currentPosition": 23,
+      "previousPosition": 21,
+      "change": 2,
       "searchVolume": "high",
       "difficulty": "easy"
     },
     {
       "keyword": "tour booking software comparison",
-      "currentPosition": 28,
-      "previousPosition": 32,
-      "change": -4,
+      "currentPosition": 12,
+      "previousPosition": 15,
+      "change": -3,
       "searchVolume": "medium",
       "difficulty": "medium"
     },
     {
       "keyword": "tour operator compliance checklist",
-      "currentPosition": 49,
-      "previousPosition": 50,
-      "change": -1,
+      "currentPosition": 7,
+      "previousPosition": 11,
+      "change": -4,
       "searchVolume": "medium",
       "difficulty": "hard"
     },
     {
       "keyword": "airbnb payout schedule hosts",
-      "currentPosition": 19,
-      "previousPosition": 19,
-      "change": 0,
+      "currentPosition": 30,
+      "previousPosition": 27,
+      "change": 3,
       "searchVolume": "high",
       "difficulty": "hard"
     },
     {
       "keyword": "viator supplier portal tips",
-      "currentPosition": 52,
-      "previousPosition": 50,
-      "change": 2,
+      "currentPosition": 22,
+      "previousPosition": 18,
+      "change": 4,
       "searchVolume": "low",
       "difficulty": "hard"
     },
     {
       "keyword": "airbnb host problems",
-      "currentPosition": 24,
-      "previousPosition": 25,
-      "change": -1,
+      "currentPosition": 12,
+      "previousPosition": 9,
+      "change": 3,
       "searchVolume": "high",
       "difficulty": "hard"
     },
     {
       "keyword": "viator partner issues",
-      "currentPosition": 12,
-      "previousPosition": 14,
-      "change": -2,
+      "currentPosition": 30,
+      "previousPosition": 29,
+      "change": 1,
       "searchVolume": "low",
       "difficulty": "hard"
     },
     {
       "keyword": "getyourguide partner problems",
-      "currentPosition": 26,
-      "previousPosition": 28,
-      "change": -2,
+      "currentPosition": 39,
+      "previousPosition": 42,
+      "change": -3,
       "searchVolume": "low",
       "difficulty": "easy"
     },
     {
       "keyword": "tour operator software",
-      "currentPosition": 42,
-      "previousPosition": 38,
-      "change": 4,
+      "currentPosition": 15,
+      "previousPosition": 12,
+      "change": 3,
       "searchVolume": "medium",
       "difficulty": "medium"
     },
     {
       "keyword": "tour booking platforms",
-      "currentPosition": 43,
-      "previousPosition": 42,
-      "change": 1,
+      "currentPosition": 12,
+      "previousPosition": 12,
+      "change": 0,
       "searchVolume": "medium",
       "difficulty": "hard"
     },
     {
       "keyword": "tour operator payment processing",
-      "currentPosition": 28,
-      "previousPosition": 25,
-      "change": 3,
+      "currentPosition": 20,
+      "previousPosition": 16,
+      "change": 4,
       "searchVolume": "medium",
       "difficulty": "hard"
     },
     {
       "keyword": "tour cancellation policy",
-      "currentPosition": 21,
-      "previousPosition": 25,
-      "change": -4,
+      "currentPosition": 13,
+      "previousPosition": 11,
+      "change": 2,
       "searchVolume": "high",
       "difficulty": "hard"
     },
     {
       "keyword": "tour operator legal requirements",
-      "currentPosition": 48,
-      "previousPosition": 50,
-      "change": -2,
+      "currentPosition": 43,
+      "previousPosition": 47,
+      "change": -4,
       "searchVolume": "medium",
       "difficulty": "hard"
     },
     {
       "keyword": "tour guide training",
-      "currentPosition": 30,
-      "previousPosition": 30,
+      "currentPosition": 19,
+      "previousPosition": 19,
       "change": 0,
       "searchVolume": "medium",
       "difficulty": "easy"
     },
     {
       "keyword": "tour operator insurance",
-      "currentPosition": 5,
-      "previousPosition": 7,
-      "change": -2,
+      "currentPosition": 16,
+      "previousPosition": 13,
+      "change": 3,
       "searchVolume": "medium",
       "difficulty": "hard"
     },
     {
       "keyword": "how to handle tour cancellations",
-      "currentPosition": 13,
-      "previousPosition": 11,
+      "currentPosition": 10,
+      "previousPosition": 8,
       "change": 2,
       "searchVolume": "medium",
       "difficulty": "easy"
     },
     {
       "keyword": "tour operator payment methods",
-      "currentPosition": 17,
-      "previousPosition": 18,
-      "change": -1,
+      "currentPosition": 23,
+      "previousPosition": 22,
+      "change": 1,
       "searchVolume": "medium",
       "difficulty": "hard"
     },
     {
       "keyword": "tour booking confirmation process",
-      "currentPosition": 11,
-      "previousPosition": 11,
-      "change": 0,
-      "searchVolume": "medium",
-      "difficulty": "hard"
-    },
-    {
-      "keyword": "tour operator customer service",
-      "currentPosition": 29,
-      "previousPosition": 32,
-      "change": -3,
-      "searchVolume": "medium",
-      "difficulty": "hard"
-    },
-    {
-      "keyword": "tour operator licensing requirements",
-      "currentPosition": 32,
-      "previousPosition": 34,
-      "change": -2,
-      "searchVolume": "medium",
-      "difficulty": "hard"
-    },
-    {
-      "keyword": "tour operator liability insurance",
-      "currentPosition": 12,
-      "previousPosition": 10,
-      "change": 2,
-      "searchVolume": "medium",
-      "difficulty": "hard"
-    },
-    {
-      "keyword": "tour operator contract terms",
-      "currentPosition": 35,
-      "previousPosition": 37,
-      "change": -2,
-      "searchVolume": "medium",
-      "difficulty": "hard"
-    },
-    {
-      "keyword": "tour operator safety regulations",
-      "currentPosition": 9,
-      "previousPosition": 6,
-      "change": 3,
-      "searchVolume": "medium",
-      "difficulty": "hard"
-    },
-    {
-      "keyword": "tour operator marketing strategies",
-      "currentPosition": 1,
-      "previousPosition": 3,
+      "currentPosition": 25,
+      "previousPosition": 29,
       "change": -4,
       "searchVolume": "medium",
       "difficulty": "hard"
     },
     {
+      "keyword": "tour operator customer service",
+      "currentPosition": 20,
+      "previousPosition": 24,
+      "change": -4,
+      "searchVolume": "medium",
+      "difficulty": "hard"
+    },
+    {
+      "keyword": "tour operator licensing requirements",
+      "currentPosition": 46,
+      "previousPosition": 44,
+      "change": 2,
+      "searchVolume": "medium",
+      "difficulty": "hard"
+    },
+    {
+      "keyword": "tour operator liability insurance",
+      "currentPosition": 39,
+      "previousPosition": 36,
+      "change": 3,
+      "searchVolume": "medium",
+      "difficulty": "hard"
+    },
+    {
+      "keyword": "tour operator contract terms",
+      "currentPosition": 1,
+      "previousPosition": 1,
+      "change": -3,
+      "searchVolume": "medium",
+      "difficulty": "hard"
+    },
+    {
+      "keyword": "tour operator safety regulations",
+      "currentPosition": 39,
+      "previousPosition": 44,
+      "change": -5,
+      "searchVolume": "medium",
+      "difficulty": "hard"
+    },
+    {
+      "keyword": "tour operator marketing strategies",
+      "currentPosition": 3,
+      "previousPosition": 8,
+      "change": -5,
+      "searchVolume": "medium",
+      "difficulty": "hard"
+    },
+    {
       "keyword": "tour operator pricing strategies",
-      "currentPosition": 2,
-      "previousPosition": 3,
-      "change": -1,
+      "currentPosition": 38,
+      "previousPosition": 37,
+      "change": 1,
       "searchVolume": "medium",
       "difficulty": "hard"
     }
   ],
   "platformStats": {
-    "StackOverflow": 94,
+    "StackOverflow": 177,
     "TripAdvisor": 427,
-    "Airbnb": 266,
-    "GetYourGuide": 42,
+    "Airbnb": 297,
+    "Reddit": 476,
+    "GetYourGuide": 43,
     "Other": 7,
     "Viator": 44,
-    "Reddit": 276,
-    "AirHosts Forum": 2
+    "AirHosts Forum": 3,
+    "airbnb": 10
   },
   "contentAge": {
-    "StackOverflow": 3,
-    "TripAdvisor": 3,
-    "Airbnb": 17,
-    "GetYourGuide": 17,
-    "Other": 17,
-    "Viator": 17,
-    "Reddit": 12,
-    "AirHosts Forum": 2
+    "StackOverflow": 15,
+    "TripAdvisor": 15,
+    "Airbnb": 29,
+    "Reddit": 24,
+    "GetYourGuide": 29,
+    "Other": 29,
+    "Viator": 29,
+    "AirHosts Forum": 14,
+    "airbnb": 11
   },
-  "timestamp": "2025-07-08T11:02:52.978Z"
+  "timestamp": "2025-07-20T14:15:09.866Z"
 }
