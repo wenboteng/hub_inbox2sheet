@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Star, Users, Euro, TrendingUp, BarChart3, Target, AlertCircle } from 'lucide-react';
 
 interface Activity {
   id: string;
@@ -188,11 +187,9 @@ export default function VendorDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <Target className="w-4 h-4" />
                 <span>Target: UK Tour Vendors</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <TrendingUp className="w-4 h-4" />
                 <span>Updated hourly</span>
               </div>
             </div>
@@ -207,7 +204,6 @@ export default function VendorDashboard() {
             {/* City Selector */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <MapPin className="w-4 h-4 inline mr-1" />
                 City
               </label>
               <select
@@ -224,7 +220,6 @@ export default function VendorDashboard() {
             {/* Category Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <BarChart3 className="w-4 h-4 inline mr-1" />
                 Category
               </label>
               <select
@@ -243,7 +238,6 @@ export default function VendorDashboard() {
             {/* Search */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Search className="w-4 h-4 inline mr-1" />
                 Search Activities
               </label>
               <input
@@ -267,7 +261,6 @@ export default function VendorDashboard() {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
             <div className="flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-400 mr-2" />
               <p className="text-red-800">{error}</p>
             </div>
           </div>
@@ -357,8 +350,7 @@ export default function VendorDashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <div className="flex items-center">
-                            <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                            {formatRating(competitor.averageRating)}
+                            ⭐ {formatRating(competitor.averageRating)}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -388,7 +380,6 @@ export default function VendorDashboard() {
               <div className="divide-y divide-gray-200">
                 {filteredActivities.length === 0 ? (
                   <div className="px-6 py-12 text-center text-gray-500">
-                    <Search className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                     <p>No activities found matching your criteria.</p>
                   </div>
                 ) : (
@@ -408,15 +399,9 @@ export default function VendorDashboard() {
                           </div>
                           
                           <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
-                            <span className="flex items-center">
-                              <Users className="w-4 h-4 mr-1" />
-                              {activity.providerName}
-                            </span>
+                            <span>👥 {activity.providerName}</span>
                             {activity.venue && (
-                              <span className="flex items-center">
-                                <MapPin className="w-4 h-4 mr-1" />
-                                {activity.venue}
-                              </span>
+                              <span>📍 {activity.venue}</span>
                             )}
                             {activity.duration && (
                               <span>{activity.duration}</span>
@@ -446,8 +431,7 @@ export default function VendorDashboard() {
                           <div className="flex items-center space-x-4 text-sm">
                             {activity.rating && (
                               <div className="flex items-center">
-                                <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                                <span className="font-medium">{formatRating(activity.rating)}</span>
+                                ⭐ <span className="font-medium ml-1">{formatRating(activity.rating)}</span>
                                 {activity.reviewCount && (
                                   <span className="text-gray-500 ml-1">
                                     ({formatReviewCount(activity.reviewCount)})
@@ -457,8 +441,7 @@ export default function VendorDashboard() {
                             )}
                             {activity.price && (
                               <div className="flex items-center font-medium text-green-600">
-                                <Euro className="w-4 h-4 mr-1" />
-                                {formatPrice(activity.price, activity.priceCurrency)}
+                                € {formatPrice(activity.price, activity.priceCurrency)}
                               </div>
                             )}
                           </div>
