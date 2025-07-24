@@ -13,15 +13,15 @@ async function testVendorDashboard() {
     for (const city of testCities) {
       console.log(`\n📍 Testing city: ${city}`);
       
-      // Test the same query logic as the API
-      const whereClause = {
-        OR: [
-          { city: { contains: city, mode: 'insensitive' } },
-          { location: { contains: city, mode: 'insensitive' } },
-          { activityName: { contains: city, mode: 'insensitive' } },
-          { venue: { contains: city, mode: 'insensitive' } }
-        ]
-      };
+          // Test the same query logic as the API
+    const whereClause = {
+      OR: [
+        { city: { contains: city, mode: 'insensitive' as const } },
+        { location: { contains: city, mode: 'insensitive' as const } },
+        { activityName: { contains: city, mode: 'insensitive' as const } },
+        { venue: { contains: city, mode: 'insensitive' as const } }
+      ]
+    };
 
       const activities = await mainPrisma.importedGYGActivity.findMany({
         where: whereClause,
@@ -60,7 +60,7 @@ async function testVendorDashboard() {
 
       // Test market insights calculation
       const allActivities = await mainPrisma.importedGYGActivity.findMany({
-        where: whereClause,
+        where: whereClause as any,
         select: {
           providerName: true,
           ratingNumeric: true,

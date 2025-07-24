@@ -81,10 +81,10 @@ export async function GET(request: NextRequest) {
     // Build where clause for city filtering
     const whereClause: any = {
       OR: [
-        { city: { contains: city, mode: 'insensitive' } },
-        { location: { contains: city, mode: 'insensitive' } },
-        { activityName: { contains: city, mode: 'insensitive' } },
-        { venue: { contains: city, mode: 'insensitive' } }
+        { city: { contains: city, mode: 'insensitive' as const } },
+        { location: { contains: city, mode: 'insensitive' as const } },
+        { activityName: { contains: city, mode: 'insensitive' as const } },
+        { venue: { contains: city, mode: 'insensitive' as const } }
       ]
     };
 
