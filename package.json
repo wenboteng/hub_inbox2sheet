@@ -60,6 +60,7 @@
     "test:gpt-enrichment": "tsx scripts/test-gpt-enrichment.ts",
     "test:gpt-enrichment:mock": "tsx scripts/test-gpt-enrichment-mock.ts",
     "test:pdf-generation": "tsx scripts/test-pdf-generation.ts",
+    "test:vendor-dashboard": "tsx scripts/test-vendor-dashboard.ts",
     "admin:make-reports-private": "tsx scripts/make-internal-reports-private.ts",
     "traffic:seo-strategy": "tsx scripts/seo-keyword-strategy.ts",
     "traffic:implementation": "tsx scripts/traffic-generation-implementation.ts",
