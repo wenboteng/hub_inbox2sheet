@@ -77,24 +77,23 @@ async function scrapeAirbnbCommunity() {
     }
 }
 async function scrapeRedditEnhanced() {
-    console.log('[MAIN] Starting Enhanced Reddit scraping...');
+    console.log('[MAIN] Starting Reddit scraping (using basic crawler due to account ban)...');
     try {
-        const { crawlRedditOAuth } = await Promise.resolve().then(() => __importStar(require('../crawlers/reddit-oauth')));
-        const redditStats = await crawlRedditOAuth();
-        console.log(`[MAIN] Enhanced Reddit crawl completed:`);
+        // Use basic Reddit crawler (no authentication required)
+        const { crawlReddit } = await Promise.resolve().then(() => __importStar(require('../crawlers/reddit')));
+        const redditStats = await crawlReddit();
+        console.log(`[MAIN] Basic Reddit crawl completed:`);
         console.log(`  - Subreddits processed: ${redditStats.subredditsProcessed}`);
         console.log(`  - Posts discovered: ${redditStats.postsDiscovered}`);
         console.log(`  - Posts extracted: ${redditStats.postsExtracted}`);
         console.log(`  - Comments extracted: ${redditStats.commentsExtracted}`);
-        console.log(`  - Total requests: ${redditStats.totalRequests}`);
-        console.log(`  - Rate limit hits: ${redditStats.rateLimitHits}`);
-        // The reddit-enhanced crawler saves directly to database
-        // We'll return an empty array since articles are already saved
-        console.log(`[MAIN] Reddit articles saved directly to database by crawler`);
+        console.log(`  - Errors: ${redditStats.errors.length}`);
+        // The basic reddit crawler saves directly to database
+        console.log(`[MAIN] Reddit articles saved directly to database by basic crawler`);
         return [];
     }
     catch (error) {
-        console.error('[MAIN] Enhanced Reddit scraping failed:', error);
+        console.error('[MAIN] Basic Reddit scraping failed:', error);
         return [];
     }
 }
