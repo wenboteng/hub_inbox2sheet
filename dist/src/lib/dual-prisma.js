@@ -1,4 +1,5 @@
 "use strict";
+require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 // Main database client (existing)
 const mainPrismaClientSingleton = () => {

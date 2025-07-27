@@ -1,0 +1,133 @@
+# OTA Answer Hub Environment Variables Template
+# Copy this file to .env and fill in your actual values
+
+# =============================================================================
+# DATABASE CONFIGURATION (DUAL NEON DB)
+# =============================================================================
+
+# Main Database (for articles, content, reports)
+DATABASE_URL="postgresql://username:password@host:port/database?sslmode=require"
+
+# GYG Database (for GetYourGuide activities)
+GYG_DATABASE_URL="postgresql://username:password@host:port/gyg_database?sslmode=require"
+
+# =============================================================================
+# APPLICATION CONFIGURATION
+# =============================================================================
+
+# Your application's public URL (required for SEO and links)
+NEXT_PUBLIC_BASE_URL="https://your-domain.com"
+
+# Node.js environment
+NODE_ENV="production"
+
+# Port for the application (default: 3000)
+PORT=3000
+
+# =============================================================================
+# OPENAI CONFIGURATION (Required for embeddings and AI features)
+# =============================================================================
+
+# Your OpenAI API key (get from https://platform.openai.com/api-keys)
+OPENAI_API_KEY="sk-your-openai-api-key-here"
+
+# =============================================================================
+# PUPPETEER CONFIGURATION (For web scraping)
+# =============================================================================
+
+# Cache directory for Puppeteer Chrome browser
+PUPPETEER_CACHE_DIR="/root/.cache/puppeteer"
+
+# Whether to skip Chromium download (false for first run, true for subsequent runs)
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD="false"
+
+# =============================================================================
+# OPTIONAL: OTA PLATFORM CREDENTIALS
+# =============================================================================
+
+# Expedia Partner Central
+EXPEDIA_USERNAME=""
+EXPEDIA_PASSWORD=""
+EXPEDIA_SESSION_COOKIE=""
+
+# Booking.com Partner Portal
+BOOKING_API_TOKEN=""
+BOOKING_SESSION_COOKIE=""
+BOOKING_XSRF_TOKEN=""
+
+# Airbnb (if you have partner access)
+AIRBNB_USERNAME=""
+AIRBNB_PASSWORD=""
+
+# Reddit API (for Reddit scraping)
+REDDIT_CLIENT_ID=""
+REDDIT_CLIENT_SECRET=""
+
+# =============================================================================
+# OPTIONAL: GOOGLE ANALYTICS (if using analytics features)
+# =============================================================================
+
+# Google Analytics 4 Property ID
+GOOGLE_ANALYTICS_ID=""
+
+# Google Analytics Service Account Key (JSON content)
+GOOGLE_ANALYTICS_CREDENTIALS=""
+
+# =============================================================================
+# OPTIONAL: EMAIL CONFIGURATION (if using email features)
+# =============================================================================
+
+# SMTP Configuration
+SMTP_HOST=""
+SMTP_PORT=""
+SMTP_USER=""
+SMTP_PASS=""
+SMTP_FROM=""
+
+# =============================================================================
+# OPTIONAL: CACHE AND PERFORMANCE
+# =============================================================================
+
+# Redis URL (if using Redis for caching)
+REDIS_URL=""
+
+# =============================================================================
+# OPTIONAL: MONITORING AND LOGGING
+# =============================================================================
+
+# Sentry DSN (for error tracking)
+SENTRY_DSN=""
+
+# Log level (debug, info, warn, error)
+LOG_LEVEL="info"
+
+# =============================================================================
+# OPTIONAL: SECURITY
+# =============================================================================
+
+# JWT Secret (for authentication if implemented)
+JWT_SECRET=""
+
+# Session Secret (for sessions if implemented)
+SESSION_SECRET=""
+
+# =============================================================================
+# OPTIONAL: FEATURE FLAGS
+# =============================================================================
+
+# Enable/disable specific features
+ENABLE_ANALYTICS="true"
+ENABLE_SCRAPING="true"
+ENABLE_EMAIL="false"
+ENABLE_MONITORING="false"
+
+# =============================================================================
+# NOTES:
+# =============================================================================
+# 1. Required variables: DATABASE_URL, GYG_DATABASE_URL, NEXT_PUBLIC_BASE_URL, OPENAI_API_KEY
+# 2. Both databases should be Neon DB instances for production
+# 3. Optional variables can be left empty if not using those features
+# 4. Keep this file secure and never commit it to version control
+# 5. Use strong, unique passwords for all credentials
+# 6. Consider using a secrets manager for production environments
+# 7. Both databases will be tested during deployment 

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+require("dotenv/config");
 const client_1 = require("@prisma/client");
 async function testDatabaseConnection() {
     console.log('🔍 Testing database connection...');
