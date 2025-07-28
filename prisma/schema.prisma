@@ -10,30 +10,36 @@ datasource db {
 }
 
 model Article {
-  id            String             @id @default(cuid())
-  url           String             @unique
-  question      String
-  answer        String
-  category      String
-  platform      String
-  lastUpdated   DateTime           @default(now())
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  contentType   String             @default("official")
-  source        String             @default("help_center")
-  author        String?
-  votes         Int                @default(0)
-  isVerified    Boolean            @default(false)
-  contentHash   String?
-  isDuplicate   Boolean            @default(false)
-  crawlMode     String             @default("discovery")
-  crawlStatus   String             @default("active")
-  etag          String?
-  lastCheckedAt DateTime?
-  lastModified  String?
-  language      String             @default("en")
-  slug          String             @unique
-  paragraphs    ArticleParagraph[]
+  id                 String             @id @default(cuid())
+  url                String             @unique
+  question           String
+  answer             String
+  category           String
+  platform           String
+  lastUpdated        DateTime           @default(now())
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  contentType        String             @default("official")
+  source             String             @default("help_center")
+  author             String?
+  votes              Int                @default(0)
+  isVerified         Boolean            @default(false)
+  contentHash        String?
+  isDuplicate        Boolean            @default(false)
+  crawlMode          String             @default("discovery")
+  crawlStatus        String             @default("active")
+  etag               String?
+  lastCheckedAt      DateTime?
+  lastModified       String?
+  language           String             @default("en")
+  slug               String             @unique
+  aiSummary          String?
+  keyPoints          String[]           @default([])
+  actionItems        String[]           @default([])
+  urgency            String?
+  impact             String?
+  summaryGeneratedAt DateTime?
+  paragraphs         ArticleParagraph[]
 
   @@index([platform])
   @@index([category])
@@ -45,6 +51,7 @@ model Article {
   @@index([crawlMode])
   @@index([crawlStatus])
   @@index([language])
+  @@index([summaryGeneratedAt])
 }
 
 model Answer {
@@ -223,23 +230,4 @@ model ImportedMadridActivity {
   @@index([qualityScore])
   @@index([city])
   @@index([country])
-}
-
-model ImportedGYGProvider {
-  id          String   @id @default(cuid())
-  originalId  String   @unique
-  name        String
-  description String?
-  location    String?
-  rating      Float?
-  reviewCount Int?
-  url         String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  importedAt  DateTime @default(now())
-
-  @@index([name])
-  @@index([location])
-  @@index([rating])
-  @@index([importedAt])
 }

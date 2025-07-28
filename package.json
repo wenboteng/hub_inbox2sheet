@@ -72,7 +72,13 @@
     "test:crawler-fixes": "tsx scripts/test-crawler-fixes.ts",
     "check:content-stats": "tsx scripts/check-content-stats.ts",
     "analyze:reports": "tsx scripts/analyze-content-for-reports.ts",
-    "seo:pipeline": "tsx src/scripts/automated-report-seo-pipeline.ts"
+    "seo:pipeline": "tsx src/scripts/automated-report-seo-pipeline.ts",
+    "test:faq": "tsx src/scripts/test-faq-system.ts",
+    "collect:oxylabs": "tsx src/scripts/oxylabs-content-collector.ts",
+    "faq:init": "tsx src/scripts/initialize-faq-categories.ts",
+    "faq:integrate": "tsx src/scripts/integrate-faq-data.ts",
+    "crawl:tour-vendor": "tsx src/scripts/oxylabs-tour-vendor-crawler.ts",
+    "test:oxylabs:fixed": "tsx src/scripts/test-oxylabs-connection.ts"
   },
   "dependencies": {
     "@google-analytics/data": "^5.1.0",

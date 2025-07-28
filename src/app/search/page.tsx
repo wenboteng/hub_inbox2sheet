@@ -381,6 +381,9 @@ export default function SearchPage() {
                 </span>
               </div>
               <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: searchSummary.summary }} />
+              <p className="mt-4 text-sm text-green-700">
+                💡 This summary is based on your search intent and relevant articles from our knowledge base.
+              </p>
             </div>
           )}
 
@@ -389,7 +392,12 @@ export default function SearchPage() {
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <div className="flex items-start gap-3">
                 <span className="text-blue-600 text-lg">💡</span>
-                <p className="text-blue-900">{answerSummary}</p>
+                <div className="flex-1">
+                  <p className="text-blue-900 mb-2">{answerSummary}</p>
+                  <p className="text-sm text-blue-700">
+                    This is a direct answer to your question based on the most relevant search result.
+                  </p>
+                </div>
               </div>
             </div>
           )}

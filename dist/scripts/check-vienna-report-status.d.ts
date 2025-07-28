@@ -4,10 +4,10 @@ declare function checkViennaReportStatus(): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        type: string;
-        slug: string;
         title: string;
         content: string;
+        slug: string;
+        type: string;
         isPublic: boolean;
     } | null;
     totalPublicReports: number;
