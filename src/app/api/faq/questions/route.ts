@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { authenticateUser, checkAiUsageLimit, incrementAiUsage } from '../../../../lib/auth';
 
 const prisma = new PrismaClient();
 
@@ -72,7 +73,31 @@ function isTouristContent(question: string, answer: string): boolean {
     'best practice', 'strategy', 'optimization', 'improvement',
     'competition', 'market', 'industry', 'trend',
     'seasonal', 'demand', 'supply', 'capacity',
-    'quality', 'standard', 'excellence', 'professional'
+    'quality', 'standard', 'excellence', 'professional',
+    // Tour vendor specific keywords
+    'tour operator', 'tour guide', 'tour business', 'tour company',
+    'tour package', 'tour service', 'tour experience',
+    'guided tour', 'city tour', 'day tour', 'multi-day tour',
+    'tour pricing', 'tour marketing', 'tour booking',
+    'tour cancellation', 'tour refund', 'tour policy',
+    'tour insurance', 'tour license', 'tour permit',
+    'tour vehicle', 'tour equipment', 'tour staff',
+    'tour itinerary', 'tour route', 'tour destination',
+    'tour group', 'tour capacity', 'tour availability'
+  ];
+
+  // NEW: Promotional content detection
+  const promotionalKeywords = [
+    'promote', 'promotion', 'advertise', 'advertisement', 'sponsored',
+    'partnership', 'collaboration', 'affiliate', 'commission',
+    'discount', 'offer', 'deal', 'sale', 'limited time',
+    'exclusive', 'special', 'premium', 'upgrade', 'enhance',
+    'boost', 'increase', 'improve', 'optimize', 'maximize',
+    'best', 'top', 'leading', 'award-winning', 'recommended',
+    'featured', 'highlighted', 'spotlight', 'showcase',
+    'blog post', 'article', 'guide', 'tutorial', 'how-to',
+    'tips and tricks', 'best practices', 'ultimate guide',
+    'complete guide', 'comprehensive', 'in-depth', 'detailed'
   ];
 
   const questionLower = question.toLowerCase();
@@ -82,6 +107,7 @@ function isTouristContent(question: string, answer: string): boolean {
   // Count tourist vs vendor keywords
   let touristScore = 0;
   let vendorScore = 0;
+  let promotionalScore = 0;
 
   touristKeywords.forEach(keyword => {
     if (combinedText.includes(keyword.toLowerCase())) {
@@ -92,6 +118,12 @@ function isTouristContent(question: string, answer: string): boolean {
   vendorKeywords.forEach(keyword => {
     if (combinedText.includes(keyword.toLowerCase())) {
       vendorScore += 1;
+    }
+  });
+
+  promotionalKeywords.forEach(keyword => {
+    if (combinedText.includes(keyword.toLowerCase())) {
+      promotionalScore += 1;
     }
   });
 
@@ -221,7 +253,75 @@ function isTouristContent(question: string, answer: string): boolean {
     /quality/i,
     /standard/i,
     /excellence/i,
-    /professional/i
+    /professional/i,
+    // Tour vendor patterns
+    /tour operator/i,
+    /tour guide/i,
+    /tour business/i,
+    /tour company/i,
+    /tour package/i,
+    /tour service/i,
+    /tour experience/i,
+    /guided tour/i,
+    /city tour/i,
+    /day tour/i,
+    /multi-day tour/i,
+    /tour pricing/i,
+    /tour marketing/i,
+    /tour booking/i,
+    /tour cancellation/i,
+    /tour refund/i,
+    /tour policy/i,
+    /tour insurance/i,
+    /tour license/i,
+    /tour permit/i,
+    /tour vehicle/i,
+    /tour equipment/i,
+    /tour staff/i,
+    /tour itinerary/i,
+    /tour route/i,
+    /tour destination/i,
+    /tour group/i,
+    /tour capacity/i,
+    /tour availability/i
+  ];
+
+  // NEW: Promotional content patterns
+  const promotionalPatterns = [
+    /promote your/i,
+    /advertise your/i,
+    /sponsored by/i,
+    /in partnership with/i,
+    /affiliate link/i,
+    /commission rate/i,
+    /limited time offer/i,
+    /exclusive deal/i,
+    /special promotion/i,
+    /premium feature/i,
+    /upgrade your/i,
+    /enhance your/i,
+    /boost your/i,
+    /increase your/i,
+    /improve your/i,
+    /optimize your/i,
+    /maximize your/i,
+    /best practices/i,
+    /top tips/i,
+    /leading provider/i,
+    /award-winning/i,
+    /highly recommended/i,
+    /featured in/i,
+    /spotlight on/i,
+    /showcase your/i,
+    /blog post/i,
+    /article about/i,
+    /complete guide/i,
+    /ultimate guide/i,
+    /comprehensive guide/i,
+    /in-depth analysis/i,
+    /detailed tutorial/i,
+    /how to/i,
+    /tips and tricks/i
   ];
 
   // Check for tourist patterns
@@ -238,11 +338,24 @@ function isTouristContent(question: string, answer: string): boolean {
     }
   });
 
-  // Decision logic: if tourist score is significantly higher than vendor score, hide the content
-  const ratio = touristScore / (vendorScore + 1); // Add 1 to avoid division by zero
+  // Check for promotional patterns
+  promotionalPatterns.forEach(pattern => {
+    if (pattern.test(combinedText)) {
+      promotionalScore += 2; // Give more weight to patterns
+    }
+  });
+
+  // Enhanced decision logic
+  const touristRatio = touristScore / (vendorScore + 1);
+  const promotionalRatio = promotionalScore / (vendorScore + 1);
   
-  // If tourist score is 2x higher than vendor score, consider it tourist content
-  return ratio > 2 || touristScore > 5;
+  // If content is heavily promotional, consider it low quality for vendors
+  if (promotionalRatio > 1.5 || promotionalScore > 8) {
+    return true; // Hide promotional content
+  }
+  
+  // If tourist score is significantly higher than vendor score, hide the content
+  return touristRatio > 2 || touristScore > 5;
 }
 
 // Function to categorize vendor content based on keywords and patterns
@@ -251,15 +364,62 @@ function categorizeVendorContent(question: string, answer: string): string {
   const answerLower = answer.toLowerCase();
   const combinedText = questionLower + ' ' + answerLower;
 
-  // Define category keywords
+  // Define category keywords - using exact names from categories API
   const categoryKeywords = {
-    'Pricing & Revenue': ['pricing', 'price', 'rate', 'revenue', 'income', 'profit', 'cost', 'commission', 'fee', 'earnings', 'pricing strategy', 'dynamic pricing', 'seasonal pricing'],
-    'Marketing & SEO': ['marketing', 'seo', 'promotion', 'advertising', 'visibility', 'ranking', 'search', 'optimization', 'campaign', 'social media', 'email marketing', 'content marketing'],
-    'Customer Service': ['customer', 'guest', 'service', 'support', 'help', 'complaint', 'issue', 'problem', 'communication', 'message', 'inquiry', 'feedback'],
-    'Technical Setup': ['technical', 'setup', 'configuration', 'integration', 'api', 'webhook', 'automation', 'tool', 'software', 'platform', 'system', 'dashboard'],
-    'Booking & Cancellations': ['booking', 'reservation', 'cancellation', 'refund', 'payment', 'calendar', 'availability', 'block', 'unblock', 'instant book'],
-    'Policies & Legal': ['policy', 'rule', 'regulation', 'legal', 'compliance', 'terms', 'condition', 'liability', 'insurance', 'tax', 'taxation', 'legal requirement'],
-    'Vendor Insights': ['host', 'hosting', 'property', 'listing', 'rental', 'superhost', 'verified', 'badge', 'quality', 'standard', 'excellence', 'professional', 'best practice']
+    'Pricing & Revenue': [
+      'pricing', 'price', 'rate', 'revenue', 'income', 'profit', 'cost', 'commission', 'fee', 'earnings', 
+      'pricing strategy', 'dynamic pricing', 'seasonal pricing', 'tour pricing', 'tour rates',
+      'tour revenue', 'tour income', 'tour profit', 'tour cost', 'tour commission', 'tour fee',
+      'tour earnings', 'tour pricing strategy', 'tour dynamic pricing', 'tour seasonal pricing'
+    ],
+    'Marketing & SEO': [
+      'marketing', 'seo', 'promotion', 'advertising', 'visibility', 'ranking', 'search', 'optimization', 
+      'campaign', 'social media', 'email marketing', 'content marketing', 'tour marketing',
+      'tour seo', 'tour promotion', 'tour advertising', 'tour visibility', 'tour ranking',
+      'tour search', 'tour optimization', 'tour campaign', 'tour social media', 'tour email marketing'
+    ],
+    'Customer Service': [
+      'customer', 'guest', 'service', 'support', 'help', 'complaint', 'issue', 'problem', 'communication', 
+      'message', 'inquiry', 'feedback', 'tour customer', 'tour guest', 'tour service',
+      'tour support', 'tour help', 'tour complaint', 'tour issue', 'tour problem',
+      'tour communication', 'tour message', 'tour inquiry', 'tour feedback'
+    ],
+    'Technical Setup': [
+      'technical', 'setup', 'configuration', 'integration', 'api', 'webhook', 'automation', 'tool', 
+      'software', 'platform', 'system', 'dashboard', 'tour technical', 'tour setup',
+      'tour configuration', 'tour integration', 'tour api', 'tour webhook', 'tour automation',
+      'tour tool', 'tour software', 'tour platform', 'tour system', 'tour dashboard'
+    ],
+    'Booking & Cancellations': [
+      'booking', 'reservation', 'cancellation', 'refund', 'payment', 'calendar', 'availability', 
+      'block', 'unblock', 'instant book', 'tour booking', 'tour reservation', 'tour cancellation',
+      'tour refund', 'tour payment', 'tour calendar', 'tour availability', 'tour block',
+      'tour unblock', 'tour instant book'
+    ],
+    'Policies & Legal': [
+      'policy', 'rule', 'regulation', 'legal', 'compliance', 'terms', 'condition', 'liability', 
+      'insurance', 'tax', 'taxation', 'legal requirement', 'tour policy', 'tour rule',
+      'tour regulation', 'tour legal', 'tour compliance', 'tour terms', 'tour condition',
+      'tour liability', 'tour insurance', 'tour tax', 'tour taxation', 'tour legal requirement'
+    ],
+    'Tour Operations': [
+      'tour operator', 'tour guide', 'tour business', 'tour company', 'tour package', 'tour service',
+      'tour experience', 'guided tour', 'city tour', 'day tour', 'multi-day tour', 'tour vehicle',
+      'tour equipment', 'tour staff', 'tour itinerary', 'tour route', 'tour destination',
+      'tour group', 'tour capacity', 'tour availability', 'tour schedule', 'tour logistics',
+      'tour planning', 'tour management', 'tour coordination', 'tour execution', 'tour delivery'
+    ],
+    'Community Insights': [
+      'community', 'experience', 'story', 'advice', 'tip', 'recommendation', 'suggestion', 'insight',
+      'tour community', 'tour experience', 'tour story', 'tour advice', 'tour tip',
+      'tour recommendation', 'tour suggestion', 'tour insight', 'peer advice', 'vendor experience',
+      'host experience', 'operator experience', 'guide experience'
+    ],
+    'Expert Advice': [
+      'expert', 'professional', 'best practice', 'industry', 'specialist', 'consultant', 'advisor',
+      'tour expert', 'tour professional', 'tour best practice', 'tour industry', 'tour specialist',
+      'tour consultant', 'tour advisor', 'industry expert', 'professional advice', 'specialist guidance'
+    ]
   };
 
   // Calculate scores for each category
@@ -268,7 +428,13 @@ function categorizeVendorContent(question: string, answer: string): string {
   Object.entries(categoryKeywords).forEach(([category, keywords]) => {
     let score = 0;
     keywords.forEach(keyword => {
-      if (combinedText.includes(keyword.toLowerCase())) {
+      const keywordLower = keyword.toLowerCase();
+      // Give more weight to question matches
+      if (questionLower.includes(keywordLower)) {
+        score += 3;
+      }
+      // Give less weight to answer matches
+      if (answerLower.includes(keywordLower)) {
         score += 1;
       }
     });
@@ -280,7 +446,8 @@ function categorizeVendorContent(question: string, answer: string): string {
     return score > best.score ? { category, score } : best;
   }, { category: 'General', score: 0 });
 
-  return bestCategory.score > 0 ? bestCategory.category : 'General';
+  // Only return the category if it has a meaningful score (at least 3 points)
+  return bestCategory.score >= 3 ? bestCategory.category : 'General';
 }
 
 // AI Summary generation function
@@ -932,13 +1099,23 @@ export async function GET(request: NextRequest) {
     const platform = searchParams.get('platform') || 'all';
     const sortBy = searchParams.get('sortBy') || 'relevance';
     const topOnly = searchParams.get('topOnly') === 'true';
-    const includeTouristContent = searchParams.get('includeTouristContent') === 'true'; // New parameter
+    const includeTouristContent = searchParams.get('includeTouristContent') === 'true';
+    
+    // Pagination parameters
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '6');
+    const offset = (page - 1) * limit;
 
-    // Build where clause for filtering - use ALL existing data, not just FAQ
+    // Check authentication for enhanced features
+    const user = await authenticateUser(request);
+    const isAuthenticated = !!user;
+    const userTier = user?.subscriptionTier || 'free';
+
+    // Build where clause for filtering
     const where: any = {
       crawlStatus: 'active',
       isDuplicate: false,
-      language: 'en', // Focus on English content
+      language: 'en',
     };
 
     if (search) {
@@ -949,7 +1126,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (category !== 'all') {
-      // Map category IDs to category names
       const categoryMap: Record<string, string> = {
         'pricing-revenue': 'Pricing & Revenue',
         'marketing-seo': 'Marketing & SEO',
@@ -957,7 +1133,7 @@ export async function GET(request: NextRequest) {
         'technical-setup': 'Technical Setup',
         'booking-cancellations': 'Booking & Cancellations',
         'policies-legal': 'Policies & Legal',
-        'vendor-insights': 'Vendor Insights', // New category for vendor-specific content
+        'vendor-insights': 'Vendor Insights',
         'general': 'General'
       };
       
@@ -984,11 +1160,15 @@ export async function GET(request: NextRequest) {
         orderBy = { votes: 'desc' };
     }
 
-    // Get questions from existing Article table - ALL content, not just FAQ
+    // Get total count for pagination
+    const totalCount = await prisma.article.count({ where });
+    
+    // Get questions from existing Article table
     const articles = await prisma.article.findMany({
       where,
       orderBy,
-      take: 100, // Increased limit to show more content
+      skip: offset,
+      take: limit,
     });
 
     // Log filtering statistics
@@ -999,110 +1179,54 @@ export async function GET(request: NextRequest) {
     console.log(`FAQ Filtering Stats: Total=${totalArticles}, Tourist=${touristArticles.length}, Vendor=${vendorArticles.length}, IncludeTourist=${includeTouristContent}`);
 
     // Transform articles to FAQ format and filter out tourist content
-    const questionsPromises = articles
-      .filter(article => includeTouristContent || !isTouristContent(article.question, article.answer)) // Filter out tourist content unless explicitly requested
-      .map(async article => { // Make it async to await generateAndStoreSummary
-        // Determine difficulty based on content
+    const questions = articles
+      .filter(article => includeTouristContent || !isTouristContent(article.question, article.answer))
+      .map(article => {
         const difficulty = determineDifficulty(article.answer);
         const estimatedTime = Math.ceil(article.answer.split(' ').length / 200);
         const contentQuality = calculateContentQuality(article);
-        
-        // Extract tags from content
         const tags = extractTags(article.question, article.answer);
         
-        // Check if we should generate a new summary
-        if (shouldGenerateSummary(article)) {
-          const { aiSummary, keyPoints, actionItems, urgency, impact } = await generateAndStoreSummary(article, prisma);
-          return {
-            id: article.id,
-            question: article.question,
-            answer: article.answer,
-            categoryId: categorizeVendorContent(article.question, article.answer).toLowerCase().replace(/\s+/g, '-').replace(/&/g, '-'),
-            platform: article.platform,
-            tags,
-            upvotes: article.votes || 0,
-            downvotes: 0,
-            viewCount: 0,
-            isTopQuestion: article.isVerified || article.contentType === 'official',
-            isTopAnswered: article.isVerified || article.contentType === 'official',
-            difficulty,
-            estimatedTime,
-            contentQuality,
-            isVerified: article.isVerified || article.contentType === 'official',
-            lastUpdated: article.lastUpdated.toISOString(),
-            sourceUrl: article.url, // Add source URL
-            contentType: article.contentType, // Add content type
-            source: article.source, // Add source information
-            // AI Summary data
-            aiSummary: aiSummary,
-            keyPoints: keyPoints,
-            actionItems: actionItems,
-            urgency: urgency,
-            impact: impact,
-            category: {
-              id: categorizeVendorContent(article.question, article.answer).toLowerCase().replace(/\s+/g, '-').replace(/&/g, '-'),
-              name: categorizeVendorContent(article.question, article.answer),
-              description: getCategoryDescription(categorizeVendorContent(article.question, article.answer)),
-              icon: getCategoryIcon(categorizeVendorContent(article.question, article.answer)),
-              color: getCategoryColor(categorizeVendorContent(article.question, article.answer)),
-              priority: getCategoryPriority(categorizeVendorContent(article.question, article.answer)),
-              questionCount: 0
-            }
-          };
-        } else {
-          return {
-            id: article.id,
-            question: article.question,
-            answer: article.answer,
-            categoryId: categorizeVendorContent(article.question, article.answer).toLowerCase().replace(/\s+/g, '-').replace(/&/g, '-'),
-            platform: article.platform,
-            tags,
-            upvotes: article.votes || 0,
-            downvotes: 0,
-            viewCount: 0,
-            isTopQuestion: article.isVerified || article.contentType === 'official',
-            isTopAnswered: article.isVerified || article.contentType === 'official',
-            difficulty,
-            estimatedTime,
-            contentQuality,
-            isVerified: article.isVerified || article.contentType === 'official',
-            lastUpdated: article.lastUpdated.toISOString(),
-            sourceUrl: article.url, // Add source URL
-            contentType: article.contentType, // Add content type
-            source: article.source, // Add source information
-            // AI Summary data
-            aiSummary: (article as any).aiSummary || '',
-            keyPoints: (article as any).keyPoints || [],
-            actionItems: (article as any).actionItems || [],
-            urgency: (article as any).urgency || 'low',
-            impact: (article as any).impact || 'general',
-            category: {
-              id: categorizeVendorContent(article.question, article.answer).toLowerCase().replace(/\s+/g, '-').replace(/&/g, '-'),
-              name: categorizeVendorContent(article.question, article.answer),
-              description: getCategoryDescription(categorizeVendorContent(article.question, article.answer)),
-              icon: getCategoryIcon(categorizeVendorContent(article.question, article.answer)),
-              color: getCategoryColor(categorizeVendorContent(article.question, article.answer)),
-              priority: getCategoryPriority(categorizeVendorContent(article.question, article.answer)),
-              questionCount: 0
-            }
-          };
-        }
+        return {
+          id: article.id,
+          question: article.question,
+          answer: article.answer,
+          categoryId: categorizeVendorContent(article.question, article.answer).toLowerCase().replace(/\s+/g, '-').replace(/&/g, '-'),
+          platform: article.platform,
+          tags,
+          upvotes: article.votes || 0,
+          downvotes: 0,
+          viewCount: 0,
+          isTopQuestion: article.isVerified || article.contentType === 'official',
+          isTopAnswered: article.isVerified || article.contentType === 'official',
+          difficulty,
+          estimatedTime,
+          contentQuality,
+          isVerified: article.isVerified || article.contentType === 'official',
+          lastUpdated: article.lastUpdated.toISOString(),
+          sourceUrl: article.url,
+          contentType: article.contentType,
+          source: article.source,
+          // AI Summary data - only show for authenticated users
+          aiSummary: isAuthenticated ? (article.aiSummary || '') : '',
+          keyPoints: isAuthenticated ? (article.keyPoints || []) : [],
+          actionItems: isAuthenticated ? (article.actionItems || []) : [],
+          urgency: isAuthenticated ? (article.urgency || 'low') : 'low',
+          impact: isAuthenticated ? (article.impact || 'general') : 'general',
+          category: {
+            id: categorizeVendorContent(article.question, article.answer).toLowerCase().replace(/\s+/g, '-').replace(/&/g, '-'),
+            name: categorizeVendorContent(article.question, article.answer),
+            description: getCategoryDescription(categorizeVendorContent(article.question, article.answer)),
+            icon: getCategoryIcon(categorizeVendorContent(article.question, article.answer)),
+            color: getCategoryColor(categorizeVendorContent(article.question, article.answer)),
+            priority: getCategoryPriority(categorizeVendorContent(article.question, article.answer)),
+            questionCount: 0
+          }
+        };
       });
 
-    const questions = await Promise.all(questionsPromises);
-
-    // Filter by difficulty if specified
-    const filteredQuestions = difficulty !== 'all' 
-      ? questions.filter(q => q.difficulty === difficulty)
-      : questions;
-
-    // Filter top questions if requested
-    const finalQuestions = topOnly 
-      ? filteredQuestions.filter(q => q.isTopQuestion)
-      : filteredQuestions;
-
     // If no questions found, return mock data
-    if (finalQuestions.length === 0) {
+    if (questions.length === 0) {
       const mockQuestions = [
         {
           id: '1',
@@ -1124,6 +1248,11 @@ export async function GET(request: NextRequest) {
           sourceUrl: 'https://www.airbnb.com/help/article/1234',
           contentType: 'official',
           source: 'help_center',
+          aiSummary: isAuthenticated ? 'Learn how to optimize your tour pricing strategy for maximum revenue through competitor analysis, dynamic pricing, and conversion monitoring.' : '',
+          keyPoints: isAuthenticated ? ['Analyze competitor pricing', 'Test different price points', 'Use dynamic pricing', 'Monitor conversion rates'] : [],
+          actionItems: isAuthenticated ? ['Research local competitors', 'Set up A/B testing', 'Implement seasonal pricing', 'Track booking metrics'] : [],
+          urgency: 'medium',
+          impact: 'revenue',
           category: {
             id: 'pricing-revenue',
             name: 'Pricing & Revenue',
@@ -1138,7 +1267,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(mockQuestions);
     }
 
-    return NextResponse.json(await Promise.all(finalQuestions)); // Await all async operations
+    // Add user-specific data
+    const response = {
+      questions,
+      hasMore: offset + limit < totalCount,
+      totalCount,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      user: isAuthenticated ? {
+        tier: userTier,
+        aiUsage: user ? await checkAiUsageLimit(user.userId) : null
+      } : null
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Failed to fetch questions:', error);
     return NextResponse.json(

@@ -39,7 +39,18 @@ model Article {
   urgency            String?
   impact             String?
   summaryGeneratedAt DateTime?
+  // Progressive disclosure fields
+  aiSummaryGenerated Boolean            @default(false)
+  keyPointsGenerated Boolean            @default(false)
+  actionItemsGenerated Boolean          @default(false)
+  aiSummaryRequestedAt DateTime?
+  keyPointsRequestedAt DateTime?
+  actionItemsRequestedAt DateTime?
+  categoryConfidence Float?
   paragraphs         ArticleParagraph[]
+  // User interaction relations
+  userInteractions   UserInteraction[]
+  savedQuestions     SavedQuestion[]
 
   @@index([platform])
   @@index([category])
@@ -193,6 +204,131 @@ model ImportedGYGActivity {
   @@index([country])
 }
 
+model CleanedActivity {
+  id                 String    @id @default(cuid())
+  originalId         String    @unique
+  activityName       String
+  providerName       String
+  location           String
+  city               String
+  country            String
+  region             String?   // Europe, UK, etc.
+  
+  // Pricing with local currency preservation
+  priceNumeric       Float?
+  priceCurrency      String    // £ for UK, € for Europe, etc.
+  priceText          String?
+  
+  // Ratings and reviews
+  ratingNumeric      Float?
+  ratingText         String?
+  reviewCountNumeric Int?
+  reviewCountText    String?
+  
+  // Activity details
+  category           String?   // walking-tour, food-tour, etc.
+  activityType       String?   // tour, experience, workshop, etc.
+  duration           String?
+  durationHours      Int?
+  durationDays       Int?
+  description        String?
+  venue              String?
+  
+  // Quality and tracking
+  qualityScore       Int       @default(0) // 0-100
+  cleanedAt          DateTime  @default(now())
+  originalSource     String    // 'gyg' or 'viator'
+  platform           String    // 'gyg' or 'viator'
+  
+  // Original data reference
+  originalTableId    String?   // Reference to ImportedGYGActivity.id
+  
+  // URLs
+  url                String?
+  
+  // Metadata
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([providerName])
+  @@index([location])
+  @@index([city])
+  @@index([country])
+  @@index([region])
+  @@index([ratingNumeric])
+  @@index([priceNumeric])
+  @@index([priceCurrency])
+  @@index([category])
+  @@index([activityType])
+  @@index([qualityScore])
+  @@index([cleanedAt])
+  @@index([platform])
+  @@index([originalSource])
+}
+
+model UserProduct {
+  id                 String    @id @default(cuid())
+  userId             String    // Reference to User.id
+  productName        String?   // Optional for provider-based linking
+  providerName       String
+  location           String?
+  city               String?
+  country            String?
+  region             String?   // UK, Europe, etc.
+  
+  // Pricing
+  priceNumeric       Float?
+  priceCurrency      String?   // £ for UK, € for Europe, etc.
+  priceText          String?
+  
+  // Performance metrics
+  ratingNumeric      Float?
+  ratingText         String?
+  reviewCountNumeric Int?
+  reviewCountText    String?
+  
+  // Product details
+  category           String?   // walking-tour, food-tour, etc.
+  activityType       String?   // tour, experience, workshop, etc.
+  duration           String?
+  durationHours      Int?
+  durationDays       Int?
+  description        String?
+  venue              String?
+  
+  // Platform and tracking
+  platform           String?   // 'gyg', 'viator', 'own-website', etc.
+  url                String?
+  isActive           Boolean   @default(true)
+  
+  // Provider linking fields
+  linkedActivityCount Int?     // Number of activities linked to this provider
+  linkedAt            DateTime? // When the provider was linked
+  
+  // Market comparison data (computed)
+  marketAveragePrice Float?
+  marketAverageRating Float?
+  priceCompetitiveness Float?  // Percentage above/below market
+  ratingCompetitiveness Float? // Percentage above/below market
+  
+  // Metadata
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relations
+  user               User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([city])
+  @@index([country])
+  @@index([region])
+  @@index([priceNumeric])
+  @@index([ratingNumeric])
+  @@index([platform])
+  @@index([isActive])
+  @@index([linkedAt])
+}
+
 model ImportedMadridActivity {
   id                 String    @id @default(cuid())
   originalId         String    @unique
@@ -230,4 +366,87 @@ model ImportedMadridActivity {
   @@index([qualityScore])
   @@index([city])
   @@index([country])
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String?
+  passwordHash      String?
+  subscriptionTier  String    @default("free") // "free", "registered", "premium"
+  subscriptionStatus String   @default("active") // "active", "cancelled", "expired"
+  subscriptionEndDate DateTime?
+  city              String?   // For UK market focus
+  country           String?   @default("UK")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  // Usage tracking
+  aiRequestsToday   Int       @default(0)
+  aiRequestsLimit   Int       @default(5) // Free tier limit
+  lastAiRequestDate DateTime?
+  
+  // User preferences
+  preferredPlatforms String[] @default([])
+  interests         String[] @default([])
+  
+  // Relations
+  userInteractions  UserInteraction[]
+  savedQuestions    SavedQuestion[]
+  userReports       UserReport[]
+  userProducts      UserProduct[]
+
+  @@index([email])
+  @@index([subscriptionTier])
+  @@index([city])
+  @@index([country])
+}
+
+model UserInteraction {
+  id        String   @id @default(cuid())
+  userId    String
+  questionId String
+  action    String   // "view", "search", "ai_summary", "ai_keypoints", "ai_actions"
+  timestamp DateTime @default(now())
+  metadata  Json?
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question  Article  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([questionId])
+  @@index([action])
+  @@index([timestamp])
+}
+
+model SavedQuestion {
+  id         String   @id @default(cuid())
+  userId     String
+  questionId String
+  savedAt    DateTime @default(now())
+  notes      String?
+  
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   Article  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId])
+  @@index([userId])
+  @@index([questionId])
+}
+
+model UserReport {
+  id        String   @id @default(cuid())
+  userId    String
+  reportType String  // "market_analysis", "competitor_watch", "opportunities"
+  city      String?
+  category  String?
+  generatedAt DateTime @default(now())
+  content   String   // JSON or markdown content
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([reportType])
+  @@index([city])
+  @@index([generatedAt])
 }
