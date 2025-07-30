@@ -256,14 +256,14 @@ async function analyzeMissingViatorActivities() {
     console.log('\n🏢 PROVIDER ANALYSIS:');
     console.log('=====================');
     
-    const providerCounts = {};
+    const providerCounts: Record<string, number> = {};
     missingActivities.forEach(activity => {
       const provider = activity.provider_name || 'Unknown';
       providerCounts[provider] = (providerCounts[provider] || 0) + 1;
     });
     
     const topProviders = Object.entries(providerCounts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([,a], [,b]) => (b as number) - (a as number))
       .slice(0, 10);
     
     console.log('Top providers with missing activities:');

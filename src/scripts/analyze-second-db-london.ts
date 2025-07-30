@@ -96,7 +96,7 @@ async function analyzeSecondDBLondon() {
           });
         }
       } catch (error) {
-        console.log('❌ Error analyzing GYG activities:', error.message);
+        console.log('❌ Error analyzing GYG activities:', (error as Error).message);
       }
     }
 
@@ -129,7 +129,7 @@ async function analyzeSecondDBLondon() {
           });
         }
       } catch (error) {
-        console.log('❌ Error analyzing Viator activities:', error.message);
+        console.log('❌ Error analyzing Viator activities:', (error as Error).message);
       }
     }
 
@@ -162,7 +162,7 @@ async function analyzeSecondDBLondon() {
           });
         }
       } catch (error) {
-        console.log('❌ Error analyzing generic activities:', error.message);
+        console.log('❌ Error analyzing generic activities:', (error as Error).message);
       }
     }
 

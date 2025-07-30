@@ -33,8 +33,7 @@ async function checkCleanedTableLinks() {
 
     if (urlFieldExists) {
       const urlStats = await mainPrisma.cleanedActivity.aggregate({
-        _count: { url: true },
-        _count: { id: true }
+        _count: { url: true }
       });
       
       const totalActivities = await mainPrisma.cleanedActivity.count();

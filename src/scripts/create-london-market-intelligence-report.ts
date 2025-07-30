@@ -198,7 +198,7 @@ async function createLondonMarketIntelligenceReport() {
     }
 
     // Price gaps
-    const priceGaps = [];
+    const priceGaps: any[] = [];
     const priceRanges = [
       { min: 0, max: 50, label: 'Budget (£0-50)' },
       { min: 51, max: 100, label: 'Mid-Budget (£51-100)' },
