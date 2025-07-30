@@ -32,7 +32,7 @@ async function setupDemoUser() {
       console.log('✅ Demo user created successfully!');
       console.log(`   ID: ${demoUser.id}`);
       console.log(`   Email: ${demoUser.email}`);
-      console.log(`   Tier: ${demoUser.tier}`);
+      console.log(`   Tier: ${demoUser.subscriptionTier}`);
     }
 
     console.log('\n🎯 Demo user ready for provider linking tests');

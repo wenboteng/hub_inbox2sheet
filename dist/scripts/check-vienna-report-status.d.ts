@@ -2,13 +2,13 @@ declare function checkViennaReportStatus(): Promise<{
     reportExists: boolean;
     reportData: {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
+        type: string;
         title: string;
         content: string;
-        slug: string;
-        type: string;
+        createdAt: Date;
+        updatedAt: Date;
         isPublic: boolean;
+        slug: string;
     } | null;
     totalPublicReports: number;
 }>;

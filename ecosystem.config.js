@@ -4,7 +4,7 @@ module.exports = {
       name: 'ota-answer-hub',
       script: 'npm',
       args: 'start',
-      cwd: '/root/projects/hub_inbox2sheet',
+      cwd: '/root/hub_inbox2sheet',
       instances: 1,
       autorestart: true,
       watch: false,
@@ -25,7 +25,7 @@ module.exports = {
       host: 'localhost',
       ref: 'origin/main',
       repo: 'git@github.com:yourusername/hub_inbox2sheet.git',
-      path: '/root/projects/hub_inbox2sheet',
+      path: '/root/hub_inbox2sheet',
       'post-deploy': 'npm install && npx prisma generate && npm run build && pm2 reload ecosystem.config.js --env production'
     }
   }

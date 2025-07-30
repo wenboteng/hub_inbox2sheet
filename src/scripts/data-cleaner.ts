@@ -247,7 +247,7 @@ class DataCleaner {
     }
 
     // Remove duplicates, keeping the highest quality record
-    for (const [name, group] of nameGroups) {
+    for (const [name, group] of Array.from(nameGroups.entries())) {
       if (group.length > 1) {
         // Sort by quality score and keep the best one
         group.sort((a, b) => (b.qualityScore || 0) - (a.qualityScore || 0));

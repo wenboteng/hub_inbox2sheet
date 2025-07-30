@@ -75,7 +75,7 @@ export const POST = requireAuth(async (request: NextRequest, user) => {
     }
 
     // Generate AI content based on type
-    let aiContent = '';
+    let aiContent: string | string[] = '';
     let prompt = '';
 
     switch (type) {
@@ -132,10 +132,11 @@ Return only the action items as a JSON array of strings, starting each with a ve
         aiContent = parsed;
       } catch (e) {
         // If JSON parsing fails, split by newlines and clean up
-        aiContent = aiContent
+        const fallbackContent = (aiContent as string)
           .split('\n')
           .filter(line => line.trim().length > 0)
           .map(line => line.replace(/^[-*•]\s*/, '').trim());
+        aiContent = fallbackContent;
       }
     }
 

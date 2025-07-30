@@ -93,6 +93,122 @@ const REGION_MAPPING = {
   'Milan': 'Europe'
 };
 
+export function cleanPrice(priceText: string): { original: string; numeric: number | null; currency: string } {
+  if (!priceText || typeof priceText !== 'string') {
+    return { original: '', numeric: null, currency: '£' };
+  }
+
+  const cleaned = priceText.trim();
+  if (!cleaned) {
+    return { original: '', numeric: null, currency: '£' };
+  }
+
+  // Extract numeric value and currency
+  const priceMatch = cleaned.match(/[£€$]?(\d+(?:,\d{3})*(?:\.\d{2})?)/);
+  if (!priceMatch) {
+    return { original: cleaned, numeric: null, currency: '£' };
+  }
+
+  const numericValue = parseFloat(priceMatch[1].replace(/,/g, ''));
+  const currency = cleaned.includes('€') ? '€' : cleaned.includes('$') ? '$' : '£';
+
+  return {
+    original: cleaned,
+    numeric: numericValue,
+    currency
+  };
+}
+
+export function cleanRating(ratingText: string): { original: string; rating: number | null; reviews: number | null } {
+  if (!ratingText || typeof ratingText !== 'string') {
+    return { original: '', rating: null, reviews: null };
+  }
+
+  const cleaned = ratingText.trim();
+  if (!cleaned) {
+    return { original: '', rating: null, reviews: null };
+  }
+
+  // Extract rating and review count
+  const ratingMatch = cleaned.match(/(\d+(?:\.\d+)?)/);
+  const reviewMatch = cleaned.match(/\((\d+(?:,\d{3})*)\s*reviews?\)/i);
+
+  const rating = ratingMatch ? parseFloat(ratingMatch[1]) : null;
+  const reviews = reviewMatch ? parseInt(reviewMatch[1].replace(/,/g, '')) : null;
+
+  return {
+    original: cleaned,
+    rating,
+    reviews
+  };
+}
+
+export function cleanLocation(locationText: string): { city: string; country: string; venue: string } {
+  if (!locationText || typeof locationText !== 'string') {
+    return { city: '', country: '', venue: '' };
+  }
+
+  const cleaned = locationText.trim();
+  if (!cleaned) {
+    return { city: '', country: '', venue: '' };
+  }
+
+  // Simple parsing - could be enhanced
+  const parts = cleaned.split(',').map(part => part.trim());
+  
+  return {
+    city: parts[0] || '',
+    country: parts[parts.length - 1] || '',
+    venue: parts.slice(1, -1).join(', ') || ''
+  };
+}
+
+export function cleanDuration(durationText: string): { original: string; hours: number | null; days: number | null } {
+  if (!durationText || typeof durationText !== 'string') {
+    return { original: '', hours: null, days: null };
+  }
+
+  const cleaned = durationText.trim();
+  if (!cleaned) {
+    return { original: '', hours: null, days: null };
+  }
+
+  // Extract hours and days
+  const hourMatch = cleaned.match(/(\d+)\s*hours?/i);
+  const dayMatch = cleaned.match(/(\d+)\s*days?/i);
+
+  const hours = hourMatch ? parseInt(hourMatch[1]) : null;
+  const days = dayMatch ? parseInt(dayMatch[1]) : null;
+
+  return {
+    original: cleaned,
+    hours,
+    days
+  };
+}
+
+export function cleanProviderName(providerText: string): string {
+  if (!providerText || typeof providerText !== 'string') {
+    return '';
+  }
+
+  return providerText.trim();
+}
+
+export function cleanTags(tagsText: string): string[] {
+  if (!tagsText || typeof tagsText !== 'string') {
+    return [];
+  }
+
+  const cleaned = tagsText.trim();
+  if (!cleaned) {
+    return [];
+  }
+
+  // Split by common delimiters and clean
+  return cleaned.split(/[,;|]/).map(tag => tag.trim()).filter(tag => tag.length > 0);
+}
+
 function determineCurrency(location: string, city: string, country: string): string {
   // Check country first
   if (country && CURRENCY_MAPPING[country as keyof typeof CURRENCY_MAPPING]) {
@@ -133,7 +249,7 @@ function determineRegion(location: string, city: string, country: string): strin
   return 'UK';
 }
 
-function calculateQualityScore(activity: any): number {
+export function calculateQualityScore(activity: any): number {
   let score = 0;
   let maxScore = 0;
   

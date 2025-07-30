@@ -1,31 +1,24 @@
-interface CleanedPrice {
-    numeric: number | null;
-    currency: string | null;
+export declare function cleanPrice(priceText: string): {
     original: string;
-}
-interface CleanedRating {
+    numeric: number | null;
+    currency: string;
+};
+export declare function cleanRating(ratingText: string): {
+    original: string;
     rating: number | null;
     reviews: number | null;
-    original: string;
-}
-interface CleanedLocation {
+};
+export declare function cleanLocation(locationText: string): {
     city: string;
     country: string;
-    venue?: string;
+    venue: string;
+};
+export declare function cleanDuration(durationText: string): {
     original: string;
-}
-interface CleanedDuration {
     hours: number | null;
     days: number | null;
-    original: string;
-}
-declare function cleanPrice(priceText: string | null): CleanedPrice;
-declare function cleanRating(ratingText: string | null, reviewCountText?: string | null): CleanedRating;
-declare function cleanLocation(locationText: string | null): CleanedLocation;
-declare function cleanDuration(durationText: string | null): CleanedDuration;
-declare function cleanProviderName(providerName: string | null): string;
-declare function cleanTags(tagsJSONB: any): string[];
-declare function calculateQualityScore(activity: any): number;
-declare function cleanGYGData(): Promise<void>;
-export { cleanPrice, cleanRating, cleanLocation, cleanDuration, cleanProviderName, cleanTags, calculateQualityScore, cleanGYGData };
+};
+export declare function cleanProviderName(providerText: string): string;
+export declare function cleanTags(tagsText: string): string[];
+export declare function calculateQualityScore(activity: any): number;
 //# sourceMappingURL=data-cleaning-pipeline.d.ts.map

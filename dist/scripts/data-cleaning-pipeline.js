@@ -7,546 +7,419 @@ exports.cleanDuration = cleanDuration;
 exports.cleanProviderName = cleanProviderName;
 exports.cleanTags = cleanTags;
 exports.calculateQualityScore = calculateQualityScore;
-exports.cleanGYGData = cleanGYGData;
-const dual_prisma_1 = require("../lib/dual-prisma");
-const slugify_1 = require("../utils/slugify");
-// Price cleaning function
+const client_1 = require("@prisma/client");
+const prisma = new client_1.PrismaClient();
+const CLEANING_CONFIG = {
+    qualityThreshold: 70,
+    priceOutliers: {
+        uk: { max: 500, currency: '£' },
+        europe: { max: 500, currency: '€' }
+    },
+    ratingOutliers: { min: 1.0, max: 5.0 },
+    reviewCountOutliers: { min: 0, max: 100000 }
+};
+// Currency mapping for different regions
+const CURRENCY_MAPPING = {
+    'UK': '£',
+    'United Kingdom': '£',
+    'England': '£',
+    'Scotland': '£',
+    'Wales': '£',
+    'Northern Ireland': '£',
+    'London': '£',
+    'Manchester': '£',
+    'Birmingham': '£',
+    'Liverpool': '£',
+    'Edinburgh': '£',
+    'Glasgow': '£',
+    'Cardiff': '£',
+    'Belfast': '£',
+    'Spain': '€',
+    'Madrid': '€',
+    'Barcelona': '€',
+    'Valencia': '€',
+    'Netherlands': '€',
+    'Amsterdam': '€',
+    'Rotterdam': '€',
+    'Austria': '€',
+    'Vienna': '€',
+    'Salzburg': '€',
+    'Germany': '€',
+    'Berlin': '€',
+    'Munich': '€',
+    'France': '€',
+    'Paris': '€',
+    'Lyon': '€',
+    'Italy': '€',
+    'Rome': '€',
+    'Milan': '€',
+    'Venice': '€',
+    'Florence': '€'
+};
+// Region mapping
+const REGION_MAPPING = {
+    'UK': 'UK',
+    'United Kingdom': 'UK',
+    'England': 'UK',
+    'Scotland': 'UK',
+    'Wales': 'UK',
+    'Northern Ireland': 'UK',
+    'London': 'UK',
+    'Manchester': 'UK',
+    'Birmingham': 'UK',
+    'Liverpool': 'UK',
+    'Edinburgh': 'UK',
+    'Glasgow': 'UK',
+    'Cardiff': 'UK',
+    'Belfast': 'UK',
+    'Spain': 'Europe',
+    'Madrid': 'Europe',
+    'Barcelona': 'Europe',
+    'Netherlands': 'Europe',
+    'Amsterdam': 'Europe',
+    'Austria': 'Europe',
+    'Vienna': 'Europe',
+    'Germany': 'Europe',
+    'Berlin': 'Europe',
+    'France': 'Europe',
+    'Paris': 'Europe',
+    'Italy': 'Europe',
+    'Rome': 'Europe',
+    'Milan': 'Europe'
+};
 function cleanPrice(priceText) {
-    if (!priceText || priceText.trim() === '') {
-        return { numeric: null, currency: null, original: priceText || '' };
+    if (!priceText || typeof priceText !== 'string') {
+        return { original: '', numeric: null, currency: '£' };
     }
-    const original = priceText.trim();
-    // Extract currency
-    const currencyMatch = original.match(/[€$£¥]/);
-    const currency = currencyMatch ? currencyMatch[0] : null;
-    // Extract numeric value (handle ranges like "€33-45")
-    const numericMatch = original.match(/(\d+(?:,\d+)?(?:\.\d+)?)/);
-    let numeric = null;
-    if (numericMatch) {
-        numeric = parseFloat(numericMatch[1].replace(',', ''));
-        // If it's a range, take the average
-        const rangeMatch = original.match(/(\d+(?:,\d+)?(?:\.\d+)?)\s*-\s*(\d+(?:,\d+)?(?:\.\d+)?)/);
-        if (rangeMatch) {
-            const min = parseFloat(rangeMatch[1].replace(',', ''));
-            const max = parseFloat(rangeMatch[2].replace(',', ''));
-            numeric = (min + max) / 2;
-        }
+    const cleaned = priceText.trim();
+    if (!cleaned) {
+        return { original: '', numeric: null, currency: '£' };
     }
-    return { numeric, currency, original };
-}
-// Rating cleaning function
-function cleanRating(ratingText, reviewCountText) {
-    if ((!ratingText || ratingText.trim() === '') && (!reviewCountText || reviewCountText.trim() === '')) {
-        return { rating: null, reviews: null, original: ratingText || '' };
+    // Extract numeric value and currency
+    const priceMatch = cleaned.match(/[£€$]?(\d+(?:,\d{3})*(?:\.\d{2})?)/);
+    if (!priceMatch) {
+        return { original: cleaned, numeric: null, currency: '£' };
     }
-    let original = ratingText?.trim() || '';
-    let rating = null;
-    let reviews = null;
-    // If ratingText contains both rating and review count (e.g., "4.4 (63,652)")
-    if (original.match(/^(\d+(?:\.\d+)?)\s*\((\d{1,3}(?:,\d{3})*)\)/)) {
-        const match = original.match(/^(\d+(?:\.\d+)?)\s*\((\d{1,3}(?:,\d{3})*)\)/);
-        if (match) {
-            rating = parseFloat(match[1]);
-            reviews = parseInt(match[2].replace(/,/g, ''));
-        }
-    }
-    else {
-        // Try to extract rating as a float
-        const ratingMatch = original.match(/^(\d+(?:\.\d+)?)/);
-        if (ratingMatch) {
-            rating = parseFloat(ratingMatch[1]);
-        }
-        // Try to extract review count from reviewCountText if available
-        if (reviewCountText && reviewCountText.trim() !== '') {
-            const reviewMatch = reviewCountText.match(/(\d{1,3}(?:,\d{3})*)/);
-            if (reviewMatch) {
-                reviews = parseInt(reviewMatch[1].replace(/,/g, ''));
-            }
-        }
-    }
-    return { rating, reviews, original };
-}
-// Location cleaning function
-function cleanLocation(locationText) {
-    if (!locationText || locationText.trim() === '') {
-        return { city: '', country: '', original: locationText || '' };
-    }
-    const original = locationText.trim();
-    // Common location patterns for Spain data
-    const locationPatterns = [
-        // "Barcelona, Spain" -> { city: "Barcelona", country: "Spain" }
-        /^([^,]+),\s*Spain$/i,
-        // "Madrid" -> { city: "Madrid", country: "Spain" }
-        /^([^,]+)$/,
-        // "City Hall Theater, Barcelona" -> { city: "Barcelona", venue: "City Hall Theater" }
-        /^([^,]+),\s*([^,]+)$/,
-    ];
-    for (const pattern of locationPatterns) {
-        const match = original.match(pattern);
-        if (match) {
-            if (pattern.source.includes('Spain')) {
-                return {
-                    city: match[1].trim(),
-                    country: 'Spain',
-                    original
-                };
-            }
-            else if (pattern.source.includes('^([^,]+)$')) {
-                return {
-                    city: match[1].trim(),
-                    country: 'Spain', // Default for current data
-                    original
-                };
-            }
-            else {
-                return {
-                    city: match[2].trim(),
-                    country: 'Spain',
-                    venue: match[1].trim(),
-                    original
-                };
-            }
-        }
-    }
-    // Fallback
+    const numericValue = parseFloat(priceMatch[1].replace(/,/g, ''));
+    const currency = cleaned.includes('€') ? '€' : cleaned.includes('$') ? '$' : '£';
     return {
-        city: original,
-        country: 'Spain',
-        original
+        original: cleaned,
+        numeric: numericValue,
+        currency
     };
 }
-// Duration cleaning function
-function cleanDuration(durationText) {
-    if (!durationText || durationText.trim() === '') {
-        return { hours: null, days: null, original: durationText || '' };
+function cleanRating(ratingText) {
+    if (!ratingText || typeof ratingText !== 'string') {
+        return { original: '', rating: null, reviews: null };
     }
-    const original = durationText.trim();
-    // Extract hours (e.g., "3-Hour", "3 hours")
-    const hourMatch = original.match(/(\d+)\s*-?\s*[Hh]our/);
-    const hours = hourMatch ? parseInt(hourMatch[1]) : null;
-    // Extract days (e.g., "1 day", "1-2 days")
-    const dayMatch = original.match(/(\d+)\s*-?\s*[Dd]ay/);
-    let days = dayMatch ? parseInt(dayMatch[1]) : null;
-    // Handle ranges like "1-2 days"
-    const dayRangeMatch = original.match(/(\d+)\s*-\s*(\d+)\s*[Dd]ay/);
-    if (dayRangeMatch) {
-        const min = parseInt(dayRangeMatch[1]);
-        const max = parseInt(dayRangeMatch[2]);
-        days = (min + max) / 2; // Average
+    const cleaned = ratingText.trim();
+    if (!cleaned) {
+        return { original: '', rating: null, reviews: null };
     }
-    return { hours, days, original };
+    // Extract rating and review count
+    const ratingMatch = cleaned.match(/(\d+(?:\.\d+)?)/);
+    const reviewMatch = cleaned.match(/\((\d+(?:,\d{3})*)\s*reviews?\)/i);
+    const rating = ratingMatch ? parseFloat(ratingMatch[1]) : null;
+    const reviews = reviewMatch ? parseInt(reviewMatch[1].replace(/,/g, '')) : null;
+    return {
+        original: cleaned,
+        rating,
+        reviews
+    };
 }
-// Provider name cleaning
-function cleanProviderName(providerName) {
-    if (!providerName || providerName.trim() === '') {
+function cleanLocation(locationText) {
+    if (!locationText || typeof locationText !== 'string') {
+        return { city: '', country: '', venue: '' };
+    }
+    const cleaned = locationText.trim();
+    if (!cleaned) {
+        return { city: '', country: '', venue: '' };
+    }
+    // Simple parsing - could be enhanced
+    const parts = cleaned.split(',').map(part => part.trim());
+    return {
+        city: parts[0] || '',
+        country: parts[parts.length - 1] || '',
+        venue: parts.slice(1, -1).join(', ') || ''
+    };
+}
+function cleanDuration(durationText) {
+    if (!durationText || typeof durationText !== 'string') {
+        return { original: '', hours: null, days: null };
+    }
+    const cleaned = durationText.trim();
+    if (!cleaned) {
+        return { original: '', hours: null, days: null };
+    }
+    // Extract hours and days
+    const hourMatch = cleaned.match(/(\d+)\s*hours?/i);
+    const dayMatch = cleaned.match(/(\d+)\s*days?/i);
+    const hours = hourMatch ? parseInt(hourMatch[1]) : null;
+    const days = dayMatch ? parseInt(dayMatch[1]) : null;
+    return {
+        original: cleaned,
+        hours,
+        days
+    };
+}
+function cleanProviderName(providerText) {
+    if (!providerText || typeof providerText !== 'string') {
         return '';
     }
-    return providerName.trim()
-        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-        .replace(/^Unknown Provider$/i, 'Unknown'); // Standardize unknown providers
+    return providerText.trim();
 }
-// Tags cleaning
-function cleanTags(tagsJSONB) {
-    if (!tagsJSONB)
-        return [];
-    try {
-        let tags = [];
-        if (typeof tagsJSONB === 'string') {
-            const parsed = JSON.parse(tagsJSONB);
-            tags = Array.isArray(parsed) ? parsed : [];
-        }
-        else if (Array.isArray(tagsJSONB)) {
-            tags = tagsJSONB;
-        }
-        return tags
-            .filter(tag => tag && typeof tag === 'string')
-            .map(tag => tag.trim())
-            .filter(tag => tag.length > 0);
-    }
-    catch (error) {
-        console.warn('Error parsing tags:', error);
+function cleanTags(tagsText) {
+    if (!tagsText || typeof tagsText !== 'string') {
         return [];
     }
+    const cleaned = tagsText.trim();
+    if (!cleaned) {
+        return [];
+    }
+    // Split by common delimiters and clean
+    return cleaned.split(/[,;|]/).map(tag => tag.trim()).filter(tag => tag.length > 0);
 }
-// Quality scoring function
+function determineCurrency(location, city, country) {
+    // Check country first
+    if (country && CURRENCY_MAPPING[country]) {
+        return CURRENCY_MAPPING[country];
+    }
+    // Check city
+    if (city && CURRENCY_MAPPING[city]) {
+        return CURRENCY_MAPPING[city];
+    }
+    // Check location
+    if (location && CURRENCY_MAPPING[location]) {
+        return CURRENCY_MAPPING[location];
+    }
+    // Default to £ for UK focus
+    return '£';
+}
+function determineRegion(location, city, country) {
+    // Check country first
+    if (country && REGION_MAPPING[country]) {
+        return REGION_MAPPING[country];
+    }
+    // Check city
+    if (city && REGION_MAPPING[city]) {
+        return REGION_MAPPING[city];
+    }
+    // Check location
+    if (location && REGION_MAPPING[location]) {
+        return REGION_MAPPING[location];
+    }
+    // Default to UK for focus
+    return 'UK';
+}
 function calculateQualityScore(activity) {
     let score = 0;
-    const maxScore = 100;
-    // Activity name (20 points)
-    if (activity.activity_name && activity.activity_name.trim()) {
-        score += 20;
-    }
-    // Provider name (15 points)
-    if (activity.provider_name && activity.provider_name.trim()) {
-        score += 15;
-    }
-    // Location (15 points)
-    if (activity.location && activity.location.trim()) {
-        score += 15;
-    }
-    // Price (15 points)
-    if (activity.price && activity.price.trim()) {
-        score += 15;
-    }
-    // Rating (15 points)
-    if (activity.rating && activity.rating.trim()) {
-        score += 15;
-    }
-    // Duration (10 points)
-    if (activity.duration && activity.duration.trim()) {
+    let maxScore = 0;
+    // Basic required fields (40 points)
+    maxScore += 40;
+    if (activity.activityName && activity.activityName.trim())
         score += 10;
-    }
-    // Description (10 points)
-    if (activity.description && activity.description.trim()) {
+    if (activity.providerName && activity.providerName.trim())
         score += 10;
-    }
-    return Math.min(score, maxScore);
+    if (activity.location && activity.location.trim())
+        score += 10;
+    if (activity.city && activity.city.trim())
+        score += 10;
+    // Pricing data (20 points)
+    maxScore += 20;
+    if (activity.priceNumeric && activity.priceNumeric > 0)
+        score += 10;
+    if (activity.priceCurrency)
+        score += 10;
+    // Rating data (20 points)
+    maxScore += 20;
+    if (activity.ratingNumeric && activity.ratingNumeric > 0)
+        score += 10;
+    if (activity.reviewCountNumeric && activity.reviewCountNumeric > 0)
+        score += 10;
+    // Additional data (20 points)
+    maxScore += 20;
+    if (activity.description && activity.description.trim())
+        score += 5;
+    if (activity.duration && activity.duration.trim())
+        score += 5;
+    if (activity.url)
+        score += 5;
+    if (activity.country && activity.country.trim())
+        score += 5;
+    return Math.round((score / maxScore) * 100);
 }
-// Main cleaning pipeline
-async function cleanGYGData() {
-    console.log('🧹 STARTING GYG DATA CLEANING PIPELINE...\n');
+function cleanActivityData(activity) {
+    const cleaned = { ...activity };
+    // Clean text fields
+    if (cleaned.activityName) {
+        cleaned.activityName = cleaned.activityName.trim();
+    }
+    if (cleaned.providerName) {
+        cleaned.providerName = cleaned.providerName.trim();
+    }
+    if (cleaned.location) {
+        cleaned.location = cleaned.location.trim();
+    }
+    if (cleaned.city) {
+        cleaned.city = cleaned.city.trim();
+    }
+    if (cleaned.country) {
+        cleaned.country = cleaned.country.trim();
+    }
+    // Determine currency and region
+    cleaned.priceCurrency = determineCurrency(cleaned.location, cleaned.city, cleaned.country);
+    cleaned.region = determineRegion(cleaned.location, cleaned.city, cleaned.country);
+    // Clean price data
+    if (cleaned.priceNumeric) {
+        const maxPrice = cleaned.priceCurrency === '£' ?
+            CLEANING_CONFIG.priceOutliers.uk.max :
+            CLEANING_CONFIG.priceOutliers.europe.max;
+        if (cleaned.priceNumeric > maxPrice) {
+            cleaned.priceNumeric = null;
+            cleaned.priceText = null;
+        }
+    }
+    // Clean rating data
+    if (cleaned.ratingNumeric) {
+        if (cleaned.ratingNumeric < CLEANING_CONFIG.ratingOutliers.min ||
+            cleaned.ratingNumeric > CLEANING_CONFIG.ratingOutliers.max) {
+            cleaned.ratingNumeric = null;
+            cleaned.ratingText = null;
+        }
+    }
+    // Clean review count data
+    if (cleaned.reviewCountNumeric) {
+        if (cleaned.reviewCountNumeric < CLEANING_CONFIG.reviewCountOutliers.min ||
+            cleaned.reviewCountNumeric > CLEANING_CONFIG.reviewCountOutliers.max) {
+            cleaned.reviewCountNumeric = null;
+            cleaned.reviewCountText = null;
+        }
+    }
+    // Determine platform
+    cleaned.platform = cleaned.tags?.includes('viator') ? 'viator' : 'gyg';
+    cleaned.originalSource = cleaned.platform;
+    // Calculate quality score
+    cleaned.qualityScore = calculateQualityScore(cleaned);
+    return cleaned;
+}
+async function runCleaningPipeline() {
     try {
-        await dual_prisma_1.gygPrisma.$connect();
-        await dual_prisma_1.mainPrisma.$connect();
-        console.log('✅ Connected to both databases');
-        // Get all activities that need cleaning
-        const activities = await dual_prisma_1.gygPrisma.$queryRaw `
-      SELECT * FROM activities 
-      ORDER BY id
-    `;
-        console.log(`📊 Found ${activities.length} activities to clean`);
+        console.log('🚀 Starting data cleaning pipeline...');
+        console.log(`📊 Quality threshold: ${CLEANING_CONFIG.qualityThreshold}%`);
+        // Get all activities from ImportedGYGActivity
+        const activities = await prisma.importedGYGActivity.findMany({
+            orderBy: { importedAt: 'desc' }
+        });
+        console.log(`📋 Total activities to process: ${activities.length}`);
         let processedCount = 0;
-        let errorCount = 0;
-        const cleanedActivities = [];
-        for (const activity of activities) {
-            try {
-                // Clean all fields
-                const cleanedPrice = cleanPrice(activity.price);
-                const cleanedRating = cleanRating(activity.rating, activity.review_count);
-                const cleanedLocation = cleanLocation(activity.location);
-                const cleanedDuration = cleanDuration(activity.duration);
-                const cleanedProvider = cleanProviderName(activity.provider_name);
-                const cleanedTags = cleanTags(activity.tags);
-                const qualityScore = calculateQualityScore(activity);
-                const cleanedActivity = {
-                    id: activity.id,
-                    activityName: activity.activity_name?.trim() || '',
-                    providerName: cleanedProvider,
-                    location: cleanedLocation,
-                    price: cleanedPrice,
-                    rating: cleanedRating,
-                    duration: cleanedDuration,
-                    description: activity.description?.trim() || '',
-                    tags: cleanedTags,
-                    url: activity.url || activity.activity_url || '',
-                    extractionQuality: activity.extraction_quality || 'Unknown',
-                    qualityScore,
-                    cleanedAt: new Date()
-                };
-                cleanedActivities.push(cleanedActivity);
-                processedCount++;
-                if (processedCount % 50 === 0) {
-                    console.log(`🔄 Processed ${processedCount} activities...`);
+        let highQualityCount = 0;
+        let skippedCount = 0;
+        // Process activities in batches
+        const batchSize = 100;
+        for (let i = 0; i < activities.length; i += batchSize) {
+            const batch = activities.slice(i, i + batchSize);
+            for (const activity of batch) {
+                try {
+                    // Clean the activity data
+                    const cleanedActivity = cleanActivityData(activity);
+                    // Check if quality meets threshold
+                    if (cleanedActivity.qualityScore >= CLEANING_CONFIG.qualityThreshold) {
+                        // Insert into cleaned table
+                        await prisma.cleanedActivity.create({
+                            data: {
+                                originalId: cleanedActivity.originalId,
+                                activityName: cleanedActivity.activityName,
+                                providerName: cleanedActivity.providerName,
+                                location: cleanedActivity.location,
+                                city: cleanedActivity.city || 'Unknown',
+                                country: cleanedActivity.country || 'Unknown',
+                                region: cleanedActivity.region,
+                                priceNumeric: cleanedActivity.priceNumeric,
+                                priceCurrency: cleanedActivity.priceCurrency,
+                                priceText: cleanedActivity.priceText,
+                                ratingNumeric: cleanedActivity.ratingNumeric,
+                                ratingText: cleanedActivity.ratingText,
+                                reviewCountNumeric: cleanedActivity.reviewCountNumeric,
+                                reviewCountText: cleanedActivity.reviewCountText,
+                                duration: cleanedActivity.duration,
+                                durationHours: cleanedActivity.durationHours,
+                                durationDays: cleanedActivity.durationDays,
+                                description: cleanedActivity.description,
+                                venue: cleanedActivity.venue,
+                                qualityScore: cleanedActivity.qualityScore,
+                                originalSource: cleanedActivity.originalSource,
+                                platform: cleanedActivity.platform,
+                                originalTableId: cleanedActivity.id,
+                                url: cleanedActivity.url
+                            }
+                        });
+                        highQualityCount++;
+                    }
+                    else {
+                        skippedCount++;
+                    }
+                    processedCount++;
+                    if (processedCount % 100 === 0) {
+                        console.log(`📈 Processed ${processedCount}/${activities.length} activities...`);
+                    }
+                }
+                catch (error) {
+                    console.error(`❌ Error processing activity ${activity.originalId}:`, error);
+                    skippedCount++;
                 }
             }
-            catch (error) {
-                console.error(`Error cleaning activity ${activity.id}:`, error);
-                errorCount++;
-            }
         }
-        console.log(`\n📊 CLEANING SUMMARY:`);
-        console.log(`✅ Successfully cleaned: ${processedCount} activities`);
-        console.log(`❌ Errors: ${errorCount} activities`);
-        console.log(`📈 Success rate: ${((processedCount / activities.length) * 100).toFixed(1)}%`);
-        // Generate cleaning statistics
-        const stats = generateCleaningStats(cleanedActivities);
-        console.log('\n📈 CLEANING STATISTICS:');
-        console.log(`💰 Price data: ${stats.priceCoverage}% have numeric prices`);
-        console.log(`⭐ Rating data: ${stats.ratingCoverage}% have numeric ratings`);
-        console.log(`📍 Location data: ${stats.locationCoverage}% have standardized locations`);
-        console.log(`⏱️ Duration data: ${stats.durationCoverage}% have standardized duration`);
-        console.log(`🏷️ Tags data: ${stats.tagsCoverage}% have tags`);
-        console.log(`📊 Average quality score: ${stats.averageQualityScore.toFixed(1)}/100`);
-        // Save cleaned data to main database
-        await saveCleanedData(cleanedActivities);
-        // Generate comprehensive report
-        const report = generateCleaningReport(cleanedActivities, stats);
-        await saveReport(report);
-        console.log('\n🎉 DATA CLEANING PIPELINE COMPLETED!');
+        // Final statistics
+        console.log('\n📊 Cleaning Pipeline Results:');
+        console.log(`✅ Total processed: ${processedCount}`);
+        console.log(`🎯 High quality (≥${CLEANING_CONFIG.qualityThreshold}%): ${highQualityCount}`);
+        console.log(`⏭️  Skipped (low quality): ${skippedCount}`);
+        console.log(`📈 Success rate: ${Math.round((highQualityCount / processedCount) * 100)}%`);
+        // Currency distribution
+        const currencyStats = await prisma.cleanedActivity.groupBy({
+            by: ['priceCurrency'],
+            _count: { priceCurrency: true }
+        });
+        console.log('\n💰 Currency Distribution:');
+        currencyStats.forEach(stat => {
+            console.log(`  ${stat.priceCurrency}: ${stat._count.priceCurrency} activities`);
+        });
+        // Platform distribution
+        const platformStats = await prisma.cleanedActivity.groupBy({
+            by: ['platform'],
+            _count: { platform: true }
+        });
+        console.log('\n🔗 Platform Distribution:');
+        platformStats.forEach(stat => {
+            console.log(`  ${stat.platform}: ${stat._count.platform} activities`);
+        });
+        // Region distribution
+        const regionStats = await prisma.cleanedActivity.groupBy({
+            by: ['region'],
+            _count: { region: true }
+        });
+        console.log('\n🌍 Region Distribution:');
+        regionStats.forEach(stat => {
+            console.log(`  ${stat.region}: ${stat._count.region} activities`);
+        });
+        console.log('\n🎉 Data cleaning pipeline completed successfully!');
     }
     catch (error) {
-        console.error('❌ Error during data cleaning:', error);
+        console.error('❌ Error in cleaning pipeline:', error);
+        throw error;
     }
     finally {
-        await dual_prisma_1.gygPrisma.$disconnect();
-        await dual_prisma_1.mainPrisma.$disconnect();
+        await prisma.$disconnect();
     }
 }
-// Generate cleaning statistics
-function generateCleaningStats(activities) {
-    const total = activities.length;
-    const priceCoverage = Math.round((activities.filter(a => a.price.numeric !== null).length / total) * 100);
-    const ratingCoverage = Math.round((activities.filter(a => a.rating.rating !== null).length / total) * 100);
-    const locationCoverage = Math.round((activities.filter(a => a.location.city).length / total) * 100);
-    const durationCoverage = Math.round((activities.filter(a => a.duration.hours !== null || a.duration.days !== null).length / total) * 100);
-    const tagsCoverage = Math.round((activities.filter(a => a.tags.length > 0).length / total) * 100);
-    const averageQualityScore = activities.reduce((sum, a) => sum + a.qualityScore, 0) / total;
-    return {
-        priceCoverage,
-        ratingCoverage,
-        locationCoverage,
-        durationCoverage,
-        tagsCoverage,
-        averageQualityScore
-    };
-}
-// Save cleaned data to main database
-async function saveCleanedData(activities) {
-    console.log('\n💾 Saving cleaned data to main database...');
-    let savedCount = 0;
-    let errorCount = 0;
-    for (const activity of activities) {
-        try {
-            // Check if activity already exists
-            const existing = await dual_prisma_1.mainPrisma.importedGYGActivity.findFirst({
-                where: { originalId: activity.id.toString() }
-            });
-            const data = {
-                originalId: activity.id.toString(),
-                activityName: activity.activityName,
-                providerName: activity.providerName,
-                location: activity.location.city,
-                priceText: activity.price.original,
-                priceNumeric: activity.price.numeric,
-                ratingText: activity.rating.original,
-                ratingNumeric: activity.rating.rating,
-                reviewCountText: activity.rating.original,
-                reviewCountNumeric: activity.rating.reviews,
-                duration: activity.duration.original,
-                description: activity.description,
-                extractionQuality: activity.extractionQuality,
-                tags: activity.tags,
-                url: activity.url,
-                // Add custom fields for cleaned data
-                cleanedAt: activity.cleanedAt,
-                qualityScore: activity.qualityScore,
-                city: activity.location.city,
-                country: activity.location.country,
-                venue: activity.location.venue,
-                priceCurrency: activity.price.currency,
-                durationHours: activity.duration.hours,
-                durationDays: activity.duration.days
-            };
-            if (existing) {
-                await dual_prisma_1.mainPrisma.importedGYGActivity.update({
-                    where: { id: existing.id },
-                    data: { ...data, updatedAt: new Date() }
-                });
-            }
-            else {
-                await dual_prisma_1.mainPrisma.importedGYGActivity.create({ data });
-            }
-            savedCount++;
-        }
-        catch (error) {
-            console.error(`Error saving activity ${activity.id}:`, error);
-            errorCount++;
-        }
-    }
-    console.log(`✅ Saved ${savedCount} cleaned activities`);
-    console.log(`❌ Errors: ${errorCount} activities`);
-}
-// Generate comprehensive cleaning report
-function generateCleaningReport(activities, stats) {
-    const topLocations = activities
-        .reduce((acc, a) => {
-        acc[a.location.city] = (acc[a.location.city] || 0) + 1;
-        return acc;
-    }, {});
-    const topProviders = activities
-        .reduce((acc, a) => {
-        acc[a.providerName] = (acc[a.providerName] || 0) + 1;
-        return acc;
-    }, {});
-    const priceRanges = activities
-        .filter(a => a.price.numeric !== null)
-        .reduce((acc, a) => {
-        const price = a.price.numeric;
-        if (price <= 25)
-            acc['€0-25']++;
-        else if (price <= 50)
-            acc['€26-50']++;
-        else if (price <= 100)
-            acc['€51-100']++;
-        else
-            acc['€100+']++;
-        return acc;
-    }, { '€0-25': 0, '€26-50': 0, '€51-100': 0, '€100+': 0 });
-    return `
-# GYG Data Cleaning Report
-
-## Overview
-- **Total Activities Processed**: ${activities.length}
-- **Cleaning Date**: ${new Date().toISOString()}
-- **Pipeline Version**: 1.0
-
-## Data Quality Improvements
-
-### Before Cleaning
-- Raw text data with inconsistent formats
-- Mixed currency and price formats
-- Inconsistent location naming
-- Missing quality scoring
-
-### After Cleaning
-- **Price Coverage**: ${stats.priceCoverage}% have numeric prices
-- **Rating Coverage**: ${stats.ratingCoverage}% have numeric ratings
-- **Location Coverage**: ${stats.locationCoverage}% have standardized locations
-- **Duration Coverage**: ${stats.durationCoverage}% have standardized duration
-- **Tags Coverage**: ${stats.tagsCoverage}% have tags
-- **Average Quality Score**: ${stats.averageQualityScore.toFixed(1)}/100
-
-## Data Distribution
-
-### Top Locations
-${Object.entries(topLocations)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 10)
-        .map(([city, count]) => `- ${city}: ${count} activities`)
-        .join('\n')}
-
-### Top Providers
-${Object.entries(topProviders)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 10)
-        .map(([provider, count]) => `- ${provider}: ${count} activities`)
-        .join('\n')}
-
-### Price Distribution
-${Object.entries(priceRanges)
-        .map(([range, count]) => `- ${range}: ${count} activities`)
-        .join('\n')}
-
-## Cleaning Functions
-
-### Price Cleaning
-- Extracts numeric values from text (€43 → 43)
-- Handles currency symbols (€, $, £, ¥)
-- Processes ranges (€33-45 → 39 average)
-- Stores both original and cleaned values
-
-### Rating Cleaning
-- Extracts numeric ratings (4.4 (63,652) → 4.4)
-- Parses review counts (4.4 (63,652) → 63652)
-- Handles various formats consistently
-- Maintains original text for reference
-
-### Location Standardization
-- Standardizes city/country format
-- Handles venue information
-- Defaults to Spain for current data
-- Ready for global expansion
-
-### Duration Standardization
-- Extracts hours and days as numbers
-- Handles ranges (1-2 days → 1.5 days average)
-- Supports multiple formats
-- Preserves original text
-
-### Quality Scoring
-- Activity name: 20 points
-- Provider name: 15 points
-- Location: 15 points
-- Price: 15 points
-- Rating: 15 points
-- Duration: 10 points
-- Description: 10 points
-- **Total**: 100 points
-
-## Future-Ready Features
-
-### Multi-Platform Support
-- Platform field ready for Viator, Airbnb, Booking.com
-- Standardized schema across platforms
-- Consistent cleaning functions
-- Quality scoring applicable to all sources
-
-### Incremental Processing
-- Tracks cleaning timestamps
-- Updates existing records
-- Preserves original data
-- Maintains data lineage
-
-### Scalability
-- Batch processing for large datasets
-- Error handling and logging
-- Performance optimization
-- Automated quality monitoring
-
-## Recommendations
-
-### Immediate Actions
-1. **Monitor quality scores** for new data
-2. **Review cleaning functions** for edge cases
-3. **Set up automated cleaning** for new imports
-4. **Track cleaning performance** metrics
-
-### Future Enhancements
-1. **Geocoding integration** for global locations
-2. **Machine learning** for better extraction
-3. **Real-time cleaning** for live data
-4. **Advanced analytics** on cleaned data
-
-## Usage
-
-### For New Data
-\`\`\`bash
-# Run cleaning pipeline on new data
-npm run clean:gyg:data
-
-# Incremental cleaning for updates
-npm run clean:gyg:incremental
-\`\`\`
-
-### For Analysis
-\`\`\`bash
-# Generate analytics on cleaned data
-npm run analyze:gyg:cleaned
-
-# Export cleaned data for external tools
-npm run export:gyg:cleaned
-\`\`\`
-
-This cleaning pipeline ensures consistent, high-quality data for all future analysis and business intelligence needs.
-`;
-}
-// Save report to database
-async function saveReport(report) {
-    try {
-        await dual_prisma_1.mainPrisma.report.upsert({
-            where: { type: 'gyg-data-cleaning-report' },
-            create: {
-                type: 'gyg-data-cleaning-report',
-                title: 'GYG Data Cleaning Report',
-                slug: (0, slugify_1.slugify)('GYG Data Cleaning Report'),
-                content: report,
-                isPublic: false,
-            },
-            update: {
-                title: 'GYG Data Cleaning Report',
-                slug: (0, slugify_1.slugify)('GYG Data Cleaning Report'),
-                content: report,
-                isPublic: false,
-            },
-        });
-        console.log('✅ Cleaning report saved to database');
-    }
-    catch (error) {
-        console.error('Error saving report:', error);
-    }
-}
-// Run the script
-if (require.main === module) {
-    cleanGYGData().catch(console.error);
-}
+// Run the pipeline
+runCleaningPipeline()
+    .then(() => {
+    console.log('✅ Cleaning pipeline completed');
+    process.exit(0);
+})
+    .catch((error) => {
+    console.error('❌ Cleaning pipeline failed:', error);
+    process.exit(1);
+});
 //# sourceMappingURL=data-cleaning-pipeline.js.map
