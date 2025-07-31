@@ -171,7 +171,7 @@ This report analyzes customer behavior patterns across major travel platforms to
 
   } catch (error) {
     console.error('❌ Error during enrichment test:', error);
-    if (error.message.includes('API key')) {
+    if ((error as Error).message.includes('API key')) {
       console.log('\n💡 The API key might be invalid or expired. Please check your OpenAI API key.');
     }
   }

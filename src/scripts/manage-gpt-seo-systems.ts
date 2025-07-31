@@ -45,7 +45,7 @@ async function manageGPTSESystems() {
     console.log('0. ❌ Exit\n');
 
     // For now, let's show the current reports and their status
-    await displayReportsStatus(reports);
+    await displayReportsStatus(reports.map(r => ({ ...r, wordCount: r.content.split(' ').length })));
 
     console.log('\n🎯 What would you like to do?');
     console.log('(You can run specific functions directly or use this menu)');
@@ -258,7 +258,7 @@ export async function generateComprehensiveSEOAnalysis() {
       
       const analysis = await analyzeReportSEO(report.id);
       analyses.push(analysis);
-      totalSEOScore += analysis.seoAnalysis.seoScore;
+      totalSEOScore += analysis?.seoAnalysis?.seoScore || 0;
     }
 
     const averageSEOScore = Math.round(totalSEOScore / reports.length);
@@ -371,7 +371,7 @@ ${JSON.stringify(analysis.structuredData, null, 2)}
 \`\`\`
 
 ## 📱 Social Media Content
-${analysis.socialContent.map(content => `- ${content}`).join('\n')}
+${analysis.socialContent.map((content: any) => `- ${content}`).join('\n')}
 
 ## 🎯 Recommendations
 - ${analysis.seoScore < 50 ? 'Improve keyword density' : 'Good keyword optimization'}

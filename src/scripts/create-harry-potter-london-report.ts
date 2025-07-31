@@ -210,11 +210,11 @@ This comprehensive market intelligence report analyzes London's Harry Potter tou
 
 | Segment   | Activities | Percentage | Average Price |
 | --------- | ---------- | ---------- | ------------- |
-${data.priceSegments.map(seg => `| ${seg.name} | ${seg.count} | ${Math.round(seg.count/data.totalActivities*100)}% | £${seg.count > 0 ? (data.avgPrice * (seg.count/data.totalActivities)).toFixed(2) : '0.00'} |`).join('\n')}
+${data.priceSegments.map((seg: any) => `| ${seg.name} | ${seg.count} | ${Math.round(seg.count/data.totalActivities*100)}% | £${seg.count > 0 ? (data.avgPrice * (seg.count/data.totalActivities)).toFixed(2) : '0.00'} |`).join('\n')}
 
 ### Price Range Analysis
 
-${data.priceSegments.map(seg => `* **${seg.name}**: ${seg.count} activities (${Math.round(seg.count/data.totalActivities*100)}%)`).join('\n')}
+${data.priceSegments.map((seg: any) => `* **${seg.name}**: ${seg.count} activities (${Math.round(seg.count/data.totalActivities*100)}%)`).join('\n')}
 
 ## Provider Performance Analysis
 
@@ -222,12 +222,12 @@ ${data.priceSegments.map(seg => `* **${seg.name}**: ${seg.count} activities (${M
 
 | Rank | Provider                        | Activities | Avg Price | Avg Rating | Avg Reviews |
 | ---- | ------------------------------- | ---------- | --------- | ---------- | ----------- |
-${data.providerStats.slice(0, 10).map((prov, index) => `| ${index + 1} | ${prov.providerName} | ${prov._count.providerName} | £${prov._avg.priceNumeric?.toFixed(2) || 'N/A'} | ${prov._avg.ratingNumeric?.toFixed(1) || 'N/A'}/5 | ${prov._avg.reviewCountNumeric?.toFixed(0) || 'N/A'} |`).join('\n')}
+${data.providerStats.slice(0, 10).map((prov: any, index: number) => `| ${index + 1} | ${prov.providerName} | ${prov._count.providerName} | £${prov._avg.priceNumeric?.toFixed(2) || 'N/A'} | ${prov._avg.ratingNumeric?.toFixed(1) || 'N/A'}/5 | ${prov._avg.reviewCountNumeric?.toFixed(0) || 'N/A'} |`).join('\n')}
 
 ### Provider Performance Insights
 
 **Market Leaders:**
-${data.providerStats.slice(0, 3).map(prov => `* **${prov.providerName}**: ${prov._count.providerName} activities, £${prov._avg.priceNumeric?.toFixed(2) || 'N/A'} avg price, ${prov._avg.ratingNumeric?.toFixed(1) || 'N/A'}/5 avg rating`).join('\n')}
+${data.providerStats.slice(0, 3).map((prov: any) => `* **${prov.providerName}**: ${prov._count.providerName} activities, £${prov._avg.priceNumeric?.toFixed(2) || 'N/A'} avg price, ${prov._avg.ratingNumeric?.toFixed(1) || 'N/A'}/5 avg rating`).join('\n')}
 
 ## Duration Analysis
 
@@ -235,7 +235,7 @@ ${data.providerStats.slice(0, 3).map(prov => `* **${prov.providerName}**: ${prov
 
 | Duration Category | Activities | Percentage | Average Price |
 | ----------------- | ---------- | ---------- | ------------- |
-${data.durationSegments.map(seg => `| ${seg.name} | ${seg.count} | ${Math.round(seg.count/data.totalActivities*100)}% | £${seg.count > 0 ? (data.avgPrice * (seg.count/data.totalActivities)).toFixed(2) : '0.00'} |`).join('\n')}
+${data.durationSegments.map((seg: any) => `| ${seg.name} | ${seg.count} | ${Math.round(seg.count/data.totalActivities*100)}% | £${seg.count > 0 ? (data.avgPrice * (seg.count/data.totalActivities)).toFixed(2) : '0.00'} |`).join('\n')}
 
 ## Quality & Rating Analysis
 
@@ -243,27 +243,27 @@ ${data.durationSegments.map(seg => `| ${seg.name} | ${seg.count} | ${Math.round(
 
 | Rating Level        | Activities | Percentage |
 | ------------------- | ---------- | ---------- |
-${data.ratingSegments.map(seg => `| ${seg.name} | ${seg.count} | ${Math.round(seg.count/data.totalActivities*100)}% |`).join('\n')}
+${data.ratingSegments.map((seg: any) => `| ${seg.name} | ${seg.count} | ${Math.round(seg.count/data.totalActivities*100)}% |`).join('\n')}
 
 ### Quality Score Distribution
 
 | Quality Level       | Activities | Percentage |
 | ------------------- | ---------- | ---------- |
-${data.qualitySegments.map(seg => `| ${seg.name} | ${seg.count} | ${Math.round(seg.count/data.totalActivities*100)}% |`).join('\n')}
+${data.qualitySegments.map((seg: any) => `| ${seg.name} | ${seg.count} | ${Math.round(seg.count/data.totalActivities*100)}% |`).join('\n')}
 
 ## Sample Activities by Price Segment
 
 ### Budget Harry Potter Tours (£0-50)
 
-${data.sampleActivities.budget.map(activity => `* **${activity.activityName}** - £${activity.priceNumeric?.toFixed(2) || 'N/A'} (${activity.ratingNumeric?.toFixed(1) || 'N/A'}/5 rating, ${activity.reviewCountNumeric || 'N/A'} reviews)`).join('\n')}
+${data.sampleActivities.budget.map((activity: any) => `* **${activity.activityName}** - £${activity.priceNumeric?.toFixed(2) || 'N/A'} (${activity.ratingNumeric?.toFixed(1) || 'N/A'}/5 rating, ${activity.reviewCountNumeric || 'N/A'} reviews)`).join('\n')}
 
 ### Mid-Range Harry Potter Tours (£51-200)
 
-${data.sampleActivities.midRange.map(activity => `* **${activity.activityName}** - £${activity.priceNumeric?.toFixed(2) || 'N/A'} (${activity.ratingNumeric?.toFixed(1) || 'N/A'}/5 rating, ${activity.reviewCountNumeric || 'N/A'} reviews)`).join('\n')}
+${data.sampleActivities.midRange.map((activity: any) => `* **${activity.activityName}** - £${activity.priceNumeric?.toFixed(2) || 'N/A'} (${activity.ratingNumeric?.toFixed(1) || 'N/A'}/5 rating, ${activity.reviewCountNumeric || 'N/A'} reviews)`).join('\n')}
 
 ### Premium Harry Potter Tours (£200+)
 
-${data.sampleActivities.premium.map(activity => `* **${activity.activityName}** - £${activity.priceNumeric?.toFixed(2) || 'N/A'} (${activity.ratingNumeric?.toFixed(1) || 'N/A'}/5 rating, ${activity.reviewCountNumeric || 'N/A'} reviews)`).join('\n')}
+${data.sampleActivities.premium.map((activity: any) => `* **${activity.activityName}** - £${activity.priceNumeric?.toFixed(2) || 'N/A'} (${activity.ratingNumeric?.toFixed(1) || 'N/A'}/5 rating, ${activity.reviewCountNumeric || 'N/A'} reviews)`).join('\n')}
 
 ## Market Opportunities
 
@@ -275,7 +275,7 @@ ${data.sampleActivities.premium.map(activity => `* **${activity.activityName}** 
    * Monitor provider-specific pricing differences
 
 2. **Duration Strategy**  
-   * Focus on ${data.durationSegments.find(d => d.count === Math.max(...data.durationSegments.map(d => d.count)))?.name.toLowerCase()} tours for maximum market appeal  
+   * Focus on ${data.durationSegments.find((d: any) => d.count === Math.max(...data.durationSegments.map((d: any) => d.count)))?.name.toLowerCase()} tours for maximum market appeal  
    * Consider offering multiple duration options  
    * Premium pricing justified for longer, more immersive experiences
 
