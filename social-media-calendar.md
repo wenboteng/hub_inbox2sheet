@@ -1,6 +1,6 @@
 # 📱 SOCIAL MEDIA CONTENT CALENDAR
 
-*Generated on 7/15/2025*
+*Generated on 7/31/2025*
 
 ---
 
@@ -40,7 +40,63 @@
 ## ⚠️ WEEK 2: MEDIUM PRIORITY REPORTS
 
 
-### Day 1: Digital Transformation for Tour Operators
+### Day 1: GetYourGuide London Price Intelligence Report 2025
+
+**LinkedIn Post:**
+📊 GetYourGuide London Price Intelligence Report 2025: Comprehensive analysis and insights for tour operators.
+
+**Twitter Thread:**
+💡 New report available: GetYourGuide London Price Intelligence Report 2025. Get the insights you need to succeed.
+
+**Facebook Group Post:**
+📈 GetYourGuide London Price Intelligence Report 2025: Data-driven analysis to help tour operators optimize their business.
+
+**Hashtags:** #TourOperators #TravelIndustry #BusinessTips
+
+
+### Day 2: Harry Potter London Tours Market Intelligence Report 2025
+
+**LinkedIn Post:**
+📊 Harry Potter London Tours Market Intelligence Report 2025: Comprehensive analysis and insights for tour operators.
+
+**Twitter Thread:**
+💡 New report available: Harry Potter London Tours Market Intelligence Report 2025. Get the insights you need to succeed.
+
+**Facebook Group Post:**
+📈 Harry Potter London Tours Market Intelligence Report 2025: Data-driven analysis to help tour operators optimize their business.
+
+**Hashtags:** #TourOperators #TravelIndustry #BusinessTips
+
+
+### Day 3: Vienna Pricing Intelligence Report
+
+**LinkedIn Post:**
+📊 Vienna Pricing Intelligence Report: Comprehensive analysis and insights for tour operators.
+
+**Twitter Thread:**
+💡 New report available: Vienna Pricing Intelligence Report. Get the insights you need to succeed.
+
+**Facebook Group Post:**
+📈 Vienna Pricing Intelligence Report: Data-driven analysis to help tour operators optimize their business.
+
+**Hashtags:** #TourOperators #TravelIndustry #BusinessTips
+
+
+### Day 4: Seasonal Demand & Pricing Intelligence Report
+
+**LinkedIn Post:**
+📊 Seasonal Demand & Pricing Intelligence Report: Comprehensive analysis and insights for tour operators.
+
+**Twitter Thread:**
+💡 New report available: Seasonal Demand & Pricing Intelligence Report. Get the insights you need to succeed.
+
+**Facebook Group Post:**
+📈 Seasonal Demand & Pricing Intelligence Report: Data-driven analysis to help tour operators optimize their business.
+
+**Hashtags:** #TourOperators #TravelIndustry #BusinessTips
+
+
+### Day 5: Digital Transformation for Tour Operators
 
 **LinkedIn Post:**
 🚀 Digital Transformation for Tour Operators: 924 mentions across 8 platforms reveal critical insights.

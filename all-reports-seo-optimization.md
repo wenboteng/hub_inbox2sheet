@@ -1,16 +1,16 @@
 # 🚀 ALL REPORTS SEO OPTIMIZATION STRATEGY
 
-*Generated on 7/15/2025*
+*Generated on 7/31/2025*
 
 ---
 
 ## 📊 OVERVIEW
 
-**Total Reports**: 5  
+**Total Reports**: 11  
 **High Priority**: 2  
-**Medium Priority**: 1  
-**Low Priority**: 2  
-**Average SEO Score**: 51/100
+**Medium Priority**: 5  
+**Low Priority**: 4  
+**Average SEO Score**: 58/100
 
 ---
 
@@ -66,6 +66,38 @@
 ## ⚠️ MEDIUM PRIORITY REPORTS
 
 
+### GetYourGuide London Price Intelligence Report 2025
+- **URL**: https://otaanswers.com/reports/getyourguide-london-price-intelligence-report-2025
+- **SEO Score**: 65/100
+- **Word Count**: 1,099
+- **Keywords**: 5 target keywords
+- **Status**: Optimize within 30 days
+
+
+### Harry Potter London Tours Market Intelligence Report 2025
+- **URL**: https://otaanswers.com/reports/harry-potter-london-tours-report-2025
+- **SEO Score**: 65/100
+- **Word Count**: 1,233
+- **Keywords**: 5 target keywords
+- **Status**: Optimize within 30 days
+
+
+### Vienna Pricing Intelligence Report
+- **URL**: https://otaanswers.com/reports/vienna-pricing-intelligence-report
+- **SEO Score**: 65/100
+- **Word Count**: 1,459
+- **Keywords**: 5 target keywords
+- **Status**: Optimize within 30 days
+
+
+### Seasonal Demand & Pricing Intelligence Report
+- **URL**: https://otaanswers.com/reports/seasonal-pricing-intelligence
+- **SEO Score**: 65/100
+- **Word Count**: 1,019
+- **Keywords**: 5 target keywords
+- **Status**: Optimize within 30 days
+
+
 ### Digital Transformation for Tour Operators
 - **URL**: https://otaanswers.com/reports/digital-transformation-for-tour-operators
 - **SEO Score**: 80/100
@@ -77,6 +109,22 @@
 ---
 
 ## ✅ LOW PRIORITY REPORTS
+
+
+### GetYourGuide London Market Intelligence Report 2025
+- **URL**: https://otaanswers.com/reports/gyg-london-market-intelligence-report-2025
+- **SEO Score**: 60/100
+- **Word Count**: 794
+- **Keywords**: 5 target keywords
+- **Status**: Monitor and improve gradually
+
+
+### London Market Intelligence Report 2025
+- **URL**: https://otaanswers.com/reports/london-market-intelligence-report-2025
+- **SEO Score**: 60/100
+- **Word Count**: 659
+- **Keywords**: 5 target keywords
+- **Status**: Monitor and improve gradually
 
 
 ### Average Price & Rating by City/Country
@@ -136,6 +184,30 @@
 
 
 ### Week 2: Medium Priority Reports
+
+**GetYourGuide London Price Intelligence Report 2025**
+- 📊 GetYourGuide London Price Intelligence Report 2025: Comprehensive analysis and insights for tour operators.
+- 💡 New report available: GetYourGuide London Price Intelligence Report 2025. Get the insights you need to succeed.
+- 📈 GetYourGuide London Price Intelligence Report 2025: Data-driven analysis to help tour operators optimize their business.
+
+
+**Harry Potter London Tours Market Intelligence Report 2025**
+- 📊 Harry Potter London Tours Market Intelligence Report 2025: Comprehensive analysis and insights for tour operators.
+- 💡 New report available: Harry Potter London Tours Market Intelligence Report 2025. Get the insights you need to succeed.
+- 📈 Harry Potter London Tours Market Intelligence Report 2025: Data-driven analysis to help tour operators optimize their business.
+
+
+**Vienna Pricing Intelligence Report**
+- 📊 Vienna Pricing Intelligence Report: Comprehensive analysis and insights for tour operators.
+- 💡 New report available: Vienna Pricing Intelligence Report. Get the insights you need to succeed.
+- 📈 Vienna Pricing Intelligence Report: Data-driven analysis to help tour operators optimize their business.
+
+
+**Seasonal Demand & Pricing Intelligence Report**
+- 📊 Seasonal Demand & Pricing Intelligence Report: Comprehensive analysis and insights for tour operators.
+- 💡 New report available: Seasonal Demand & Pricing Intelligence Report. Get the insights you need to succeed.
+- 📈 Seasonal Demand & Pricing Intelligence Report: Data-driven analysis to help tour operators optimize their business.
+
 
 **Digital Transformation for Tour Operators**
 - 🚀 Digital Transformation for Tour Operators: 924 mentions across 8 platforms reveal critical insights.
